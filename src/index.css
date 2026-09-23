@@ -1,0 +1,64 @@
+html {
+  /* Reserved permanently (not just during boot) so the scrollbar
+     appearing/disappearing never shifts the fixed header/content width -
+     the classic "sudden scrollbar" CLS trigger. */
+  scrollbar-gutter: stable;
+}
+
+html,
+body,
+#root,
+.app,
+.content {
+  height: 100%;
+  width: 100%;
+  font-family: "Source Sans Pro", sans-serif;
+  overflow: auto;
+}
+.main-content{
+  display: flex;
+  margin-top: 48px;
+  overflow: hidden;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+
+}
+
+
+
+
+::-webkit-scrollbar {
+  width: 5px;
+  border-radius: 10px;
+  height: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #e0e0e0;
+  border-radius: 10px;
+
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.custom-header {
+  background-color: #c30000; /* Your custom header color */
+  color: white;
+  font-weight: bold;
+}
+
+

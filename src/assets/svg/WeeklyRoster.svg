@@ -1,0 +1,35 @@
+<svg width="320" height="240" viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="320" height="240" rx="16" fill="#F8FAFC"/>
+
+  <!-- Floating Card -->
+  <rect x="50" y="40" width="220" height="130" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+
+  <!-- Top Bar -->
+  <rect x="70" y="60" width="120" height="10" rx="5" fill="#CBD5F5"/>
+
+  <!-- Input Fields -->
+  <rect x="70" y="80" width="180" height="12" rx="6" fill="#E2E8F0"/>
+  <rect x="70" y="100" width="160" height="12" rx="6" fill="#E2E8F0"/>
+  <rect x="70" y="120" width="140" height="12" rx="6" fill="#E2E8F0"/>
+
+  <!-- Highlight Missing -->
+  <rect x="70" y="140" width="180" height="12" rx="6" fill="#FEF9C3"/>
+
+  <!-- Decorative Circles -->
+  <circle cx="60" cy="30" r="8" fill="#E0E7FF"/>
+  <circle cx="260" cy="30" r="6" fill="#FDE68A"/>
+
+  <!-- Warning Icon -->
+  <circle cx="160" cy="185" r="16" fill="#FEF3C7"/>
+  <path d="M160 177V188" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="160" cy="193" r="2" fill="#F59E0B"/>
+
+  <!-- Text -->
+  <text x="160" y="215" text-anchor="middle" fill="#64748B" font-size="13" font-family="Arial, sans-serif">
+    Select Vertical, Team Function,
+  </text>
+  <text x="160" y="230" text-anchor="middle" fill="#64748B" font-size="13" font-family="Arial, sans-serif">
+    Domain & SubDomain
+  </text>
+</svg>

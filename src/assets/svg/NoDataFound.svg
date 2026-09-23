@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" role="img" aria-labelledby="title desc" preserveAspectRatio="xMidYMid meet">
+<title id="title">No Data Found</title>
+<desc id="desc">Abstract illustration with futuristic gradient shapes, magnifier, and floating animated elements to show no data state.</desc>
+ 
+  <defs>
+<!-- Gradient -->
+<linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+<stop offset="0%" stop-color="#667eea"/>
+<stop offset="100%" stop-color="#764ba2"/>
+</linearGradient>
+<linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
+<stop offset="0%" stop-color="#43cea2"/>
+<stop offset="100%" stop-color="#185a9d"/>
+</linearGradient>
+ 
+    <!-- Glow -->
+<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+<feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+<feMerge>
+<feMergeNode in="blur"/>
+<feMergeNode in="SourceGraphic"/>
+</feMerge>
+</filter>
+</defs>
+ 
+  <!-- Background Circles -->
+<circle cx="200" cy="150" r="120" fill="url(#grad1)" opacity="0.15"/>
+<circle cx="700" cy="380" r="160" fill="url(#grad2)" opacity="0.12"/>
+ 
+  <!-- Floating abstract shapes -->
+<circle class="float" cx="250" cy="330" r="20" fill="url(#grad1)" filter="url(#glow)"/>
+<circle class="float" cx="640" cy="120" r="14" fill="url(#grad2)" filter="url(#glow)"/>
+<rect class="float" x="720" y="220" width="26" height="26" rx="6" fill="url(#grad1)" filter="url(#glow)"/>
+ 
+  <!-- Magnifier Glass -->
+<g transform="translate(450,220) scale(1.2)">
+<circle cx="0" cy="0" r="80" fill="white" stroke="url(#grad1)" stroke-width="6" filter="url(#glow)"/>
+<circle cx="0" cy="0" r="60" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="1.5"/>
+<line x1="50" y1="50" x2="100" y2="100" stroke="url(#grad2)" stroke-width="10" stroke-linecap="round"/>
+</g>
+ 
+  <!-- Text -->
+<text x="50%" y="390" text-anchor="middle" font-size="36" font-family="Poppins, sans-serif" fill="#333" font-weight="700">
+
+    No Data Found
+</text>
+<text x="50%" y="420" text-anchor="middle" font-size="16" font-family="Poppins, sans-serif" fill="#666">
+
+    Try adjusting filters or uploading new data
+</text>
+ 
+  <style>
+
+    /* Floating animations */
+
+    .float {
+
+      animation: floaty 4s ease-in-out infinite;
+
+    }
+
+    .float:nth-child(1) { animation-delay: 0s; }
+
+    .float:nth-child(2) { animation-delay: 1s; }
+
+    .float:nth-child(3) { animation-delay: 2s; }
+ 
+    @keyframes floaty {
+
+      0%, 100% { transform: translateY(0px); }
+
+      50% { transform: translateY(-15px); }
+
+    }
+</style>
+</svg>
+
+ 

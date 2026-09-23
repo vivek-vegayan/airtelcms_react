@@ -1,0 +1,57 @@
+<svg
+  width="420"
+  height="300"
+  viewBox="0 0 420 300"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Soft Background Glow -->
+  <circle cx="210" cy="260" r="90" fill="#EEF2FF" opacity="0.35"/>
+
+  <!-- Main Card -->
+  <rect
+    x="60"
+    y="60"
+    width="300"
+    height="170"
+    rx="20"
+    fill="#FFFFFF"
+    stroke="#E5EAF2"
+    stroke-width="1.5"
+  />
+
+  <!-- Header Bar -->
+  <rect
+    x="60"
+    y="60"
+    width="300"
+    height="50"
+    rx="20"
+    fill="#F4F6FB"
+  />
+
+  <!-- Header Dots -->
+  <circle cx="115" cy="85" r="6" fill="#5C6BC0" opacity="0.6"/>
+  <circle cx="140" cy="85" r="6" fill="#5C6BC0" opacity="0.35"/>
+  <circle cx="165" cy="85" r="6" fill="#5C6BC0" opacity="0.2"/>
+
+  <!-- Content Rows -->
+  <rect x="110" y="135" width="230" height="14" rx="7" fill="#E9EDF5"/>
+  <rect x="110" y="160" width="200" height="14" rx="7" fill="#E9EDF5"/>
+  <rect x="110" y="185" width="170" height="14" rx="7" fill="#E9EDF5"/>
+
+  <!-- Floating Circle -->
+  <circle
+    cx="210"
+    cy="240"
+    r="34"
+    fill="#FFFFFF"
+    stroke="#E5EAF2"
+    stroke-width="1.5"
+  />
+
+  <!-- Filter Icon -->
+  <path
+    d="M195 230H225L212 250V265L205 260V250L195 230Z"
+    fill="#5C6BC0"
+  />
+</svg>

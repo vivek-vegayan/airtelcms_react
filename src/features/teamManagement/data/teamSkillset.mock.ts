@@ -1,0 +1,36 @@
+import type { TeamSkillSet } from "../types/teamSkillset.types";
+
+export const TEAM_SKILLSET_DATA: TeamSkillSet[] = [
+  {
+    olmId: "OLM001",
+    employeeName: "Rahul Sharma",
+    teamFunction: "Engineering",
+    subFunction: "Frontend",
+    designation: "Senior Engineer",
+    role: "Developer",
+    level: "L3",
+    payRoll: "Onroll",
+    companyName: "ABC Corp",
+    domain: "React",
+    vendor: ["TCS"],
+    gender: "Male",
+    officeLocation: "Pune",
+    status: "Active",
+  },
+  {
+    olmId: "OLM002",
+    employeeName: "Sneha Patil",
+    teamFunction: "Engineering",
+    subFunction: "Backend",
+    designation: "Engineer",
+    role: "Developer",
+    level: "L2",
+    payRoll: "Offroll",
+    companyName: "ABC Corp",
+    domain: "Java",
+    vendor: ["Infosys"],
+    gender: "Female",
+    officeLocation: "Bangalore",
+    status: "Active",
+  },
+];

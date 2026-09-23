@@ -1,0 +1,58 @@
+<!--
+  External logback config for LINUX deployments.
+  The logback-spring.xml packaged inside the WAR hardcodes LOG_DIR=D:/CHM_LOGS
+  (a Windows path), so on Linux the service passes the Spring argument
+      logging.config=/opt/chm/config/logback-linux.xml
+  (see chm-backend.service). Identical appender/logger layout, Linux log dir.
+-->
+<configuration>
+
+    <property name="LOG_DIR" value="/var/log/chm" />
+
+    <!-- ================= CONSOLE (captured by journald) ================= -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- ================= CANCEL CRQ APPENDER ================= -->
+    <appender name="CANCEL_CRQ_APPENDER"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/%d{dd-MM-yyyy}/cancel_crq-%d{dd-MM-yyyy}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- ================= CREATE CRQ APPENDER ================= -->
+    <appender name="CREATE_CRQ_APPENDER"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/%d{dd-MM-yyyy}/create_crq-%d{dd-MM-yyyy}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <logger name="Create_Crq_Logger" level="INFO" additivity="false">
+        <appender-ref ref="CREATE_CRQ_APPENDER"/>
+    </logger>
+
+    <logger name="Cancel_Crq_Logger" level="INFO" additivity="false">
+        <appender-ref ref="CANCEL_CRQ_APPENDER"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>

@@ -1,0 +1,57 @@
+<svg
+  width="420"
+  height="300"
+  viewBox="0 0 420 300"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Soft Background Glow -->
+  <circle cx="210" cy="245" r="95" fill="#FDECEA" opacity="0.5"/>
+
+  <!-- Calendar Card -->
+  <rect
+    x="60"
+    y="55"
+    width="300"
+    height="175"
+    rx="20"
+    fill="#FFFFFF"
+    stroke="#E5EAF2"
+    stroke-width="1.5"
+  />
+
+  <!-- Header Bar -->
+  <rect x="60" y="55" width="300" height="46" rx="18" fill="#F4F6FB"/>
+  <rect x="60" y="79" width="300" height="22" fill="#F4F6FB"/>
+
+  <!-- Calendar Hanging Rings -->
+  <rect x="136" y="42" width="9" height="24" rx="4.5" fill="#C7CFE0"/>
+  <rect x="275" y="42" width="9" height="24" rx="4.5" fill="#C7CFE0"/>
+
+  <!-- Month Title Placeholder -->
+  <rect x="155" y="71" width="70" height="10" rx="5" fill="#AEB8CE"/>
+
+  <!-- Empty Day Grid (roster not yet populated) -->
+  <rect x="84"  y="113" width="32" height="32" rx="7" fill="none" stroke="#E4E9F2" stroke-width="1.5" stroke-dasharray="4 3.5"/>
+  <rect x="138" y="113" width="32" height="32" rx="7" fill="none" stroke="#E4E9F2" stroke-width="1.5" stroke-dasharray="4 3.5"/>
+  <rect x="192" y="113" width="32" height="32" rx="7" fill="none" stroke="#E4E9F2" stroke-width="1.5" stroke-dasharray="4 3.5"/>
+  <rect x="246" y="113" width="32" height="32" rx="7" fill="none" stroke="#E4E9F2" stroke-width="1.5" stroke-dasharray="4 3.5"/>
+  <rect x="300" y="113" width="32" height="32" rx="7" fill="none" stroke="#E4E9F2" stroke-width="1.5" stroke-dasharray="4 3.5"/>
+
+  <rect x="84"  y="159" width="32" height="32" rx="7" fill="none" stroke="#E4E9F2" stroke-width="1.5" stroke-dasharray="4 3.5"/>
+  <rect x="138" y="159" width="32" height="32" rx="7" fill="none" stroke="#E4E9F2" stroke-width="1.5" stroke-dasharray="4 3.5"/>
+  <rect x="192" y="159" width="32" height="32" rx="7" fill="none" stroke="#E4E9F2" stroke-width="1.5" stroke-dasharray="4 3.5"/>
+
+  <!-- Floating Alert Badge -->
+  <circle cx="330" cy="222" r="33" fill="#FDECEA"/>
+  <circle cx="330" cy="222" r="33" fill="none" stroke="#F6CFC9" stroke-width="1.5"/>
+  <path
+    d="M330 204L349 236H311L330 204Z"
+    fill="none"
+    stroke="#E5544A"
+    stroke-width="3"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+  />
+  <line x1="330" y1="216" x2="330" y2="225" stroke="#E5544A" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="330" cy="230" r="1.8" fill="#E5544A"/>
+</svg>

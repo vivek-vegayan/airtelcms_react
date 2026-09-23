@@ -1,0 +1,46 @@
+# ============================================================================
+# CHM Airtel Scheduler - Spring Boot backend systemd unit
+# Install as: /etc/systemd/system/chm-backend.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now chm-backend
+# ============================================================================
+[Unit]
+Description=CHM Airtel Backend (Spring Boot)
+After=network.target mysqld.service mysql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=chm
+Group=chm
+WorkingDirectory=/opt/chm/app
+
+# JVM sizing: adjust -Xmx to ~50-60% of RAM available to this service.
+# logging.config points at the external Linux logback (WAR's copy hardcodes D:/CHM_LOGS).
+# file.base.path overrides the Windows D:/ paths baked into application.properties.
+ExecStart=/usr/bin/java \
+    -Xms512m -Xmx2g -XX:+UseG1GC \
+    -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Kolkata \
+    -jar /opt/chm/app/airtelmanagement.war \
+    --logging.config=/opt/chm/config/logback-linux.xml \
+    --logging.level.com.vegayan.airtelmanagement=INFO \
+    --file.base.path=/opt/chm/files_path \
+    --file.base.path2=/opt/chm/files_path2
+
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+# Hardening (paths the app legitimately writes stay writable)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/log/chm /opt/chm/files_path /opt/chm/files_path2 /home/vegayan/simplus
+
+# stdout/stderr -> journald (view with: journalctl -u chm-backend -f)
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

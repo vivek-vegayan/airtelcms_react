@@ -1,0 +1,14 @@
+# CHM - logrotate policy for application file logs written by logback.
+# Install as: /etc/logrotate.d/chm-backend
+# Note: logback already date-rolls its own files with maxHistory=30; this entry
+# only compresses old dated directories' logs and enforces a disk-usage cap.
+/var/log/chm/*/*.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    su chm chm
+}
