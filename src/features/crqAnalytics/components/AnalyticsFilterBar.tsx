@@ -4,8 +4,9 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { QUICK_DATE_OPTIONS } from "../utils/dateRange";
-import { CIRCLE_OPTIONS, type UseAnalyticsFiltersReturn } from "../hooks/useAnalyticsFilters";
+import type { UseAnalyticsFiltersReturn } from "../hooks/useAnalyticsFilters";
 import { useApiRefresh, type ApiTag } from "../../../hooks/useApiRefresh";
+import { useGetCircleDropdownQuery } from "../../cabManager/api/cabManagerApiSlice";
 
 // Every analytics endpoint provides this one tag, so a single invalidation
 // reloads whichever dashboard is mounted around this bar.
@@ -43,6 +44,8 @@ export function AnalyticsFilterBar({
 }: Props) {
   const theme = useTheme();
   const { refresh, isRefreshing } = useApiRefresh({ tags: ANALYTICS_TAGS });
+  // Same source as the All CRQs circle filter: GET /cab/admin/circledropdown.
+  const { data: circles } = useGetCircleDropdownQuery();
 
   return (
     <Box
@@ -79,9 +82,10 @@ export function AnalyticsFilterBar({
         onChange={(e) => setCircle(e.target.value)}
         sx={{ minWidth: 110 }}
       >
-        {CIRCLE_OPTIONS.map((c) => (
-          <MenuItem key={c} value={c}>
-            {c}
+        <MenuItem value="All">All</MenuItem>
+        {(circles ?? []).map((c) => (
+          <MenuItem key={c.circleCode} value={c.circleCode}>
+            {c.circleCode}
           </MenuItem>
         ))}
       </TextField>

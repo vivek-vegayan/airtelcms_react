@@ -6,8 +6,6 @@ import { authStorage } from "../../../app/store/auth.storage";
 import { resolveQuickRange, type QuickDateFilter } from "../utils/dateRange";
 import type { CRQAnalyticsFilterParams } from "../types/crqAnalytics.types";
 
-export const CIRCLE_OPTIONS = ["All", "MH", "KA", "GJ", "DL", "TN", "AP", "WB", "UP-E", "RJ", "MP"];
-
 /** Org-hierarchy scope + circle + date range, combined into the filter params every analytics endpoint expects. */
 export function useAnalyticsFilters() {
   const loggedUser = authStorage.getUser();
