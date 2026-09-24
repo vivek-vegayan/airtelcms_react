@@ -211,24 +211,15 @@ const TeamReportMainPage = lazy(() =>
     default: m.TeamReportMainPage,
   })),
 );
+const CrqReassignMainPage = lazy(() =>
+  import("../features/crqReassign").then((m) => ({
+    default: m.CrqReassignMainPage,
+  })),
+);
 const DataAgentPage = lazy(
   () => import("../features/dataAgent/pages/DataAgentPage"),
 );
-const SftpManagementMainPageTab = lazy(() =>
-  import("../features/sftpManagement").then((m) => ({
-    default: m.SftpManagementMainPageTab,
-  })),
-);
-const WindowsSftpPage = lazy(() =>
-  import("../features/sftpManagement").then((m) => ({
-    default: m.WindowsSftpPage,
-  })),
-);
-const LinuxSftpPage = lazy(() =>
-  import("../features/sftpManagement").then((m) => ({
-    default: m.LinuxSftpPage,
-  })),
-);
+const SftpAppRedirect = lazy(() => import("./SftpAppRedirect"));
 
 // The body each My Dashboard tab renders, keyed by the segment the registry
 // declares — so a renamed tab cannot leave the router pointing at a path
@@ -399,6 +390,20 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         />
 
         <Route
+          path="crq-reassignment"
+          element={
+            <PrivateRoute
+              element={
+                <CrqReassignMainPage
+                  setDynamicHeaderText={setDynamicHeaderText}
+                  setDynamicHeaderIcon={setDynamicHeaderIcon}
+                />
+              }
+            />
+          }
+        />
+
+        <Route
           path="roster"
           element={
             <PrivateRoute
@@ -505,23 +510,11 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           */}
           <Route path="auditlog" element={<AuditLog />} />
         </Route>
+        {/* Moved to its own app (cms_sftp_react) — RBAC-gated hand-off. */}
         <Route
-          path="sftp-management"
-          element={
-            <PrivateRoute
-              element={
-                <SftpManagementMainPageTab
-                  setDynamicHeaderText={setDynamicHeaderText}
-                  setDynamicHeaderIcon={setDynamicHeaderIcon}
-                />
-              }
-            />
-          }
-        >
-          <Route index element={<Navigate to="windows" replace />} />
-          <Route path="windows" element={<WindowsSftpPage />} />
-          <Route path="linux" element={<LinuxSftpPage />} />
-        </Route>
+          path="sftp-management/*"
+          element={<PrivateRoute element={<SftpAppRedirect />} />}
+        />
         <Route path="global-settings">
           <Route
             element={<PrivateRoute element={<NetworkManagementTabView />} />}

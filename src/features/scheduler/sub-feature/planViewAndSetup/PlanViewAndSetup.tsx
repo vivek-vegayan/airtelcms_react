@@ -46,7 +46,9 @@ export const PlanViewAndSetup = () => {
         sx={{
           position: "relative",
           px: { xs: 1.5, md: 2.5 },
-          py: { xs: 1.5, md: 2 },
+          // The tab shell already pads the page bottom — only a small top gap here.
+          pt: { xs: 1, md: 1.5 },
+          pb: 0,
         }}
       >
         {/* Pass ALL filter values — not just subDomain */}

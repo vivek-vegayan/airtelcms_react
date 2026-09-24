@@ -33,6 +33,8 @@ import { isoWeekLabel } from "../../util/Futureweek.utils";
 
 interface GridscreenMainProps {
   subDomainId: number | string | undefined;
+  /** Sent with subDomainId 0 ("ALL") so the proc can scope by domain. */
+  domainId?: number;
 }
 
 interface PrimaryToolbarProps {
@@ -210,7 +212,7 @@ function PrimaryToolbar({
 }
 
 
-export default function GridscreenMain({ subDomainId }: GridscreenMainProps) {
+export default function GridscreenMain({ subDomainId, domainId }: GridscreenMainProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const accent    = theme.palette.primary.main;
@@ -251,9 +253,9 @@ export default function GridscreenMain({ subDomainId }: GridscreenMainProps) {
 
   useEffect(() => {
     if (subDomainId !== undefined && subDomainId !== null && subDomainId !== "") {
-      load(Number(subDomainId));
+      load(Number(subDomainId), domainId);
     }
-  }, [subDomainId, load]);
+  }, [subDomainId, domainId, load]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const weekLabel = isoWeek > 0 ? isoWeekLabel(isoYear, isoWeek) : "";
@@ -303,7 +305,7 @@ export default function GridscreenMain({ subDomainId }: GridscreenMainProps) {
       clearPendingRef.current?.();
 
       if (subDomainId !== undefined && subDomainId !== null && subDomainId !== "") {
-        load(Number(subDomainId));
+        load(Number(subDomainId), domainId);
       }
 
       setToast({
@@ -318,7 +320,7 @@ export default function GridscreenMain({ subDomainId }: GridscreenMainProps) {
         severity: "error",
       });
     }
-  }, [pendingChanges, pendingCount, employees, isoYear, isoWeek, updateBatch, subDomainId, load]);
+  }, [pendingChanges, pendingCount, employees, isoYear, isoWeek, updateBatch, subDomainId, domainId, load]);
 
   // ── Edit-mode hint text ───────────────────────────────────────────────────
   // FIX: original was missing the "row" key, causing a TS error.

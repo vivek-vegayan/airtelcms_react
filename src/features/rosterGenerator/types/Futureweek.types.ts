@@ -31,6 +31,8 @@ export interface FutureWeekApiResponse {
 }
 
 export interface FutureWeekQueryParams {
+  /** Used by the proc when subDomainId is 0 ("ALL"). */
+  domainId?: number;
   subDomainId: number;
   pageNumber?: number;
   pageSize?: number;

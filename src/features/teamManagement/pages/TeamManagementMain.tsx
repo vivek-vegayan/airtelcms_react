@@ -38,6 +38,7 @@ export const TeamManagementMain = () => {
     refetch: refetchEmployees,
   } = useGetEmployeesBySubDomainQuery(
     {
+      domainId: filters.domain,
       subDomainId: subDomainId as number,
       employeeStatus: status,
       page: 0,
@@ -51,7 +52,7 @@ export const TeamManagementMain = () => {
     isFetching: isFetchingOverview,
     refetch: refetchOverview,
   } = useGetEmpCountBySubDomainIdQuery(
-    { subDomainId: subDomainId as number },
+    { subDomainId: subDomainId as number, domainId: filters.domain },
     { skip: subDomainId == null },
   );
 

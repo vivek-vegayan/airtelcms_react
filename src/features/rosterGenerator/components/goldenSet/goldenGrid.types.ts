@@ -53,5 +53,6 @@ export interface GoldenGridTokens {
 
 export interface GoldenGridScreenProps {
   teamId?: number | string;
+  domainId?: number;
   subTeamId?: number | string;
 }

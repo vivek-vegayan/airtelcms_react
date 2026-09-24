@@ -61,9 +61,11 @@ export const rosterGenerationApiSlice = api.injectEndpoints({
 
     // ── Golden Set ────────────────────────────────────────────────────────────
     getGoldenSet: builder.query<GoldenSetApiResponse, GoldenSetQueryParams>({
-      query: ({ subDomainId }) => ({
-        url: `goldenset?subDomainId=${subDomainId}`,
+      query: ({ subDomainId, domainId }) => ({
+        url: "goldenset",
         method: "GET",
+        // undefined params are dropped, so an unpicked domain is not sent
+        params: { subDomainId, domainId },
       }),
       providesTags: ["GoldenSetTag"],  // ✅ already correct
     }),
@@ -84,13 +86,11 @@ export const rosterGenerationApiSlice = api.injectEndpoints({
 
     // ── Future Week ───────────────────────────────────────────────────────────
     getFutureWeek: builder.query<FutureWeekApiResponse, FutureWeekQueryParams>({
-      query: ({ subDomainId, pageNumber = 1, pageSize = 50 }) => ({
-        url:
-          `rostergenration/futureweek` +
-          `?subDomainId=${subDomainId}` +
-          `&pageNumber=${pageNumber}` +
-          `&pageSize=${pageSize}`,
+      query: ({ domainId, subDomainId, pageNumber = 1, pageSize = 50 }) => ({
+        url: "rostergenration/futureweek",
         method: "GET",
+        // subDomainId 0 = "ALL" → the proc scopes by domainId instead.
+        params: { domainId, subDomainId, pageNumber, pageSize },
       }),
       providesTags: ["FutureWeekTag"],  // ✅ ADD THIS — was missing
     }),

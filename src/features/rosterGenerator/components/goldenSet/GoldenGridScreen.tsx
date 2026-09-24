@@ -20,6 +20,7 @@ import GoldenGridTable from "./GoldenGridTable";
 import AnalyticsModal from "./AnalyticsModal";
 
 export default function GoldenGridScreen({
+  domainId,
   subTeamId,
 }: GoldenGridScreenProps) {
   const theme = useTheme();
@@ -30,7 +31,7 @@ export default function GoldenGridScreen({
     typeof subTeamId === "string" ? parseInt(subTeamId, 10) : (subTeamId ?? 0);
 
   const { allEmps, allRoles, isLoading, error, refetch, updateDailyGoldenSet, isSaving } =
-    useGoldenGridData(subDomainId);
+    useGoldenGridData(subDomainId, domainId);
 
   const editing_ = useGoldenGridEditing(allEmps, updateDailyGoldenSet);
   const {

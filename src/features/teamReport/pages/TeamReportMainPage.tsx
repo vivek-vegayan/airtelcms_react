@@ -1,5 +1,5 @@
-import { type JSX, type ReactNode, useEffect, useState } from "react";
-import { Box, Button, Chip, Paper, Tab, Tabs, alpha, useTheme } from "@mui/material";
+import { type JSX, type ReactNode, useEffect, useMemo, useState } from "react";
+import { Box, Button, Chip, Paper, Tab, Tabs, Typography, alpha, useTheme } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -8,15 +8,21 @@ import dayjs, { type Dayjs } from "dayjs";
 import { SHELL_MIN_HEIGHT } from "../../../components/layout/layoutConstants";
 import { ReportTable } from "../components/ReportTable";
 import type { ReportDateRange } from "../types/teamReport.types";
+import { usePermission } from "../../../rbac/usePermission";
 
 interface TeamReportMainPageProps {
   setDynamicHeaderText: (text: string) => void;
   setDynamicHeaderIcon: (icon: JSX.Element) => void;
 }
 
+/** WEB_MODULE name, as created in Global Settings → Admin Settings. */
+export const TEAM_REPORT_MODULE_NAME = "Team_Report";
+
 interface ReportTab {
   key: string;
   label: string;
+  /** WEB_SUB_MODULE name under Team_Report; must match the database row exactly. */
+  subModule: string;
   url: string;
   renderCell?: (key: string, value: string | number | null) => ReactNode | undefined;
 }
@@ -28,14 +34,21 @@ const renderCrqRemark = (key: string, value: string | number | null) =>
 
 // One entry per report. Every report shares the page's date range and the
 // same (actor, start, end, offset, limit) procedure shape, so adding one is
-// just a new entry here plus its backend endpoint.
+// just a new entry here plus its backend endpoint and a matching sub-module
+// under Team_Report. A tab shows only for roles granted its sub-module.
 const REPORT_TABS: ReportTab[] = [
-  { key: "leave", label: "Leaves Reports", url: "/team-report/leave" },
-  { key: "work-status", label: "WFH & WFO Status", url: "/team-report/work-status" },
-  { key: "week-off", label: "Week Offs Per Employee", url: "/team-report/week-off" },
-  { key: "shift-swap", label: "Shift Swap Report", url: "/team-report/shift-swap" },
-  { key: "shift-change", label: "Shift Change Report", url: "/team-report/shift-change" },
-  { key: "crq", label: "CRQ Report", url: "/crq-analytics-new/crq-report", renderCell: renderCrqRemark },
+  { key: "leave", label: "Leaves Reports", subModule: "Leaves Reports", url: "/team-report/leave" },
+  { key: "work-status", label: "WFH & WFO Status", subModule: "WFH & WFO Status", url: "/team-report/work-status" },
+  { key: "week-off", label: "Week Offs Per Employee", subModule: "Week Offs Per Employee", url: "/team-report/week-off" },
+  { key: "shift-swap", label: "Shift Swap Report", subModule: "Shift Swap Report", url: "/team-report/shift-swap" },
+  { key: "shift-change", label: "Shift Change Report", subModule: "Shift Change Report", url: "/team-report/shift-change" },
+  {
+    key: "crq",
+    label: "CRQ Report",
+    subModule: "CRQ Report",
+    url: "/crq-analytics-new/crq-report",
+    renderCell: renderCrqRemark,
+  },
 ];
 
 const ISO_DATE = "YYYY-MM-DD";
@@ -59,6 +72,11 @@ const pointerIndicator = (color: string) => ({
 
 export default function TeamReportMainPage({ setDynamicHeaderText, setDynamicHeaderIcon }: TeamReportMainPageProps) {
   const theme = useTheme();
+  const { hasSubModule } = usePermission();
+  const visibleTabs = useMemo(
+    () => REPORT_TABS.filter((t) => hasSubModule(TEAM_REPORT_MODULE_NAME, t.subModule)),
+    [hasSubModule],
+  );
   const [activeReport, setActiveReport] = useState(REPORT_TABS[0].key);
   const [start, setStart] = useState<Dayjs | null>(dayjs());
   const [end, setEnd] = useState<Dayjs | null>(dayjs());
@@ -87,7 +105,7 @@ export default function TeamReportMainPage({ setDynamicHeaderText, setDynamicHea
     }
   };
 
-  const report = REPORT_TABS.find((t) => t.key === activeReport) ?? REPORT_TABS[0];
+  const report = visibleTabs.find((t) => t.key === activeReport) ?? visibleTabs[0];
 
   return (
     <Box
@@ -149,6 +167,14 @@ export default function TeamReportMainPage({ setDynamicHeaderText, setDynamicHea
           </Button>
         </Box>
 
+        {!report ? (
+          <Paper variant="outlined" sx={{ px: 3, py: 6, textAlign: "center", borderStyle: "dashed" }}>
+            <Typography color="text.secondary">
+              No reports are assigned to your role. Ask an admin to grant Team_Report sub-modules.
+            </Typography>
+          </Paper>
+        ) : (
+        <>
         <Paper
           variant="outlined"
           sx={{ bgcolor: alpha(theme.palette.info.main, theme.palette.mode === "dark" ? 0.12 : 0.08), borderRadius: 1 }}
@@ -168,7 +194,7 @@ export default function TeamReportMainPage({ setDynamicHeaderText, setDynamicHea
               "& .MuiTabs-indicator": pointerIndicator(alpha(theme.palette.primary.main, 0.5)),
             }}
           >
-            {REPORT_TABS.map((t) => (
+            {visibleTabs.map((t) => (
               <Tab key={t.key} value={t.key} label={t.label} />
             ))}
           </Tabs>
@@ -185,6 +211,8 @@ export default function TeamReportMainPage({ setDynamicHeaderText, setDynamicHea
             renderCell={report.renderCell}
           />
         </Box>
+        </>
+        )}
       </Box>
     </Box>
   );

@@ -35,16 +35,18 @@ export const orgHierarchyApi = api.injectEndpoints({
     getEmployeesBySubDomain: builder.query<
       PaginatedResponse<EmployeeDto>,
       {
+        domainId?: number;
         subDomainId: number;
         employeeStatus: "ACTIVE" | "INACTIVE";
         page: number;
         size: number;
       }
     >({
-      query: ({ subDomainId, employeeStatus, page, size }) => ({
+      query: ({ domainId, subDomainId, employeeStatus, page, size }) => ({
         url: "/users/v3/getemployeesbysubdomain",
         method: "GET",
         params: {
+          domainId,
           subDomainId,
           employeeStatus,
           page,
@@ -67,12 +69,12 @@ export const orgHierarchyApi = api.injectEndpoints({
         teamLead: string;
         totalCount: number;
       }[],
-      { subDomainId: number }
+      { subDomainId: number; domainId?: number }
     >({
-      query: ({ subDomainId }) => ({
+      query: ({ subDomainId, domainId }) => ({
         url: "/teamoverview/getempcountbysubdomainid",
         method: "GET",
-        params: { subDomainId },
+        params: { subDomainId, domainId },
       }),
       keepUnusedDataFor: 6,
     }),

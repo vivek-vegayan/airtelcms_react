@@ -58,6 +58,7 @@ export const CrqCard: React.FC<CrqCardProps> = ({
     { label: "Review End", value: crq.reviewEndDate || "-" },
     { label: "OLM ID Review", value: crq.olmidReview || "-" },
     { label: "Change Impact", value: crq.changeImpact || crq.remedyChangeImpact || "-" },
+    { label: "Ops Deploy Task", value: crq.opsDeployTask || "-" },
   ];
 
   return (

@@ -38,7 +38,7 @@ export const useCrqJourney = () => {
   const subDomainId = values.subDomain;
 
   const { data: crqOptions = [], isFetching: isLoadingCrqs } = useGetCrqsBySubDomainQuery(
-    subDomainId ?? 0,
+    { subDomainId: subDomainId ?? 0, domainId: values.domain },
     { skip: subDomainId == null }
   );
 

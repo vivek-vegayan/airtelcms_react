@@ -63,6 +63,8 @@ export interface Crq {
   remedyChangeImpact?: string | null;
   /** change_impact of the CRQ (falls back to remedyChangeImpact server-side). */
   changeImpact?: string | null;
+  /** Ops deploy task of the CRQ (BaseCrqDto.opsDeployTask). */
+  opsDeployTask?: string | null;
   neLabel?: string | null;
   planType?: string | null;
   planNumber?: string | null;

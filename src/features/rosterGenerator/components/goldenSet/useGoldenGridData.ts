@@ -6,13 +6,13 @@ import {
 import type { GoldenSetEmployee } from "./goldenGrid.types";
 import { transformApiDataToEmployees } from "./goldenGrid.utils";
 
-export function useGoldenGridData(subDomainId: number) {
+export function useGoldenGridData(subDomainId: number, domainId?: number) {
   const {
     data: apiResponse,
     isLoading,
     error,
     refetch,
-  } = useGetGoldenSetQuery({ subDomainId });
+  } = useGetGoldenSetQuery({ subDomainId, domainId });
   const [updateDailyGoldenSet, { isLoading: isSaving }] =
     useUpdateDailyGoldenSetMutation();
 

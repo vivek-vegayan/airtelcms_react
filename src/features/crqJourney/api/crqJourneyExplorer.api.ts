@@ -14,11 +14,11 @@ import type {
 // ─────────────────────────────────────────────────────────────────────────────
 export const crqJourneyExplorerApi = api.injectEndpoints({
   endpoints: (builder) => ({
-    getCrqsBySubDomain: builder.query<CrqJourneySearchRow[], number>({
-      query: (subDomainId) => ({
+    getCrqsBySubDomain: builder.query<CrqJourneySearchRow[], { subDomainId: number; domainId?: number }>({
+      query: ({ subDomainId, domainId }) => ({
         url: "/crqworkflow/journey-explorer/crqs",
         method: "GET",
-        params: { subDomainId },
+        params: { subDomainId, domainId },
       }),
       providesTags: (result) =>
         result

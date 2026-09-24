@@ -60,6 +60,7 @@ export interface GoldenSetApiResponse {
 
 export interface GoldenSetQueryParams {
   subDomainId: number | string;
+  domainId?: number;
 }
 
 /** Normalised flat row used by the grid */

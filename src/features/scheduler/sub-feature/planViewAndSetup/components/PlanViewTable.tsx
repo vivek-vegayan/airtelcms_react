@@ -3,7 +3,7 @@ import {
   MaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
-import { useAppTable } from "../../../../../components/ui/AppTable";
+import { useAppTable, useViewportPageSize } from "../../../../../components/ui/AppTable";
 import {
   Alert,
   Box,
@@ -106,7 +106,10 @@ export const PlanViewTable: React.FC<Props> = ({
     null,
   );
 
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  // Rows per page follow the screen height (5–25), same as the other app tables;
+  // the rows-per-page control still overrides it.
+  const viewportPageSize = useViewportPageSize();
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: viewportPageSize });
 
   const {
     data,
@@ -168,7 +171,7 @@ export const PlanViewTable: React.FC<Props> = ({
       {
         accessorKey: "planType",
         header: "Plan Type",
-        size: 180,
+        size: 220,
         Cell: ({ row }) => (
           <Typography
             sx={{
@@ -187,7 +190,9 @@ export const PlanViewTable: React.FC<Props> = ({
       {
         accessorKey: "networkDomain",
         header: "Network Domain",
-        size: 100,
+        size: 160,
+        // Checkbox list of the values in this column (faceted values).
+        filterVariant: "multi-select",
         Cell: ({ cell }) => (
           <Typography sx={{ fontSize: 12 }}>
             {cell.getValue<string>()}
@@ -197,7 +202,9 @@ export const PlanViewTable: React.FC<Props> = ({
       {
         accessorKey: "layer",
         header: "Layer",
-        size: 100,
+        size: 110,
+        // Checkbox list of the values in this column (faceted values).
+        filterVariant: "multi-select",
         Cell: ({ cell }) => (
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
             {cell.getValue<string>()}
@@ -207,7 +214,9 @@ export const PlanViewTable: React.FC<Props> = ({
       {
         accessorKey: "planVendor",
         header: "Vendor / OEM",
-        size: 160,
+        size: 170,
+        // Checkbox list of the values in this column (faceted values).
+        filterVariant: "multi-select",
         Cell: ({ cell }) => (
           <Typography sx={{ fontSize: 12 }}>
             {cell.getValue<string>()}
@@ -217,7 +226,9 @@ export const PlanViewTable: React.FC<Props> = ({
       {
         accessorKey: "changeImpact",
         header: "Impact",
-        size: 90,
+        size: 110,
+        // Checkbox list of the values in this column (faceted values).
+        filterVariant: "multi-select",
         Cell: ({ cell }) => (
           <Typography sx={{ fontSize: 12 }}>
             {cell.getValue<string>()}
@@ -227,8 +238,8 @@ export const PlanViewTable: React.FC<Props> = ({
       {
         accessorKey: "status",
         header: "Status",
-        size: 100,
-        filterVariant: "select",
+        size: 120,
+        filterVariant: "multi-select",
         filterSelectOptions: ["Active", "Inactive", "Draft"],
         Cell: ({ cell }) => <StatusBadge value={cell.getValue<string>()} />,
       },
@@ -254,6 +265,21 @@ export const PlanViewTable: React.FC<Props> = ({
     rowCount: data?.totalElements ?? 0,
     onPaginationChange: setPagination,
     enableFacetedValues: true,
+
+    // ── Column menu (⋮): sort, filter by, reset size, hide / show columns ──
+    // useAppTable turns the menu off by default; this grid opts back in.
+    enableColumnActions: true,
+    enableSorting: true,
+    enableColumnFilters: true,
+    // "subheader" is the mode that puts "Filter by <column>" in the ⋮ menu
+    // (popover mode drops that item); it opens a filter box under the headers.
+    columnFilterDisplayMode: "subheader",
+    enableColumnResizing: true,
+    // Resizing alone switches MRT to "grid-no-grow" (fixed px columns, empty
+    // strip on the right). "grid" keeps columns stretching to fill the width.
+    layoutMode: "grid",
+    columnResizeMode: "onEnd",
+    enableHiding: true,
 
     // ── Enable Action Column (Edit) ──────────────────────────────────────────
     enableRowActions: true,
@@ -337,8 +363,12 @@ export const PlanViewTable: React.FC<Props> = ({
       </Box>
     ),
 
+    // Body is as tall as its rows, so the pagination bar sits right under the last
+    // row (5 rows → short table). It is capped at the space this page has left
+    // under the filters (header 45 + tabs 48 + filters ~76 + toolbar 46 + footer 52
+    // + paddings ≈ 305px), so a big page fills the screen and scrolls inside.
     muiTableContainerProps: {
-      sx: { maxHeight: "calc(100vh - 360px)", minHeight: 240 },
+      sx: { maxHeight: "calc(100vh - 305px)" },
     },
     muiTableBodyRowProps: {
       sx: {

@@ -127,7 +127,6 @@ export const api = createApi({
     "Attendance",
     "AttributeUpdate",
     "CrqAnalytics",
-    "SftpWindowsFiles",
     "DataAgentHistory",
     "ImpactBatch",
     "Checkpoints",
@@ -135,6 +134,7 @@ export const api = createApi({
     "CancelledCrq",
     "MopDocument",
     "MopReview",
-    "AuditLog"
+    "AuditLog",
+    "CrqReassign"
   ],
 });

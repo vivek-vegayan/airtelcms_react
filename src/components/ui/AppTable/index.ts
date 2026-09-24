@@ -1,5 +1,5 @@
 export { AppTable, default as default } from "./AppTable";
-export { useAppTable, useAppTableOptions } from "./useAppTable";
+export { useAppTable, useAppTableOptions, useViewportPageSize } from "./useAppTable";
 export type { AppTableConfig, AppTableOptions } from "./useAppTable";
 export { AppTableEmptyState } from "./AppTableEmptyState";
 export type { AppTableEmptyStateProps } from "./AppTableEmptyState";

@@ -45,7 +45,9 @@ export const RosterGenerationMain = () => {
   const { isGenerating, generate } = useGenerateRoster();
   const { refresh, isRefreshing } = useApiRefresh({ tags: ROSTER_GEN_TAGS });
 
-  const hasSubDomain = Boolean(values.subDomain);
+  // "ALL" comes from the SP as id 0, so test for a picked value, not a truthy one —
+  // Boolean(0) hid the grid and the API was never called for "All".
+  const hasSubDomain = values.subDomain !== undefined && values.subDomain !== null;
   const activeConfig = ROSTER_TABS[activeTab];
   const { main: activeAccentColor } = resolveAccent(tk, activeConfig.accent);
 
@@ -125,11 +127,12 @@ export const RosterGenerationMain = () => {
               {activeTab === 0 && (
                 <GoldenGridScreen
                   teamId={values.teamFunction}
+                  domainId={values.domain}
                   subTeamId={values.subDomain}
                 />
               )}
               {activeTab === 1 && (
-                <GridscreenMain subDomainId={values.subDomain} />
+                <GridscreenMain subDomainId={values.subDomain} domainId={values.domain} />
               )}
             </Suspense>
           )}

@@ -93,6 +93,7 @@ export const StageCard: React.FC<StageCardProps> = ({
     { label: `${stageConfig.label} End`, value: formatDate(crq?.[stageConfig.endDateField]) },
     { label: `OLM ID ${stageConfig.label}`, value: crq?.[stageConfig.olmIdField] || "-" },
     { label: "Change Impact", value: crq.changeImpact || crq.remedyChangeImpact || "-" },
+    { label: "Ops Deploy Task", value: crq.opsDeployTask || "-" },
   ];
 
   return (

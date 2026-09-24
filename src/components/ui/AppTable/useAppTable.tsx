@@ -201,7 +201,7 @@ const FIT_STEPS = [5, 10, 15, 20, 25];
  * resizing the window never yanks the page size out from under the user, and
  * an explicit choice from the rows-per-page control always wins.
  */
-function useViewportPageSize(): number {
+export function useViewportPageSize(): number {
   // One query per rung, at the height where that many rows plus the page's
   // chrome first fit. Snapping to ladder values keeps the rows-per-page
   // control tidy — the default is always a size already on the list.

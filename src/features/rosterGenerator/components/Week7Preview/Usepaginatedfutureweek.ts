@@ -14,7 +14,7 @@ export interface PaginatedFutureWeekState {
   hasMore: boolean;
   isError: boolean;
   loadProgress: number;
-  load: (subDomainId: number) => void;
+  load: (subDomainId: number, domainId?: number) => void;
   loadMore: () => void;
 }
 
@@ -31,6 +31,8 @@ export function usePaginatedFutureWeek(): PaginatedFutureWeekState {
   const [loadProgress, setLoadProgress] = useState(0);
 
   const activeSubDomainRef = useRef<number | null>(null);
+  // Needed for later pages too: with subDomainId 0 ("ALL") the proc scopes by domain.
+  const activeDomainRef = useRef<number | undefined>(undefined);
   const nextPageRef = useRef(1);
   const totalPagesRef = useRef(1);
   const pageSlots = useRef<Map<number, NormalisedEmployee[]>>(new Map());
@@ -45,8 +47,9 @@ export function usePaginatedFutureWeek(): PaginatedFutureWeekState {
   }, []);
 
   const load = useCallback(
-    async (subDomainId: number) => {
+    async (subDomainId: number, domainId?: number) => {
       activeSubDomainRef.current = subDomainId;
+      activeDomainRef.current = domainId;
       pageSlots.current = new Map();
       nextPageRef.current = 2;
       totalPagesRef.current = 1;
@@ -62,6 +65,7 @@ export function usePaginatedFutureWeek(): PaginatedFutureWeekState {
 
       try {
         const first = await triggerFetch({
+          domainId,
           subDomainId,
           pageNumber: 1,
           pageSize: PAGE_SIZE,
@@ -111,6 +115,7 @@ export function usePaginatedFutureWeek(): PaginatedFutureWeekState {
 
     try {
       const page = await triggerFetch({
+        domainId: activeDomainRef.current,
         subDomainId,
         pageNumber: nextPage,
         pageSize: PAGE_SIZE,

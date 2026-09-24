@@ -11,6 +11,17 @@ export interface CrqWorkflowOverviewPage {
   last: boolean;
 }
 
+/** Mirrors backend sygnet/dto/PlanFetchResultDto.java. */
+export interface CygnetPlanFetchResult {
+  crqNo: string;
+  planNumber: string;
+  nodeName: string | null;
+  nameInterfacePair: string | null;
+  nodeCount: number;
+  pairCount: number;
+  dummySkipped: number;
+}
+
 /**
  * Every endpoint here takes `domainId?: number | null`. `null` means the
  * caller's role has no domain scope (TEAM_MEMBER/TEAM_LEAD): the param is
@@ -119,6 +130,20 @@ export const rosterApiSlice = api.injectEndpoints({
       }),
     }),
 
+    // POST /cygnet_plan/fetch - "Fetch Plan Data" (Plan & Inventory only).
+    // Backend pulls the plan's node/interface details from Cygnet and saves
+    // them against the CRQ; returns counts of what was stored.
+    fetchCygnetPlanData: builder.mutation<
+      CygnetPlanFetchResult,
+      { crqNo: string; planNumber: string }
+    >({
+      query: (body) => ({
+        url: "/cygnet_plan/fetch",
+        method: "POST",
+        body,
+      }),
+    }),
+
     // POST /crqworkflow/updatecrqreview/start|pause?crqNo=&crqId=
     updateCrqReviewStatus: builder.mutation<
       { message?: string },
@@ -204,6 +229,7 @@ export const {
   useGetCrqWorkflowOverviewPagedQuery,
   useGetCrqWorkflowOverviewByCrqNoQuery,
   useLazyGetCrqPlanPdfQuery,
+  useFetchCygnetPlanDataMutation,
   useUpdateCrqReviewStatusMutation,
   useSubmitCrqReviewDoneMutation,
 } = rosterApiSlice;

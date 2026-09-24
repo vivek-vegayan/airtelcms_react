@@ -28,6 +28,7 @@ import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DnsOutlinedIcon from "@mui/icons-material/DnsOutlined";
 import TerminalIcon from "@mui/icons-material/TerminalOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
+import SwapHorizIcon from "@mui/icons-material/SwapHorizOutlined";
 import {
   MY_DASHBOARD_BASE,
   MY_DASHBOARD_VISIBLE_TABS,
@@ -339,12 +340,20 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     ],
   },
   {
-    // No dedicated module exists server-side yet, so this rides on the
-    // CRQ Analytics grant — the same audience the reports were built for.
+    // Gated on its own WEB_MODULE, created in Global Settings → Admin
+    // Settings. Each report tab is a sub-module of it — see
+    // TEAM_REPORT_MODULE_NAME / REPORT_TABS in TeamReportMainPage.tsx.
     to: "/team-report",
     text: "Team Report",
     icon: <AssessmentIcon />,
-    requiredModule: "CRQ Analytics",
+    requiredModule: "Team_Report",
+  },
+  {
+    // Gated on its own WEB_MODULE, created in Global Settings → Admin Settings.
+    to: "/crq-reassignment",
+    text: "CRQ Reassignment",
+    icon: <SwapHorizIcon />,
+    requiredModule: "CRQ Reassignment",
   },
   {
     to: "/global-settings",

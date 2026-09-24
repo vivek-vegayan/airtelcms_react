@@ -19,9 +19,12 @@ const ICONS = {
 interface StatCardProps {
   config: StatCardConfig;
   colors: Colors;
+  /** "small": a compact tile for dense page headers. Default keeps the dashboard size. */
+  size?: "default" | "small";
 }
 
-export function StatCard({ config, colors }: StatCardProps) {
+export function StatCard({ config, colors, size = "default" }: StatCardProps) {
+  const small = size === "small";
   const tones = getToneStyles(colors);
   const tone = tones[config.tone];
   const deltaTone = config.delta ? tones[config.delta.tone] : null;
@@ -30,7 +33,7 @@ export function StatCard({ config, colors }: StatCardProps) {
   return (
     <Card
       sx={{
-        borderRadius: "14px",
+        borderRadius: small ? "10px" : "14px",
         border: `1.5px solid ${colors.border}`,
         boxShadow: colors.isDark ? "0 2px 12px rgba(0,0,0,.35)" : "0 2px 12px rgba(60,60,140,.055)",
         overflow: "hidden",
@@ -38,7 +41,7 @@ export function StatCard({ config, colors }: StatCardProps) {
         cursor: "default",
         background: `linear-gradient(155deg, ${tone.light} 0%, ${colors.surface} 52%)`,
         height: "100%",
-        minHeight: { xs: 104, sm: 116 },
+        minHeight: small ? 0 : { xs: 104, sm: 116 },
         display: "flex",
         flexDirection: "column",
         transition: "box-shadow .22s, border-color .22s, transform .22s",
@@ -69,20 +72,20 @@ export function StatCard({ config, colors }: StatCardProps) {
 
       <Box
         sx={{
-          p: { xs: "11px 12px 10px", sm: "14px 16px 12px" },
+          p: small ? "8px 12px" : { xs: "11px 12px 10px", sm: "14px 16px 12px" },
           flex: 1,
           minWidth: 0,
           display: "flex",
           flexDirection: "column",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: "7px", sm: "9px" }, mb: { xs: "8px", sm: "12px" } }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: "7px", sm: "9px" }, mb: small ? "4px" : { xs: "8px", sm: "12px" } }}>
           <Box
             className="sc-icon"
             sx={{
-              width: { xs: 28, sm: 34 },
-              height: { xs: 28, sm: 34 },
-              borderRadius: "10px",
+              width: small ? 24 : { xs: 28, sm: 34 },
+              height: small ? 24 : { xs: 28, sm: 34 },
+              borderRadius: small ? "7px" : "10px",
               background: tone.light,
               border: `1px solid ${tone.border}`,
               display: "flex",
@@ -93,7 +96,7 @@ export function StatCard({ config, colors }: StatCardProps) {
               transition: "transform .25s",
             }}
           >
-            <Icon sx={{ fontSize: { xs: 15, sm: 17 } }} />
+            <Icon sx={{ fontSize: small ? 14 : { xs: 15, sm: 17 } }} />
           </Box>
           <Typography
             sx={{
@@ -138,7 +141,7 @@ export function StatCard({ config, colors }: StatCardProps) {
         <Box sx={{ minWidth: 0 }}>
           <Typography
             sx={{
-              fontSize: { xs: 21, sm: 24, lg: 27 },
+              fontSize: small ? 19 : { xs: 21, sm: 24, lg: 27 },
               fontWeight: 900,
               color: colors.textPrimary,
               lineHeight: 1.05,
@@ -151,10 +154,10 @@ export function StatCard({ config, colors }: StatCardProps) {
           </Typography>
           <Typography
             sx={{
-              fontSize: { xs: 10, sm: 11 },
+              fontSize: small ? 10 : { xs: 10, sm: 11 },
               color: tone.color,
               fontWeight: 600,
-              mt: "4px",
+              mt: small ? "2px" : "4px",
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",

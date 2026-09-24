@@ -30,7 +30,8 @@ export type OrgFilterScope =
   | "crqJourney"
   | "crqDetails"
   | "crqAnalytics"
-  | "userLogs";
+  | "userLogs"
+  | "crqReassign";
 
 interface OrgFiltersState {
   /** Absent scope = never touched this session; the screen opens blank. */

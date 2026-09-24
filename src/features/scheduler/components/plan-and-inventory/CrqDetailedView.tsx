@@ -12,11 +12,13 @@ import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import FindInPageRoundedIcon from "@mui/icons-material/FindInPageRounded";
 import TouchAppRoundedIcon from "@mui/icons-material/TouchAppRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import CloudDownloadRoundedIcon from "@mui/icons-material/CloudDownloadRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
 import { usePermission } from "../../../auth/hooks/usePermission";
 
 import {
+  useFetchCygnetPlanDataMutation,
   useGetCrqWorkflowOverviewPagedQuery,
   useGetCrqWorkflowOverviewByCrqNoQuery,
   useSubmitCrqReviewDoneMutation,
@@ -225,6 +227,7 @@ export const CrqDetailedView: React.FC = () => {
 
   const [updateCrqReviewStatus] = useUpdateCrqReviewStatusMutation();
   const [submitCrqReviewDone] = useSubmitCrqReviewDoneMutation();
+  const [fetchCygnetPlanData, { isLoading: isFetchingPlanData }] = useFetchCygnetPlanDataMutation();
 
   // One useStageWorkflow instance per generic stage key - hooks must be
   // called unconditionally, so all six are created up front and the active
@@ -429,6 +432,25 @@ export const CrqDetailedView: React.FC = () => {
     }
   }, [selectedCrq, selectedPlan]);
 
+  /** Plan & Inventory "Fetch Plan Data" -> POST /cygnet_plan/fetch. */
+  const handleFetchPlanData = useCallback(async () => {
+    if (!selectedCrq) return;
+    const planNumber = selectedCrq.planNumber ?? selectedPlan?.planNumber ?? "";
+    if (!planNumber) {
+      toast.warn("No Plan Number found for the selected CRQ.");
+      return;
+    }
+    try {
+      const result = await fetchCygnetPlanData({ crqNo: selectedCrq.crqNo, planNumber }).unwrap();
+      toast.success(
+        `Plan ${result.planNumber} fetched: ${result.nodeCount} node(s), ${result.pairCount} interface pair(s)` +
+          (result.dummySkipped ? `, ${result.dummySkipped} dummy skipped.` : "."),
+      );
+    } catch (err) {
+      toast.error((err as any)?.data?.message || "Failed to fetch plan data. Please try again.");
+    }
+  }, [selectedCrq, selectedPlan, fetchCygnetPlanData]);
+
   const crqActions: CRQAction[] = useMemo(
     () => [
       // Plan & Inventory only: the validation attributes belong to the VALIDATE
@@ -450,6 +472,19 @@ export const CrqDetailedView: React.FC = () => {
       // the stage's Review dialog, directly above its outcome selector, so the
       // attributes are updated in the same breath as the Pass/Failed decision
       // they justify. See dialog/AttributeUpdateGate.
+      // Plan & Inventory only: pulls the plan's node/interface data from
+      // Cygnet (/cygnet_plan/fetch). Same gate as Sync Plan Data.
+      ...(isReviewStage && canEdit
+        ? [
+            {
+              key: "fetch-plan-data",
+              label: isFetchingPlanData ? "Fetching..." : "Fetch Plan Data",
+              icon: <CloudDownloadRoundedIcon sx={{ fontSize: 16 }} />,
+              disabled: !selectedCrq || stageMode !== "editable" || isCrqDone || isFetchingPlanData,
+              onClick: handleFetchPlanData,
+            } satisfies CRQAction,
+          ]
+        : []),
       {
         key: "show-prev-crq-status",
         label: "CRQ Details",
@@ -487,6 +522,8 @@ export const CrqDetailedView: React.FC = () => {
       canEdit,
       canReschedule,
       handleShowPrevCrqStatus,
+      handleFetchPlanData,
+      isFetchingPlanData,
     ],
   );
 
