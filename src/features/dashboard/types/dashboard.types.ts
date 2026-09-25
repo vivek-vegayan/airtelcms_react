@@ -84,6 +84,8 @@ export interface EngineerDailyAssignmentRow {
   stage: string;
   durationMins: number | null;
   remark: string;
+  planType: string | null;
+  activityName: string | null;
 }
 
 export interface EmpWorkLocationRow {

@@ -239,8 +239,8 @@ export const PlanViewTable: React.FC<Props> = ({
         accessorKey: "status",
         header: "Status",
         size: 120,
+        // Checkbox list of the values in this column (faceted values).
         filterVariant: "multi-select",
-        filterSelectOptions: ["Active", "Inactive", "Draft"],
         Cell: ({ cell }) => <StatusBadge value={cell.getValue<string>()} />,
       },
     ],

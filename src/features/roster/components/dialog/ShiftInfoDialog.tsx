@@ -75,6 +75,11 @@ function fmtDuration(mins?: number | null): string {
   return m ? `${h}h ${m}m` : `${h}h`;
 }
 
+/** "Plan Type · Activity Name", skipping whichever is empty; "" when both are. */
+function planActivityLabel(row: EngineerDailyAssignmentRow): string {
+  return [row.planType, row.activityName].filter(Boolean).join(" · ");
+}
+
 /* ─── Shift-day time math ────────────────────────────────────────────────
    A night shift's work is timestamped on the calendar date the shift *starts*,
    so 12:00–2:00 AM under a 10:00 PM – 7:00 AM shift arrives with a clock time
@@ -316,6 +321,9 @@ function AssignmentTimeline({
                     <Typography sx={{ fontSize: 11, fontWeight: 700 }}>
                       {(r.crqNo ?? r.planNo) || "—"} · {r.stage}
                     </Typography>
+                    {planActivityLabel(r) && (
+                      <Typography sx={{ fontSize: 10.5 }}>{planActivityLabel(r)}</Typography>
+                    )}
                     <Typography sx={{ fontSize: 10.5, opacity: 0.85 }}>
                       {fmtTime(r.startTime)} – {fmtTime(r.endTime)} ({fmtDuration(r.durationMins)})
                     </Typography>
@@ -418,6 +426,11 @@ function AssignmentRow({
             }}
           />
         </Stack>
+        {planActivityLabel(row) && (
+          <Typography variant="caption" noWrap sx={{ display: "block", mt: "1px", fontWeight: 600 }}>
+            {planActivityLabel(row)}
+          </Typography>
+        )}
         <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block", mt: "1px" }}>
           {fmtTime(row.startTime)} – {fmtTime(row.endTime)}
           {row.durationMins != null ? ` · ${fmtDuration(row.durationMins)}` : ""}
