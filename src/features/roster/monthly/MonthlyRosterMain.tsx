@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
-import { Alert, Box, TableBody, TableHead, TableRow } from "@mui/material";
+import { Box, Button, TableBody, TableHead, TableRow } from "@mui/material";
+import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import dayjs from "dayjs";
 import { useGetRosterViewQuery } from "../api/rosterApiSlice";
 import { RosterToolbar } from "../components/RosterToolbar";
@@ -14,6 +15,7 @@ import {
 import { ShiftLegend } from "../components/ShiftLegend";
 import { SHIFT_COLOR_MAP, resolveShiftKeyFromDisplay } from "../constant/shiftPalette";
 import { filterRosterUsers } from "../utils/rosterFilter.utils";
+import { exportRosterToExcel } from "../utils/rosterExcelExport";
 import { MonthlyRosterRow } from "./MonthlyRosterRow";
 import { CoverageSummaryRow } from "./CoverageSummaryRow";
 import {
@@ -27,6 +29,8 @@ interface Props {
   endDate: string;
   domainId?: number;
   subDomainId?: number;
+  /** Opens the Excel import dialog (owned by RosterViewMain). */
+  onImport?: () => void;
 }
 
 /* ─── Component ─────────────────────────────────────────────────────────── */
@@ -35,6 +39,7 @@ export const MonthlyRosterMain = ({
   endDate,
   domainId,
   subDomainId,
+  onImport,
 }: Props) => {
   /* ── State ──────────────────────────────────────────────────────────── */
   const [detailedView, setDetailedView] = useState(false);
@@ -133,11 +138,24 @@ export const MonthlyRosterMain = ({
 
   /* ── Guards ─────────────────────────────────────────────────────────── */
   if (shouldSkip) return <SelectFilterPlaceholder />;
-  if (isError || data?.success === false)
-    return <RosterNotGeneratedPlaceholder />;
-  if (!users.length)
+  // Not generated yet: no toolbar here, so show Import on its own.
+  if (isError || data?.success === false || !users.length)
     return (
-      <Alert severity="info">No roster available for selected range</Alert>
+      <Box>
+        {onImport && (
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={onImport}
+              startIcon={<FileUploadOutlinedIcon />}
+            >
+              Import
+            </Button>
+          </Box>
+        )}
+        <RosterNotGeneratedPlaceholder />
+      </Box>
     );
 
   /* ── Render ─────────────────────────────────────────────────────────── */
@@ -159,6 +177,14 @@ export const MonthlyRosterMain = ({
         highlightShift={highlightShift}
         onHighlightShiftChange={setHighlightShift}
         searchInputId="monthly-roster-search-input"
+        onExport={() =>
+          exportRosterToExcel({
+            users: filteredUsers,
+            dates: allDates,
+            viewLabel: "Monthly",
+          })
+        }
+        onImport={onImport}
       />
 
       {/* Table */}

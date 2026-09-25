@@ -16,6 +16,9 @@ import {
   type RosterViewMode,
 } from "./components/RosterViewSwitch";
 import { RosterDateNavigator } from "./components/RosterDateNavigator";
+import { RosterImportDialog } from "../components/dialog/RosterImportDialog";
+import { useAuth } from "../../auth/hooks/useAuth";
+import { usePermission } from "../../auth/hooks/usePermission";
 
 
 // The grid itself lives in Weekly/MonthlyRosterMain. Invalidating the tag both
@@ -36,6 +39,16 @@ export const RosterViewMain = () => {
 
   const domainId = values.domain;
   const subDomainId = values.subDomain;
+
+  // Excel import: the dialog lives here (not in the grid's toolbar) because
+  // this component stays mounted when the grid switches between "not
+  // generated" and the roster table – e.g. right after a save.
+  const [importOpen, setImportOpen] = useState(false);
+  const { role } = useAuth();
+  const { hasPermission } = usePermission();
+  const canImport =
+    hasPermission("Roster Management", "UPDATE") || role === "SUPER_ADMIN";
+  const openImport = canImport ? () => setImportOpen(true) : undefined;
 
   const { startDate, endDate } = useMemo(() => {
     return view === "monthly"
@@ -114,6 +127,7 @@ export const RosterViewMain = () => {
             subDomainId={subDomainId}
             startDate={startDate}
             endDate={endDate}
+            onImport={openImport}
           />
         ) : (
           <MonthlyRosterMain
@@ -121,9 +135,19 @@ export const RosterViewMain = () => {
             endDate={endDate}
             domainId={domainId}
             subDomainId={subDomainId}
+            onImport={openImport}
           />
         )}
       </Box>
+
+      <RosterImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        startDate={startDate}
+        endDate={endDate}
+        domainId={domainId}
+        subDomainId={subDomainId}
+      />
     </>
   );
 };

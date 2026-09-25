@@ -19,6 +19,7 @@ import {
 import { useAuth } from "../../auth/hooks/useAuth";
 import { toast } from "react-toastify";
 import { RosterToolbar } from "../components/RosterToolbar";
+import { exportRosterToExcel } from "../utils/rosterExcelExport";
 import { RosterTableFrame } from "../components/table/RosterTableFrame";
 import { RosterDayHeaderCell } from "../components/table/RosterDayHeaderCell";
 import { RosterEmployeeHeaderCell } from "../components/table/RosterEmployeeHeaderCell";
@@ -48,6 +49,7 @@ export const WeeklyRosterMain = ({
   subDomainId,
   startDate,
   endDate,
+  onImport,
 }: any) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
@@ -413,6 +415,14 @@ export const WeeklyRosterMain = ({
         highlightShift={highlightShift}
         onHighlightShiftChange={setHighlightShift}
         searchInputId="weekly-roster-search-input"
+        onExport={() =>
+          exportRosterToExcel({
+            users,
+            dates: weekDates,
+            viewLabel: "Weekly",
+          })
+        }
+        onImport={onImport}
         swap={{
           isSwapMode,
           onToggleSwapMode: () => {

@@ -9,7 +9,10 @@ import {
   Chip,
 } from "@mui/material";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import { useState } from "react";
+import { toast } from "react-toastify";
 import { CompactShiftCountBar } from "./RosterShiftCountBar";
 import { RosterSearchInput } from "./toolbar/RosterSearchInput";
 import { HighlightShiftSelect } from "./toolbar/HighlightShiftSelect";
@@ -46,6 +49,10 @@ interface Props {
   swap?: RosterSwapControls;
   /** Unique id for the search input element (one per view). */
   searchInputId?: string;
+  /** Exports the currently filtered roster to Excel; omit to hide the button. */
+  onExport?: () => Promise<void>;
+  /** Opens the Excel import dialog; omit to hide the Import button. */
+  onImport?: () => void;
 }
 
 /* ─── Component ───────────────────────────────────────────────────────── */
@@ -70,6 +77,8 @@ export const RosterToolbar = ({
   onHighlightShiftChange,
   swap,
   searchInputId = "roster-search-input",
+  onExport,
+  onImport,
 }: Props) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
@@ -77,6 +86,19 @@ export const RosterToolbar = ({
 
   const [inputVal, setInputVal] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (!onExport) return;
+    setIsExporting(true);
+    try {
+      await onExport();
+    } catch {
+      toast.error("Failed to export roster");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const hasSearch = searchTerms.length > 0 || inputVal.trim().length > 0;
   const hasActiveFilters = Boolean(
@@ -180,6 +202,36 @@ export const RosterToolbar = ({
         {/* RIGHT: density + swap controls */}
         <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
           <DetailedViewToggle checked={isDetailed} onToggle={onToggleDetailed} />
+
+          {onExport && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleExport}
+              disabled={isExporting}
+              startIcon={
+                isExporting ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : (
+                  <FileDownloadOutlinedIcon />
+                )
+              }
+            >
+              Export
+            </Button>
+          )}
+
+          {onImport && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={onImport}
+              startIcon={<FileUploadOutlinedIcon />}
+            >
+              Import
+            </Button>
+          )}
+
 
           {swap && (
             <Stack direction="row" spacing={1}>

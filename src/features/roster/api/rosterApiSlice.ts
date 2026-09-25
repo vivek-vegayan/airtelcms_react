@@ -85,6 +85,17 @@ export const rosterApiSlice = api.injectEndpoints({
       invalidatesTags: ["RosterVIew"],
     }),
 
+    // Excel import: saves all shifts in one request (one entry per employee).
+    // Works for generated and not-yet-generated rosters.
+    importRosterShifts: builder.mutation<RosterImportResponse, RosterImportEmployee[]>({
+      query: (body) => ({
+        url: "/monthlyrosterview/importshifts",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["RosterVIew"],
+    }),
+
 
     // mutation for shift swap by manager
     shiftSwapByManager: builder.mutation<
@@ -140,6 +151,7 @@ export const {
   useGetRosterViewQuery,
   useGetCurrentShiftCountQuery,
   useChangeShiftMutation,
+  useImportRosterShiftsMutation,
   useGetShiftDropdownQuery,
   useShiftSwapByManagerMutation,
   useShiftSwapRequestByTeamMemberMutation, // team‑member endpoint
@@ -161,6 +173,17 @@ export interface ShiftSwapParams {
   affectedUserId2: string | number;
   shiftDate2: string;
   shiftSwapReason: string;
+}
+
+export interface RosterImportEmployee {
+  olmId: string;
+  shifts: { shiftDate: string; shiftId: number }[];
+}
+
+export interface RosterImportResponse {
+  savedEmployees: number;
+  failedEmployees: number;
+  errors: string[];
 }
 
 // parameters for team‑member initiated swap request
