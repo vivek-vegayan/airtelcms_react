@@ -19,6 +19,7 @@ const TAB_META: Record<string, { label: string; headerText: string; icon: JSX.El
   dashboard: { label: "Dashboard", headerText: "Analytics Dashboard", icon: <DashboardRoundedIcon sx={{ color: "white" }} /> },
   "crq-analytics": { label: "CRQ Analytics", headerText: "CRQ Analytics", icon: <QueryStatsRoundedIcon sx={{ color: "white" }} /> },
   reports: { label: "Reports", headerText: "Analytics Reports", icon: <SummarizeRoundedIcon sx={{ color: "white" }} /> },
+  "slot-visibility": { label: "Slot Visibility", headerText: "Slot Visibility", icon: <QueryStatsRoundedIcon sx={{ color: "white" }} /> },
 };
 
 const AnalyticsMainPageTab: React.FC<AnalyticsMainPageTabProps> = ({ setDynamicHeaderText, setDynamicHeaderIcon }) => {

@@ -312,6 +312,13 @@ export const ALL_NAV_ITEMS: NavItem[] = [
         requiredModule: "CRQ Analytics",
         matchPaths: ["/analytics/reports"],
       },
+      {
+        to: "/analytics/slot-visibility",
+        text: "Slot Visibility",
+        icon: <CloudSyncOutlinedIcon />,
+        requiredModule: "CRQ Analytics",
+        matchPaths: ["/analytics/slot-visibility"],
+      },
     ],
   },
   {
