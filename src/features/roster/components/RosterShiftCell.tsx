@@ -78,6 +78,7 @@ export const RosterShiftCell = memo(function RosterShiftCell({
       return String(user?.userId) === String(rowUserId);
     return (
       hasPermission("Roster Management", "UPDATE") || role === "SUPER_ADMIN"
+      // hasPermission("Roster Management", "UPDATE") || role === "SUPER_ADMIN"
     );
   }, [isFuture, role, user, rowUserId, hasPermission]);
 
