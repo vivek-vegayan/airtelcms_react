@@ -64,7 +64,7 @@ const ALL_QUICK_ACTIONS: QuickAction[] = [
     label: "Roster View",
     path: "/roster/view",
     icon: <CalendarMonthOutlined fontSize="small" />,
-    requiredModule: "Roster Managemement",
+    requiredModule: "Roster Management",
   },
   {
     id: "qa-inbox",

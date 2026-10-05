@@ -43,7 +43,9 @@ const EMPTY_FORM_DEFAULTS: AttributeFormValues = { remedy: {}, cab: {}, planning
 export const WorkflowStageCardBody: React.FC<WorkflowStageCardBodyProps> = React.memo(
   function WorkflowStageCardBody({ stageId, crqNo, isEditable, colors }) {
     const { cmsStage, isLoading, error, stageView, remedyStatusFloor, setRemedyStatusIndex } =
-      useStageAttributeData(stageId, crqNo);
+      // Pending stages never mount this body, so a non-editable card is a done
+      // (view-mode) stage - its OLM ID / time fields must not be prefilled.
+      useStageAttributeData(stageId, crqNo, !isEditable);
 
     const [saveAttributeUpdate, { isLoading: isSaving }] = useSaveAttributeUpdateMutation();
     const {

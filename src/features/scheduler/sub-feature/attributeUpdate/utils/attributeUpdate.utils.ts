@@ -30,6 +30,8 @@ interface StageResolutionContext {
   currentUserOlmId: string;
   /** "now" when the card resolved, in the backend's datetime shape. */
   now: string;
+  /** Stage already done (view mode) - its OLM ID / time fields are never prefilled. */
+  isStageDone: boolean;
 }
 
 /**
@@ -71,6 +73,15 @@ function resolveAttribute(
 
   const autoSetValue = fromSource(attribute.autoSetFrom);
 
+  // A blank string from the backend counts as "not filled yet", same as null -
+  // `??` alone would keep "" and skip the prefill.
+  const liveValue = liveRow?.[attribute.field];
+  const isBlank = liveValue == null || String(liveValue).trim() === "";
+  // Prefill (OLM ID / current time) only a still-blank field on a stage that is
+  // not done yet - a done stage shows exactly what was saved.
+  const prefillValue =
+    !context.isStageDone && isBlank ? fromSource(attribute.prefillFrom) : undefined;
+
   return {
     ...attribute,
     system,
@@ -80,8 +91,7 @@ function resolveAttribute(
     // Order matters: an auto-set field ignores everything else, otherwise a
     // value already saved for this CRQ wins, and only a still-empty field falls
     // back to its prefill seed.
-    value:
-      autoSetValue ?? liveRow?.[attribute.field] ?? fromSource(attribute.prefillFrom) ?? null,
+    value: autoSetValue ?? (isBlank ? undefined : liveValue) ?? prefillValue ?? null,
   };
 }
 
@@ -120,6 +130,7 @@ export function resolveStageView(
   details: AttributeUpdateDetailsResponse | null | undefined,
   crqNo: string,
   currentUserOlmId = "",
+  isStageDone = false,
 ): StageAttributeView | null {
   const stageIndex = CMS_STAGE_SCHEMAS.findIndex((s) => s.id === stageId);
   if (stageIndex < 0) return null;
@@ -136,6 +147,7 @@ export function resolveStageView(
     crqNo,
     currentUserOlmId,
     now: nowForBackend(),
+    isStageDone,
   };
 
   // A stage may declare that only some of its Remedy statuses collect

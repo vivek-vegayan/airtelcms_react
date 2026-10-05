@@ -94,6 +94,9 @@ const YES_NO_VALUES = ["Yes", "No"];
  * it default to the signed-in user's OLM ID. */
 const EXECUTED_BY_VALUES = ["OEM", "Bharti", "Bharti + OEM"];
 
+/** Shared by the CAB and Planning Tool "CRQ Approval Status" fields. */
+const CRQ_APPROVAL_STATUS_VALUES = ["PENDING FOR APPROVAL", "REJECTED", "APPROVED"];
+
 /** Circle codes offered by the numbered CAB circle slots (circle1..circle19).
  * Deliberately separate from the "Impacted Circle(s)**" list below, which also
  * carries an "All" entry and spells one circle "GI" - that field's options are
@@ -552,6 +555,13 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
         values: EXECUTED_BY_VALUES,
       },
       { name: "L3 Approver OLM ID", field: "l3ApproverOlmId", type: "Text", mandatory: "Mandatory" },
+      {
+        name: "CRQ Approval Status",
+        field: "crqApprovalStatus",
+        type: "Dropdown",
+        mandatory: "Mandatory",
+        values: CRQ_APPROVAL_STATUS_VALUES,
+      },
     ],
   },
   {
@@ -1066,7 +1076,7 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "scheduling",
-    values: ["Pending", "Approved", "Rejected", "Deferred"],
+    values: CRQ_APPROVAL_STATUS_VALUES,
   },
   {
     name: "Remedy Status",

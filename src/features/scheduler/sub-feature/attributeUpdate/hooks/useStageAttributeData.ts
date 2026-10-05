@@ -13,7 +13,11 @@ import { useGetAttributeUpdateDetailsQuery } from "../api/attributeUpdateApiSlic
  * collapsed/pending cards, so there is no query, no resolveStageView
  * mapping, and no react-hook-form instance paid for up front.
  */
-export function useStageAttributeData(stageId: WorkflowStageId, crqNo: string) {
+export function useStageAttributeData(
+  stageId: WorkflowStageId,
+  crqNo: string,
+  isStageDone = false,
+) {
   const cmsStage = STAGE_ID_TO_ENUM[stageId];
   // null = "the user hasn't picked a sub-status yet", which is not the same as
   // picking the first one: while it is null the bar simply sits on wherever the
@@ -43,8 +47,9 @@ export function useStageAttributeData(stageId: WorkflowStageId, crqNo: string) {
   const remedyStatusIndex = Math.max(selectedStatusIndex ?? remedyStatusFloor, remedyStatusFloor);
 
   const stageView = useMemo(
-    () => resolveStageView(stageId, remedyStatusIndex, details, crqNo, currentUserOlmId),
-    [stageId, remedyStatusIndex, details, crqNo, currentUserOlmId],
+    () =>
+      resolveStageView(stageId, remedyStatusIndex, details, crqNo, currentUserOlmId, isStageDone),
+    [stageId, remedyStatusIndex, details, crqNo, currentUserOlmId, isStageDone],
   );
 
   return {

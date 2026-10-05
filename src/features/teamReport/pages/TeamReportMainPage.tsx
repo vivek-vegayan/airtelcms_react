@@ -25,6 +25,8 @@ interface ReportTab {
   subModule: string;
   url: string;
   renderCell?: (key: string, value: string | number | null) => ReactNode | undefined;
+  /** Load the whole range at once so the table can search, sort and filter by column. */
+  clientSide?: boolean;
 }
 
 const renderCrqRemark = (key: string, value: string | number | null) =>
@@ -48,6 +50,7 @@ const REPORT_TABS: ReportTab[] = [
     subModule: "CRQ Report",
     url: "/crq-analytics-new/crq-report",
     renderCell: renderCrqRemark,
+    clientSide: true,
   },
 ];
 
@@ -209,6 +212,7 @@ export default function TeamReportMainPage({ setDynamicHeaderText, setDynamicHea
             range={applied}
             refreshKey={refreshKey}
             renderCell={report.renderCell}
+            clientSide={report.clientSide}
           />
         </Box>
         </>

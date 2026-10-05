@@ -42,6 +42,7 @@ export const RosterGenerationMain = () => {
   const theme = useTheme();
   const tk = useTabColorTokens(theme);
   const [activeTab, setActiveTab] = useState(0);
+  const [week7IsoWeek, setWeek7IsoWeek] = useState<number | null>(null);
   const { isGenerating, generate } = useGenerateRoster();
   const { refresh, isRefreshing } = useApiRefresh({ tags: ROSTER_GEN_TAGS });
 
@@ -49,6 +50,15 @@ export const RosterGenerationMain = () => {
   // Boolean(0) hid the grid and the API was never called for "All".
   const hasSubDomain = values.subDomain !== undefined && values.subDomain !== null;
   const activeConfig = ROSTER_TABS[activeTab];
+
+  const handleGenerate = () => {
+    if (!hasSubDomain || week7IsoWeek === null) return;
+    generate({
+      domainId: values.domain,
+      subDomainId: Number(values.subDomain),
+      isoWeek: week7IsoWeek,
+    });
+  };
   const { main: activeAccentColor } = resolveAccent(tk, activeConfig.accent);
 
   return (
@@ -110,12 +120,16 @@ export const RosterGenerationMain = () => {
           metaLabel={activeConfig.metaLabel}
           metaColor={activeAccentColor}
         >
-          <GenerateRosterButton
-            isGenerating={isGenerating}
-            onGenerate={generate}
-            tk={tk}
-            accent={activeConfig.accent}
-          />
+          {/* Generation lives on the Week-7 tab only — not on Golden Set — and
+              only once its grid has loaded rows for the picked filters. */}
+          {activeTab !== 0 && hasSubDomain && week7IsoWeek !== null && (
+            <GenerateRosterButton
+              isGenerating={isGenerating}
+              onGenerate={handleGenerate}
+              tk={tk}
+              accent={activeConfig.accent}
+            />
+          )}
         </RosterTabStrip>
 
         {/* ── Tab content ── */}
@@ -132,7 +146,11 @@ export const RosterGenerationMain = () => {
                 />
               )}
               {activeTab === 1 && (
-                <GridscreenMain subDomainId={values.subDomain} domainId={values.domain} />
+                <GridscreenMain
+                  subDomainId={values.subDomain}
+                  domainId={values.domain}
+                  onLoadedWeekChange={setWeek7IsoWeek}
+                />
               )}
             </Suspense>
           )}

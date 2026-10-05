@@ -35,6 +35,19 @@ export interface UpdateCellResponse {
   message?: string;
 }
 
+// ── Generate Roster (sp_add_future_week_to_roster) ───────────────────────────
+export interface AddFutureWeekToRosterPayload {
+  domainId?: number;
+  /** 0 = "ALL" → the proc scopes by domainId instead. */
+  subDomainId: number;
+  isoWeek: number;
+}
+
+export interface AddFutureWeekToRosterResponse {
+  status: string;
+  message: string;
+}
+
 // ── Daily Golden Set types ────────────────────────────────────────────────────
 // NB: lower-case "w" — DailyGoldenSetRequestDto's W1D1..W6D7 fields
 // deserialize under Jackson's mangled property names (w1D1..w6D7); the
@@ -107,6 +120,19 @@ export const rosterGenerationApiSlice = api.injectEndpoints({
       }),
       invalidatesTags: ["FutureWeekTag"],  // ✅ ADD THIS — was missing
     }),
+
+    // ── Generate Roster — copies the future week into the roster ─────────────
+    addFutureWeekToRoster: builder.mutation<
+      AddFutureWeekToRosterResponse,
+      AddFutureWeekToRosterPayload
+    >({
+      query: (body) => ({
+        url: "rostergenration/futureweek/addtoroster",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["FutureWeekTag", "RosterVIew"],
+    }),
   }),
 });
 
@@ -117,6 +143,7 @@ export const {
   useGetFutureWeekQuery,
   useUpdateFutureWeekBatchMutation,
   useUpdateDailyGoldenSetMutation,
+  useAddFutureWeekToRosterMutation,
 } = rosterGenerationApiSlice;
 
 // import { api } from "../../../service/api";

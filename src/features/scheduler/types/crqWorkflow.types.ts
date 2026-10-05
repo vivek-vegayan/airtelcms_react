@@ -72,6 +72,8 @@ export interface Crq {
   planActivityDetails?: string | null;
   activitySequence?: string | null;
   locationCodeM6?: string | null;
+  /** CRQ_Circle column of the Get_*_Details / Get_CRQ_Workflow_Overview* procedures. */
+  crqCircle?: string | null;
   taskProfileType?: string | null;
   state?: string | null;
   assignedGroup?: string | null;

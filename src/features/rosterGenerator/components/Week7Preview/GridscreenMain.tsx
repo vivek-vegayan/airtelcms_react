@@ -35,6 +35,8 @@ interface GridscreenMainProps {
   subDomainId: number | string | undefined;
   /** Sent with subDomainId 0 ("ALL") so the proc can scope by domain. */
   domainId?: number;
+  /** Reports the ISO week of the loaded rows, or null when nothing is shown. */
+  onLoadedWeekChange?: (isoWeek: number | null) => void;
 }
 
 interface PrimaryToolbarProps {
@@ -212,7 +214,7 @@ function PrimaryToolbar({
 }
 
 
-export default function GridscreenMain({ subDomainId, domainId }: GridscreenMainProps) {
+export default function GridscreenMain({ subDomainId, domainId, onLoadedWeekChange }: GridscreenMainProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const accent    = theme.palette.primary.main;
@@ -260,6 +262,14 @@ export default function GridscreenMain({ subDomainId, domainId }: GridscreenMain
   // ── Derived ───────────────────────────────────────────────────────────────
   const weekLabel = isoWeek > 0 ? isoWeekLabel(isoYear, isoWeek) : "";
   const loaded    = employees.length;
+  const loadedWeek = !isLoading && !isError && loaded > 0 && isoWeek > 0 ? isoWeek : null;
+
+  useEffect(() => {
+    onLoadedWeekChange?.(loadedWeek);
+  }, [loadedWeek, onLoadedWeekChange]);
+
+  // Unmounting (tab switch / Sub Domain cleared) means nothing is shown.
+  useEffect(() => () => onLoadedWeekChange?.(null), [onLoadedWeekChange]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 

@@ -18,6 +18,7 @@ import {
   CircularProgress,
   FormControl,
   Select,
+  Autocomplete,
 } from "@mui/material";
 import { type TransitionProps } from "@mui/material/transitions";
 import CloseIcon from "@mui/icons-material/Close";
@@ -126,6 +127,20 @@ export const PlanAddDialog: React.FC<PlanAddDialogProps> = ({
     }
   }, [open, selectedChmDomain, selectedChmSubDomain]);
 
+  // Layer / Plan Type accept a listed option or any typed value
+  const freeSoloInputSx = {
+    "& .MuiOutlinedInput-root": {
+      borderRadius: 2,
+      transition: "all 0.2s ease-in-out",
+      "&:hover fieldset": {
+        borderColor: theme.palette.primary.main,
+      },
+      "&.Mui-focused fieldset": {
+        borderWidth: "1.5px",
+      },
+    },
+  };
+
   const handleChange = (key: keyof FormDataState, value: any) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
     // Clear error for this field when user changes it
@@ -140,8 +155,8 @@ export const PlanAddDialog: React.FC<PlanAddDialogProps> = ({
     if (!formData.chmDomain) newErrors.chmDomain = "Required";
     if (!formData.chmSubDomain) newErrors.chmSubDomain = "Required";
     if (!formData.networkDomain.trim()) newErrors.networkDomain = "Required";
-    if (!formData.layer) newErrors.layer = "Required";
-    if (!formData.planType) newErrors.planType = "Required";
+    if (!formData.layer.trim()) newErrors.layer = "Required";
+    if (!formData.planType.trim()) newErrors.planType = "Required";
     if (!formData.vendorOem.trim()) newErrors.vendorOem = "Required";
     if (!formData.changeImpact) newErrors.changeImpact = "Required";
 
@@ -157,8 +172,8 @@ export const PlanAddDialog: React.FC<PlanAddDialogProps> = ({
         chmDomain: Number(formData.chmDomain),
         chmSubDomain: Number(formData.chmSubDomain),
         networkDomain: formData.networkDomain.trim(),
-        layer: formData.layer,
-        planType: formData.planType,
+        layer: formData.layer.trim(),
+        planType: formData.planType.trim(),
         vendorOem: formData.vendorOem.trim(),
         changeImpact: formData.changeImpact,
       };
@@ -424,38 +439,24 @@ export const PlanAddDialog: React.FC<PlanAddDialogProps> = ({
             >
               Layer <span style={{ color: "red" }}>*</span>
             </Typography>
-            <FormControl
+            <Autocomplete
+              freeSolo
               fullWidth
               size="small"
-              error={!!errors.layer}
-            >
-              <Select
-                value={formData.layer}
-                displayEmpty
-                onChange={(e) => handleChange("layer", e.target.value)}
-                sx={{
-                  borderRadius: 2,
-                  "& .MuiOutlinedInput-root": {
-                    transition: "all 0.2s ease-in-out",
-                    "&:hover fieldset": {
-                      borderColor: theme.palette.primary.main,
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderWidth: "1.5px",
-                    },
-                  },
-                }}
-              >
-                <MenuItem value="" disabled>
-                  Select Layer
-                </MenuItem>
-                {LAYER_OPTIONS.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    {option}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+              options={LAYER_OPTIONS}
+              value={formData.layer}
+              inputValue={formData.layer}
+              onInputChange={(_, value) => handleChange("layer", value)}
+              onChange={(_, value) => handleChange("layer", value ?? "")}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Select or type Layer"
+                  error={!!errors.layer}
+                  sx={freeSoloInputSx}
+                />
+              )}
+            />
             {errors.layer && (
               <Typography sx={{ fontSize: 11, color: "error.main", mt: 0.5 }}>
                 {errors.layer}
@@ -477,38 +478,24 @@ export const PlanAddDialog: React.FC<PlanAddDialogProps> = ({
             >
               Plan Type <span style={{ color: "red" }}>*</span>
             </Typography>
-            <FormControl
+            <Autocomplete
+              freeSolo
               fullWidth
               size="small"
-              error={!!errors.planType}
-            >
-              <Select
-                value={formData.planType}
-                displayEmpty
-                onChange={(e) => handleChange("planType", e.target.value)}
-                sx={{
-                  borderRadius: 2,
-                  "& .MuiOutlinedInput-root": {
-                    transition: "all 0.2s ease-in-out",
-                    "&:hover fieldset": {
-                      borderColor: theme.palette.primary.main,
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderWidth: "1.5px",
-                    },
-                  },
-                }}
-              >
-                <MenuItem value="" disabled>
-                  Select Plan Type
-                </MenuItem>
-                {PLAN_TYPE_OPTIONS.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    {option}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+              options={PLAN_TYPE_OPTIONS}
+              value={formData.planType}
+              inputValue={formData.planType}
+              onInputChange={(_, value) => handleChange("planType", value)}
+              onChange={(_, value) => handleChange("planType", value ?? "")}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Select or type Plan Type"
+                  error={!!errors.planType}
+                  sx={freeSoloInputSx}
+                />
+              )}
+            />
             {errors.planType && (
               <Typography sx={{ fontSize: 11, color: "error.main", mt: 0.5 }}>
                 {errors.planType}

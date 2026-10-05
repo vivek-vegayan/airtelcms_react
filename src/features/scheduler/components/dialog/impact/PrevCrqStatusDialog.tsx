@@ -660,6 +660,12 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
               mono
             />
             <KVPill
+              icon={<LocationOnIcon sx={{ fontSize: 13 }} />}
+              label="Circle"
+              value={crqData.crqCircle}
+              colors={colors}
+            />
+            <KVPill
               icon={<RouteIcon sx={{ fontSize: 13 }} />}
               label="Work Area"
               value={crqData.workAreaTerritory}

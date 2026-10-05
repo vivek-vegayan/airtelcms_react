@@ -4,7 +4,7 @@
 export const MODULE_ROUTE_MAP: Record<string, string[]> = {
   "User Management":            ["/user-management"],
   "Organization Hierarchy":     ["/team"],
-  "Roster Managemement":        ["/roster", "/generateroster"],  // note: API has typo, keep it
+  "Roster Management":        ["/roster", "/generateroster"],
   "Inbox":                      ["/inbox"],
   "Role-Based Access Control":  ["/scheduler"],
   "Cab Manager":                ["/cabmanager"],
@@ -19,8 +19,8 @@ export const MODULE_ROUTE_MAP: Record<string, string[]> = {
 export const ROUTE_MODULE_MAP: Record<string, string> = {
   "/user-management":  "User Management",
   "/team":             "Organization Hierarchy",
-  "/roster":           "Roster Managemement",
-  "/generateroster":   "Roster Managemement",
+  "/roster":           "Roster Management",
+  "/generateroster":   "Roster Management",
   "/scheduler":        "Role-Based Access Control",
   "/cabmanager":       "Cab Manager",
   "/analytics":        "CRQ Analytics",

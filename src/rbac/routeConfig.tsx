@@ -35,7 +35,7 @@ export const getSidebarConfig = (inboxCount: number): SidebarItem[] => [
     to: "/generateroster",
     text: "Roster Generator",
     icon: <ViewTimelineOutlinedIcon />,
-    requiredModule: "Roster Managemement",
+    requiredModule: "Roster Management",
   },
   {
     to: "/team",
@@ -53,7 +53,7 @@ export const getSidebarConfig = (inboxCount: number): SidebarItem[] => [
     to: "/roster",
     text: "Roster View",
     icon: <CalendarMonth />,
-    requiredModule: "Roster Managemement",
+    requiredModule: "Roster Management",
   },
   {
     to: "/inbox",

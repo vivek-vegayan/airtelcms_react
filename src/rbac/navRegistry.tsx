@@ -244,20 +244,20 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     to: "/roster",
     text: "Roster",
     icon: <CalendarMonth />,
-    requiredModule: "Roster Managemement",
+    requiredModule: "Roster Management",
     children: [
       {
         to: "/roster/view",
         text: "Roster View",
         icon: <CalendarMonth />,
-        requiredModule: "Roster Managemement",
+        requiredModule: "Roster Management",
         matchPaths: ["/roster/view"],
       },
       {
         to: "/roster/generation",
         text: "Roster Generation",
         icon: <ViewTimelineOutlinedIcon />,
-        requiredModule: "Roster Managemement",
+        requiredModule: "Roster Management",
         matchPaths: ["/roster/generation"],
       },
     ],
