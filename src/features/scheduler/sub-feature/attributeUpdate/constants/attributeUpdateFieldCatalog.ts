@@ -486,7 +486,14 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
     planningToolScopes: [],
     remedy: [REMEDY_STATUS_ATTRIBUTE, ...COORDINATOR_IMPLEMENTER_ATTRIBUTES],
     cab: [
-      OLM_PREFILL_ATTRIBUTE("MOP Validated By", "mopValidatedBy"),
+        {    
+          name: "MOP Validated By", 
+          field: "mopValidatedBy", 
+          type: "Text",
+          mandatory: "Mandatory"
+        },
+ 
+      // OLM_PREFILL_ATTRIBUTE("MOP Validated By", "mopValidatedBy"),
       NOW_PREFILL_ATTRIBUTE("MOP Validated By Time", "mopValidatedByTime"),
       {
         name: "MOP Validation Remark",
