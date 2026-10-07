@@ -19,6 +19,9 @@ import {
 } from "../api/slotVisiblityApi";
 
 export default function AllPlansView() {
+  const [planTypeSearch, setPlanTypeSearch] = useState("");
+  const [showFilter, setShowFilter] = useState("All plans");
+
   const days = Array.from({ length: 14 }, (_, index) => {
     const date = new Date();
     date.setDate(date.getDate() + index);
@@ -88,6 +91,45 @@ export default function AllPlansView() {
     ([, row]) => row,
   );
 
+  const filteredTableRows = tableRows
+    .filter((plan) =>
+      plan.plan_type
+        .toLowerCase()
+        .includes(planTypeSearch.trim().toLowerCase()),
+    )
+    .filter((plan) => {
+      if (showFilter === "All plans") {
+        return true;
+      }
+
+      const dayValues = days.map((day) => plan.values[day.date]);
+
+      if (showFilter === "Plans with a full day") {
+        // At least one day has 0 capacity / FULL
+        return dayValues.some((cell) => {
+          if (!cell) return false;
+
+          return cell.value === 0 || cell.status?.toUpperCase() === "FULL";
+        });
+      }
+
+      if (showFilter === "Plans with no capacity") {
+        // No capacity across all 14 days
+        return dayValues.every((cell) => {
+          if (!cell) return true;
+
+          return (
+            cell.value === 0 ||
+            cell.status?.toUpperCase() === "FULL" ||
+            cell.status?.toUpperCase() === "NO ROSTER" ||
+            cell.status?.toUpperCase() === "NOT ELIGIBLE"
+          );
+        });
+      }
+
+      return true;
+    });
+    
   const [
     getAllPlans,
     { isLoading: isAllPlansLoading, isError: isAllPlansError },
@@ -294,6 +336,8 @@ export default function AllPlansView() {
             size="small"
             type="search"
             placeholder="Search plan type"
+            value={planTypeSearch}
+            onChange={(e) => setPlanTypeSearch(e.target.value)}
             sx={{
               minWidth: 190,
               "& .MuiOutlinedInput-root": {
@@ -308,11 +352,12 @@ export default function AllPlansView() {
           <FormControl
             size="small"
             sx={{
-              minWidth: 170,
+              minWidth: 190,
             }}
           >
             <Select
-              defaultValue="All plans"
+              value={showFilter}
+              onChange={(e) => setShowFilter(e.target.value)}
               sx={{
                 backgroundColor: "#FFFFFF",
               }}
@@ -331,7 +376,7 @@ export default function AllPlansView() {
         </Filter>
 
         {/* Refreshed */}
-        <Typography
+        {/* <Typography
           variant="body2"
           sx={{
             ml: { xs: 0, md: "auto" },
@@ -342,7 +387,7 @@ export default function AllPlansView() {
           }}
         >
           Refreshed 10:05 · all vendors
-        </Typography>
+        </Typography> */}
       </Stack>
 
       {/* =========================================================
@@ -539,13 +584,35 @@ export default function AllPlansView() {
               </Box>
             )}
 
+          {orgFilters.subDomain &&
+            allPlansData.length > 0 &&
+            filteredTableRows.length === 0 &&
+            !isAllPlansLoading &&
+            !isAllPlansError && (
+              <Box
+                sx={{
+                  py: 7,
+                  textAlign: "center",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: 13,
+                    color: "#77746C",
+                  }}
+                >
+                  No plans found for "{planTypeSearch}".
+                </Typography>
+              </Box>
+            )}
+
           {/* =====================================================
         TABLE ROWS
     ===================================================== */}
 
           {!isAllPlansLoading &&
             !isAllPlansError &&
-            tableRows.map((plan, rowIndex) => {
+            filteredTableRows.map((plan, rowIndex) => {
               const total = days.reduce((sum, day) => {
                 const cell = plan.values[day.date];
 

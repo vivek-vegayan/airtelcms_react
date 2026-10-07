@@ -1,21 +1,15 @@
 import { useState } from "react";
-import {
-  Box,
-  Tab,
-  Tabs,
-} from "@mui/material";
+import { Box, Tab, Tabs } from "@mui/material";
 
 import CommonContainer from "../../../components/common/CommonContainer";
 import ActivityAvailabilityView from "./ActivityAvailabilityView";
 import AllPlansView from "./AllPlansView";
 import TeamCapacityView from "./TeamCapacityView";
 
-
 type SlotVisibilityTab = "capacity" | "activity" | "plans";
 
 export default function SlotVisibilityPage() {
-  const [activeTab, setActiveTab] =
-    useState<SlotVisibilityTab>("capacity");
+  const [activeTab, setActiveTab] = useState<SlotVisibilityTab>("capacity");
 
   const handleTabChange = (
     _event: React.SyntheticEvent,
@@ -41,7 +35,7 @@ export default function SlotVisibilityPage() {
             alignItems: "center",
             backgroundColor: "#1d2e3e",
             boxSizing: "border-box",
-            p:4
+            p: 4,
           }}
         >
           <Tabs
@@ -77,36 +71,25 @@ export default function SlotVisibilityPage() {
               },
             }}
           >
-            <Tab
-              value="capacity"
-              label="Team capacity"
-            />
+            <Tab value="capacity" label="Team capacity" />
 
-            <Tab
-              value="activity"
-              label="Check an activity"
-            />
+            <Tab value="activity" label="Check an activity" />
 
-            <Tab
-              value="plans"
-              label="All plans"
-            />
+            <Tab value="plans" label="All plans" />
           </Tabs>
         </Box>
 
         {/* Content */}
         <Box>
           {activeTab === "capacity" && (
-            <TeamCapacityView />
+            <TeamCapacityView
+              onCheckActivity={() => setActiveTab("activity")}
+            />
           )}
 
-          {activeTab === "activity" && (
-            <ActivityAvailabilityView />
-          )}
+          {activeTab === "activity" && <ActivityAvailabilityView />}
 
-          {activeTab === "plans" && (
-            <AllPlansView />
-          )}
+          {activeTab === "plans" && <AllPlansView />}
         </Box>
       </Box>
     </CommonContainer>

@@ -32,9 +32,14 @@ const shifts = [
   { name: "LG", window: "11:30–19:30" },
   { name: "N", window: "00:00–06:00 +1" },
 ];
-//getting whole dashboard data 0
-//something has gone wrong
-export default function TeamCapacityView() {
+
+interface TeamCapacityViewProps {
+  onCheckActivity: () => void;
+}
+
+export default function TeamCapacityView({
+  onCheckActivity,
+}: TeamCapacityViewProps) {
   /* =========================================================
      STATE
   ========================================================= */
@@ -1588,7 +1593,6 @@ export default function TeamCapacityView() {
               {/* ===================================================
           ACTIVITY BUTTON
       =================================================== */}
-
               <Button
                 fullWidth
                 variant="contained"
@@ -1607,6 +1611,7 @@ export default function TeamCapacityView() {
                 }}
                 onClick={() => {
                   console.log("Check activity:", selectedSlot);
+                  onCheckActivity();
                 }}
               >
                 Check an activity for this date
