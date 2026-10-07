@@ -453,6 +453,20 @@ export const CrqDetailedView: React.FC = () => {
 
   const crqActions: CRQAction[] = useMemo(
     () => [
+      // Plan & Inventory only: pulls the plan's node/interface data from
+      // Cygnet (/cygnet_plan/fetch). Listed before Sync Plan Data because the
+      // data is fetched first and synced after. Same gate as Sync Plan Data.
+      ...(isReviewStage && canEdit
+        ? [
+            {
+              key: "fetch-plan-data",
+              label: isFetchingPlanData ? "Fetching..." : "Fetch Plan Data",
+              icon: <CloudDownloadRoundedIcon sx={{ fontSize: 16 }} />,
+              disabled: !selectedCrq || stageMode !== "editable" || isCrqDone || isFetchingPlanData,
+              onClick: handleFetchPlanData,
+            } satisfies CRQAction,
+          ]
+        : []),
       // Plan & Inventory only: the validation attributes belong to the VALIDATE
       // stage, so the action appears on that stage and follows the same gate the
       // panel's own Start/Pause uses - enabled while the stage is the CRQ's
@@ -472,19 +486,6 @@ export const CrqDetailedView: React.FC = () => {
       // the stage's Review dialog, directly above its outcome selector, so the
       // attributes are updated in the same breath as the Pass/Failed decision
       // they justify. See dialog/AttributeUpdateGate.
-      // Plan & Inventory only: pulls the plan's node/interface data from
-      // Cygnet (/cygnet_plan/fetch). Same gate as Sync Plan Data.
-      ...(isReviewStage && canEdit
-        ? [
-            {
-              key: "fetch-plan-data",
-              label: isFetchingPlanData ? "Fetching..." : "Fetch Plan Data",
-              icon: <CloudDownloadRoundedIcon sx={{ fontSize: 16 }} />,
-              disabled: !selectedCrq || stageMode !== "editable" || isCrqDone || isFetchingPlanData,
-              onClick: handleFetchPlanData,
-            } satisfies CRQAction,
-          ]
-        : []),
       {
         key: "show-prev-crq-status",
         label: "CRQ Details",

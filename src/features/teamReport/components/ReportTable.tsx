@@ -111,7 +111,16 @@ export function ReportTable({ url, title, range, refreshKey, renderCell, clientS
           ...(clientSide &&
             !isDate &&
             distinct > 0 &&
-            distinct <= MULTI_SELECT_MAX_VALUES && { filterVariant: "multi-select" as const }),
+            distinct <= MULTI_SELECT_MAX_VALUES && {
+              filterVariant: "multi-select" as const,
+              // Set explicitly: MRT only derives a column's default filterFn
+              // ("arrIncludesSome") from the columns present on its first
+              // render, and these arrive later with the data. Without this the
+              // column falls back to a text match on the joined selection
+              // ("IP Access,IP Core"), so picking two values matched nothing.
+              filterFn: (row, columnId, selected: string[]) =>
+                !selected?.length || selected.includes(row.getValue<string>(columnId)),
+            }),
           Cell: ({ cell, row }) => renderCell?.(key, row.original[key]) ?? cell.getValue<string>(),
         };
       }),

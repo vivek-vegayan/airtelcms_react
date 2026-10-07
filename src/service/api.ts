@@ -130,6 +130,7 @@ export const api = createApi({
     "DataAgentHistory",
     "ImpactBatch",
     "Checkpoints",
+    "FetchProgress",
     "CabRejectReasons",
     "CancelledCrq",
     "MopDocument",

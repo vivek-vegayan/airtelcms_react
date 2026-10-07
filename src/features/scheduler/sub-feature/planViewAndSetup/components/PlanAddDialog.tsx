@@ -25,7 +25,12 @@ import CloseIcon from "@mui/icons-material/Close";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import { toast } from "react-toastify";
-import { useAddPlanMutation, type AddPlanRequest } from "../api/planApiSlice";
+import {
+  useAddPlanMutation,
+  useGetLayerDropdownQuery,
+  useGetNetworkDomainDropdownQuery,
+  type AddPlanRequest,
+} from "../api/planApiSlice";
 
 export interface FilterOption {
   label: string;
@@ -62,27 +67,6 @@ interface FormDataState {
   changeImpact: string;
 }
 
-// Layer options
-const LAYER_OPTIONS = [
-  "Access",
-  "Aggregation",
-  "Core",
-  "Backhaul",
-  "Transmission",
-  "IP/MPLS",
-];
-
-// Plan type options
-const PLAN_TYPE_OPTIONS = [
-  "IMPLEMENTATION",
-  "Upgrade",
-  "Greenfield",
-  "Rollout",
-  "Migration",
-  "Decommission",
-  "Maintenance",
-];
-
 // Change impact options (SA, NSA as requested)
 const CHANGE_IMPACT_OPTIONS = ["SA", "NSA"];
 
@@ -111,6 +95,17 @@ export const PlanAddDialog: React.FC<PlanAddDialogProps> = ({
   const [errors, setErrors] = useState<Partial<Record<keyof FormDataState, string>>>({});
   const [addPlan, { isLoading: isAdding }] = useAddPlanMutation();
 
+  // Network Domain / Layer options come from the DB (sp_get_domain_dropdown,
+  // sp_get_layer_filter_dropdown); fetched only while the dialog is open.
+  const { data: networkDomainRows = [], isLoading: isLoadingNetworkDomains } =
+    useGetNetworkDomainDropdownQuery(undefined, { skip: !open });
+  const { data: layerRows = [], isLoading: isLoadingLayers } = useGetLayerDropdownQuery(
+    undefined,
+    { skip: !open },
+  );
+  const networkDomainOptions = networkDomainRows.map((r) => r.domainName);
+  const layerOptions = layerRows.map((r) => r.layerName);
+
   // Reset form when dialog opens/closes
   useEffect(() => {
     if (open) {
@@ -127,7 +122,7 @@ export const PlanAddDialog: React.FC<PlanAddDialogProps> = ({
     }
   }, [open, selectedChmDomain, selectedChmSubDomain]);
 
-  // Layer / Plan Type accept a listed option or any typed value
+  // Shared input styling for the Network Domain / Layer dropdowns and Plan Type
   const freeSoloInputSx = {
     "& .MuiOutlinedInput-root": {
       borderRadius: 2,
@@ -397,26 +392,21 @@ export const PlanAddDialog: React.FC<PlanAddDialogProps> = ({
             >
               Network Domain <span style={{ color: "red" }}>*</span>
             </Typography>
-            <TextField
+            <Autocomplete
               fullWidth
               size="small"
-              variant="outlined"
-              placeholder="e.g. IP Core, Access"
-              value={formData.networkDomain}
-              onChange={(e) => handleChange("networkDomain", e.target.value)}
-              error={!!errors.networkDomain}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 2,
-                  transition: "all 0.2s ease-in-out",
-                  "&:hover fieldset": {
-                    borderColor: theme.palette.primary.main,
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderWidth: "1.5px",
-                  },
-                },
-              }}
+              options={networkDomainOptions}
+              loading={isLoadingNetworkDomains}
+              value={formData.networkDomain || null}
+              onChange={(_, value) => handleChange("networkDomain", value ?? "")}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Select Network Domain"
+                  error={!!errors.networkDomain}
+                  sx={freeSoloInputSx}
+                />
+              )}
             />
             {errors.networkDomain && (
               <Typography sx={{ fontSize: 11, color: "error.main", mt: 0.5 }}>
@@ -440,18 +430,16 @@ export const PlanAddDialog: React.FC<PlanAddDialogProps> = ({
               Layer <span style={{ color: "red" }}>*</span>
             </Typography>
             <Autocomplete
-              freeSolo
               fullWidth
               size="small"
-              options={LAYER_OPTIONS}
-              value={formData.layer}
-              inputValue={formData.layer}
-              onInputChange={(_, value) => handleChange("layer", value)}
+              options={layerOptions}
+              loading={isLoadingLayers}
+              value={formData.layer || null}
               onChange={(_, value) => handleChange("layer", value ?? "")}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  placeholder="Select or type Layer"
+                  placeholder="Select Layer"
                   error={!!errors.layer}
                   sx={freeSoloInputSx}
                 />
@@ -478,23 +466,15 @@ export const PlanAddDialog: React.FC<PlanAddDialogProps> = ({
             >
               Plan Type <span style={{ color: "red" }}>*</span>
             </Typography>
-            <Autocomplete
-              freeSolo
+            <TextField
               fullWidth
               size="small"
-              options={PLAN_TYPE_OPTIONS}
+              variant="outlined"
+              placeholder="Enter Plan Type"
               value={formData.planType}
-              inputValue={formData.planType}
-              onInputChange={(_, value) => handleChange("planType", value)}
-              onChange={(_, value) => handleChange("planType", value ?? "")}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  placeholder="Select or type Plan Type"
-                  error={!!errors.planType}
-                  sx={freeSoloInputSx}
-                />
-              )}
+              onChange={(e) => handleChange("planType", e.target.value)}
+              error={!!errors.planType}
+              sx={freeSoloInputSx}
             />
             {errors.planType && (
               <Typography sx={{ fontSize: 11, color: "error.main", mt: 0.5 }}>

@@ -1,9 +1,15 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   MaterialReactTable,
   type MRT_ColumnDef,
+  type MRT_PaginationState,
+  type MRT_Updater,
 } from "material-react-table";
-import { useAppTable, useViewportPageSize } from "../../../../../components/ui/AppTable";
+import {
+  DEFAULT_PAGE_SIZES,
+  useAppTable,
+  useViewportPageSize,
+} from "../../../../../components/ui/AppTable";
 import {
   Alert,
   Box,
@@ -106,10 +112,20 @@ export const PlanViewTable: React.FC<Props> = ({
     null,
   );
 
-  // Rows per page follow the screen height (5–25), same as the other app tables;
-  // the rows-per-page control still overrides it.
+  // The first request uses the screen-height size (5–25) only to learn the
+  // total; the effect below then widens the page to show every row. Once the
+  // user picks a size from the rows-per-page control, that choice is kept.
   const viewportPageSize = useViewportPageSize();
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: viewportPageSize });
+  const userPickedSize = useRef(false);
+
+  const handlePaginationChange = (updater: MRT_Updater<MRT_PaginationState>) => {
+    setPagination((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      if (next.pageSize !== prev.pageSize) userPickedSize.current = true;
+      return next;
+    });
+  };
 
   const {
     data,
@@ -133,6 +149,16 @@ export const PlanViewTable: React.FC<Props> = ({
   );
 
   const apiRows = data?.content ?? [];
+
+  // Default to all rows on one page: as soon as the total is known (and again
+  // if a filter change raises it), grow the page to fit it.
+  const totalElements = data?.totalElements ?? 0;
+  useEffect(() => {
+    if (userPickedSize.current || totalElements <= 0) return;
+    setPagination((prev) =>
+      prev.pageSize === totalElements ? prev : { pageIndex: 0, pageSize: totalElements },
+    );
+  }, [totalElements]);
 
   const handleOpenEdit = (rowData: PlanViewRow) => {
     setSelectedRowData(rowData);
@@ -263,7 +289,7 @@ export const PlanViewTable: React.FC<Props> = ({
     },
     manualPagination: true,
     rowCount: data?.totalElements ?? 0,
-    onPaginationChange: setPagination,
+    onPaginationChange: handlePaginationChange,
     enableFacetedValues: true,
 
     // ── Column menu (⋮): sort, filter by, reset size, hide / show columns ──
@@ -370,6 +396,18 @@ export const PlanViewTable: React.FC<Props> = ({
     muiTableContainerProps: {
       sx: { maxHeight: "calc(100vh - 305px)" },
     },
+    // Always offer the full rows-per-page ladder. The shared preset trims it
+    // to the rungs below the row count (12 rows -> 5, 10, 12); here every
+    // size stays listed, plus the total as "All" and the current size.
+    muiPaginationProps: ({ table }) => ({
+      rowsPerPageOptions: [
+        ...new Set([
+          ...DEFAULT_PAGE_SIZES,
+          ...(data?.totalElements ? [data.totalElements] : []),
+          table.getState().pagination.pageSize,
+        ]),
+      ].sort((a, b) => a - b),
+    }),
     muiTableBodyRowProps: {
       sx: {
         "&:hover td": {

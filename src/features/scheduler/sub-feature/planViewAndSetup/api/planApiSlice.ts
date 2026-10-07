@@ -155,6 +155,16 @@ export interface ShiftDropdown {
   shiftRange: string;
 }
 
+// GET /activity/layerdropdown (sp_get_layer_filter_dropdown)
+export interface LayerDropdown {
+  layerName: string;
+}
+
+// GET /activity/networkdomaindropdown (sp_get_domain_dropdown)
+export interface NetworkDomainDropdown {
+  domainName: string;
+}
+
 // ─── Plan+Activity Bulk Excel Upload Types ─────────────────────────────────────
 
 /**
@@ -267,6 +277,18 @@ export const planApi = api.injectEndpoints({
       }),
       providesTags: ["ShiftDropdown"],
     }),
+    getLayerDropdown: builder.query<LayerDropdown[], void>({
+      query: () => ({
+        url: "/activity/layerdropdown",
+        method: "GET",
+      }),
+    }),
+    getNetworkDomainDropdown: builder.query<NetworkDomainDropdown[], void>({
+      query: () => ({
+        url: "/activity/networkdomaindropdown",
+        method: "GET",
+      }),
+    }),
     addActivity: builder.mutation<void, AddActivityRequest>({
       query: (body) => ({
         url: "/activity/insert",
@@ -338,6 +360,8 @@ export const {
   useGetPlanViewQuery,
   useGetActivityPhaseViewQuery,
   useGetShiftDropdownsQuery,
+  useGetLayerDropdownQuery,
+  useGetNetworkDomainDropdownQuery,
   useAddActivityMutation,
   useUpdateActivityPhaseMutation,
   useUpdatePlanMutation,

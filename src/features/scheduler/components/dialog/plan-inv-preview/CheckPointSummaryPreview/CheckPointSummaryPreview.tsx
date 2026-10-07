@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Box, alpha, Typography, Stack, Button, Alert, Collapse, CircularProgress, Tooltip } from "@mui/material";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
@@ -10,6 +10,7 @@ import {
 } from "../../../../api/checkpointApiSlice";
 import type { Checkpoint } from "../../../../types/checkpoint.types";
 import HorizontalCheckpointStrip from "./HorizontalCheckpointStrip";
+import FetchProgressCard from "./FetchProgressCard";
 
 const EmptyState: React.FC<{ crqNo?: string | null; crqStatus?: string | null }> = ({
   crqNo,
@@ -73,9 +74,14 @@ export const CheckPointSummaryPreview: React.FC<{
    * and rewrites the CRQ's JSON on SFTP. */
   disableActions?: boolean;
 }> = ({ crqNo, crqStatus, disableActions = false }) => {
+  // The checkpoint view stays hidden behind the fetch progress card until
+  // the user opens it with "View data" on a finished fetch.
+  const [showData, setShowData] = useState(false);
+  useEffect(() => setShowData(false), [crqNo]);
+
   const { data, isLoading, isFetching, isError } = useGetCheckpointsByCrqNoQuery(
     crqNo ?? "",
-    { skip: !crqNo },
+    { skip: !crqNo || !showData, refetchOnMountOrArgChange: true },
   );
   const [updateCheckpoint] = useUpdateCheckpointStatusMutation();
   const [refetchScript, { isLoading: isRefreshingScript }] = useRefetchCheckpointScriptMutation();
@@ -117,77 +123,90 @@ export const CheckPointSummaryPreview: React.FC<{
 
   return (
     <Box>
-      {/* Available whenever the stage is still open - it is exactly the
-          action needed when the file below isn't found yet. A closed stage
-          keeps it visible but inert: it re-runs the validation script and
-          rewrites the CRQ's JSON on SFTP, which a cancelled or already
-          reviewed CRQ has no business doing. The span carries the tooltip,
-          since a disabled button receives no pointer events of its own. */}
-      <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1.25 }}>
-        <Tooltip
-          title={
-            disableActions
-              ? "This CRQ's stage is closed — the checkpoint validation script can no longer be run for it."
-              : ""
-          }
-          arrow
-        >
-          <span>
-            <Button
-              size="small"
-              variant="outlined"
-              color="inherit"
-              startIcon={<RefreshRoundedIcon sx={{ fontSize: 15 }} />}
-              disabled={busy || disableActions}
-              onClick={handleDataRefresh}
-              sx={{ fontSize: 12, textTransform: "none", borderRadius: 1.5 }}
+      <FetchProgressCard
+        crqNo={crqNo}
+        stage="VALIDATE"
+        disableActions={disableActions}
+        onRetry={handleDataRefresh}
+        retrying={isRefreshingScript}
+        onViewData={() => setShowData(true)}
+      />
+
+      {showData && (
+        <>
+          {/* Available whenever the stage is still open - it is exactly the
+              action needed when the file below isn't found yet. A closed stage
+              keeps it visible but inert: it re-runs the validation script and
+              rewrites the CRQ's JSON on SFTP, which a cancelled or already
+              reviewed CRQ has no business doing. The span carries the tooltip,
+              since a disabled button receives no pointer events of its own. */}
+          <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1.25 }}>
+            <Tooltip
+              title={
+                disableActions
+                  ? "This CRQ's stage is closed — the checkpoint validation script can no longer be run for it."
+                  : ""
+              }
+              arrow
             >
-              {busy ? "Refreshing…" : "Data Refresh"}
-            </Button>
-          </span>
-        </Tooltip>
-      </Stack>
+              <span>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<RefreshRoundedIcon sx={{ fontSize: 15 }} />}
+                  disabled={busy || disableActions}
+                  onClick={handleDataRefresh}
+                  sx={{ fontSize: 12, textTransform: "none", borderRadius: 1.5 }}
+                >
+                  {busy ? "Refreshing…" : "Data Refresh"}
+                </Button>
+              </span>
+            </Tooltip>
+          </Stack>
 
-      <Collapse in={Boolean(refreshStatus)} unmountOnExit>
-        <Alert
-          severity={refreshStatus?.ok ? "success" : "error"}
-          sx={{ borderRadius: 1.5, mb: 1.25, fontSize: 12.5, py: 0.5 }}
-          onClose={() => setRefreshStatus(null)}
-        >
-          {refreshStatus?.message}
-        </Alert>
-      </Collapse>
+          <Collapse in={Boolean(refreshStatus)} unmountOnExit>
+            <Alert
+              severity={refreshStatus?.ok ? "success" : "error"}
+              sx={{ borderRadius: 1.5, mb: 1.25, fontSize: 12.5, py: 0.5 }}
+              onClose={() => setRefreshStatus(null)}
+            >
+              {refreshStatus?.message}
+            </Alert>
+          </Collapse>
 
-      {isLoading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress size={26} />
-        </Box>
-      ) : isFailed ? (
-        // Backend returns a 200 with { status: "FAILED", error, timestamp }
-        // when the CRQ's validation JSON isn't found on SFTP - not an HTTP error.
-        <Alert severity="error" variant="outlined" sx={{ borderRadius: 2 }}>
-          <Typography variant="subtitle2" fontWeight={700}>
-            CRQ Not Found
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 0.5 }}>
-            {data?.error ?? "Unable to load checkpoints."}
-          </Typography>
-          {data?.timestamp && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-              Timestamp: {data.timestamp}
-            </Typography>
+          {isLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress size={26} />
+            </Box>
+          ) : isFailed ? (
+            // Backend returns a 200 with { status: "FAILED", error, timestamp }
+            // when the CRQ's validation JSON isn't found on SFTP - not an HTTP error.
+            <Alert severity="error" variant="outlined" sx={{ borderRadius: 2 }}>
+              <Typography variant="subtitle2" fontWeight={700}>
+                CRQ Not Found
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                {data?.error ?? "Unable to load checkpoints."}
+              </Typography>
+              {data?.timestamp && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                  Timestamp: {data.timestamp}
+                </Typography>
+              )}
+            </Alert>
+          ) : isError || !data ? (
+            <Alert severity="error" sx={{ borderRadius: 2 }}>
+              Failed to load checkpoints. Please try again.
+            </Alert>
+          ) : (
+            <HorizontalCheckpointStrip
+              checkpoints={checkpoints}
+              onStatusChange={handleCheckpointStatusChange}
+              disableActions={disableActions}
+            />
           )}
-        </Alert>
-      ) : isError || !data ? (
-        <Alert severity="error" sx={{ borderRadius: 2 }}>
-          Failed to load checkpoints. Please try again.
-        </Alert>
-      ) : (
-        <HorizontalCheckpointStrip
-          checkpoints={checkpoints}
-          onStatusChange={handleCheckpointStatusChange}
-          disableActions={disableActions}
-        />
+        </>
       )}
     </Box>
   );
