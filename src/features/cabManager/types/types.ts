@@ -497,3 +497,10 @@ export interface Persona {
   color: string;
   home: string;
 }
+
+
+
+//TeamCapacity
+export interface TeamCapacity {
+ 
+}

@@ -77,4 +77,10 @@ export const getSidebarConfig = (inboxCount: number): SidebarItem[] => [
     icon: <InsightsRoundedIcon />,
     requiredModule: "CRQ Analytics",
   },
+  {
+    to: "/analytics",
+    text: "Analytics",
+    icon: <InsightsRoundedIcon />,
+    requiredModule: "CRQ Analytics",
+  },
 ];

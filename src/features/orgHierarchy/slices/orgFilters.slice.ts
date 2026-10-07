@@ -31,7 +31,8 @@ export type OrgFilterScope =
   | "crqDetails"
   | "crqAnalytics"
   | "userLogs"
-  | "crqReassign";
+  | "teamCapacity"
+  | "allPlans";
 
 interface OrgFiltersState {
   /** Absent scope = never touched this session; the screen opens blank. */
