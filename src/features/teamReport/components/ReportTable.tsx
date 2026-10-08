@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 import { toast } from "react-toastify";
 import { MaterialReactTable, type MRT_ColumnDef, type MRT_PaginationState } from "material-react-table";
 import { useAppTable } from "../../../components/ui/AppTable";
-import { exportRowsToExcel } from "../../crqAnalytics/utils/excelExport";
+import { type ExcelColumn, exportRowsToExcel } from "../../crqAnalytics/utils/excelExport";
 import { useGetTeamReportQuery, useLazyGetTeamReportQuery } from "../api/teamReportApi";
 import type { ReportDateRange } from "../types/teamReport.types";
 
@@ -43,6 +43,32 @@ const formatCell = (value: CellValue) => {
   if (typeof value === "string" && ISO_DATE.test(value)) return dayjs(value).format("DD-MM-YYYY");
   return String(value);
 };
+
+// The export keeps dates as real Excel dates (so Excel's date/month filters
+// work) instead of the DD-MM-YYYY text shown on screen. ExcelJS writes a Date
+// as UTC, so the local wall-clock time is packed into a UTC Date to keep the
+// cell showing the same time as the table.
+const toExcelValue = (value: CellValue) => {
+  if (!isDateValue(value)) return formatCell(value);
+  const d = dayjs(value as string);
+  return new Date(Date.UTC(d.year(), d.month(), d.date(), d.hour(), d.minute(), d.second()));
+};
+
+const toExcelColumns = (keys: string[], rows: ReportRow[]): ExcelColumn[] =>
+  keys.map((key) => {
+    const sample = rows.find((r) => isDateValue(r[key]))?.[key];
+    if (sample == null) return { header: labelFor(key), key };
+    const dateOnly = ISO_DATE.test(String(sample));
+    return {
+      header: labelFor(key),
+      key,
+      numFmt: dateOnly ? "dd-mm-yyyy" : "dd-mm-yyyy hh:mm",
+      width: Math.max(labelFor(key).length + 4, dateOnly ? 14 : 18),
+    };
+  });
+
+const toExcelRows = (keys: string[], rows: ReportRow[]) =>
+  rows.map((row) => Object.fromEntries(keys.map((key) => [key, toExcelValue(row[key])])));
 
 interface Props {
   /** Backend endpoint, e.g. "/team-report/leave". */
@@ -141,21 +167,13 @@ export function ReportTable({ url, title, range, refreshKey, renderCell, clientS
     try {
       if (clientSide) {
         const visible = table.getPrePaginationRowModel().rows.map((r) => r.original);
-        await exportRowsToExcel(
-          visible.map((row) => Object.fromEntries(headers.map((key) => [key, formatCell(row[key])]))),
-          headers.map((key) => ({ header: labelFor(key), key })),
-          title,
-          fileName,
-        );
+        await exportRowsToExcel(toExcelRows(headers, visible), toExcelColumns(headers, visible), title, fileName);
         return;
       }
       const all = await fetchAllRows({ url, ...range, page: 0, size: EXPORT_MAX_ROWS }).unwrap();
-      const exportRows = all.data.map((row) =>
-        Object.fromEntries(all.headers.map((key) => [key, formatCell(row[key])])),
-      );
       await exportRowsToExcel(
-        exportRows,
-        all.headers.map((key) => ({ header: labelFor(key), key })),
+        toExcelRows(all.headers, all.data),
+        toExcelColumns(all.headers, all.data),
         title,
         fileName,
       );

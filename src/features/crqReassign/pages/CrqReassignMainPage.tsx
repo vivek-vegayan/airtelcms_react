@@ -88,7 +88,7 @@ export default function CrqReassignMainPage({ setDynamicHeaderText, setDynamicHe
   const [batchId, setBatchIdState] = useState<string | null>(() => batchStorage.get());
 
   const roleName = authStorage.getUser()?.roleCode ?? "TEAM_MEMBER";
-  const { values, handleChange } = useOrgHierarchyState("crqReassign");
+  const { values, handleChange, resetAll } = useOrgHierarchyState("crqReassign");
   const { options } = useOrgHierarchyFilters(values);
   const visibleOrg = useMemo(() => {
     const granted = getOrgFilterVisibility(roleName);
@@ -169,6 +169,26 @@ export default function CrqReassignMainPage({ setDynamicHeaderText, setDynamicHe
     "& .MuiInputBase-root": { height: 32 },
     "& .MuiInputBase-input": { padding: "4px 8px", fontSize: "0.8rem" },
   };
+  // Same compact label placement as OrgFilterSelect so every dropdown in the row lines up.
+  const selectSx = {
+    ...inputSx,
+    "& .MuiInputLabel-root": { fontSize: "0.8rem", transform: "translate(8px, 7px) scale(1)" },
+    "& .MuiInputLabel-shrink": { transform: "translate(12px, -6px) scale(0.75)" },
+  };
+  const menuItemSx = { fontSize: "0.8rem", py: 0.5 };
+  const filterCount = visibleOrg.length + 2;
+  const activeFilters =
+    visibleOrg.filter((k) => !!values[k]).length +
+    (view === "time" ? Number(engLevel !== "all") + Number(shift !== "all") : Number(cab !== "all") + Number(onlyGaps)) +
+    Number(searchInput.trim() !== "");
+  const clearFilters = () => {
+    resetAll();
+    setEngLevel("all");
+    setShift("all");
+    setCab("all");
+    setOnlyGaps(false);
+    setSearchInput("");
+  };
   const withAll = (key: OrgFilterKey): OrgFilterOption[] => [{ label: ORG_ALL[key], value: 0 }, ...options[key]];
 
   return (
@@ -248,7 +268,7 @@ export default function CrqReassignMainPage({ setDynamicHeaderText, setDynamicHe
               Change stage owners, execution time and CAB status — changes stay in a draft until published.
             </Typography>
           </Box>
-          <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", justifyContent: "flex-end" }}>
             <Button
               size="small"
               variant="outlined"
@@ -276,91 +296,152 @@ export default function CrqReassignMainPage({ setDynamicHeaderText, setDynamicHe
 
         <ReassignStats stats={stats} loading={statsFetching && !stats} batchId={batchId} />
 
-        {/* Filter bar — same surface as the Cancelled CRQ filter bar */}
+        {/* Filter card — dropdown filters on top, search + date navigator below. */}
         {view !== "history" && (
-          <Box
-            sx={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 1.5,
-              alignItems: "center",
-              p: 1.5,
-              borderRadius: tk.radiusL,
-              bgcolor: tk.surface,
-              border: `1px solid ${tk.border}`,
-            }}
-          >
-            {visibleOrg.map((key) => (
-              <OrgFilterSelect
-                key={key}
-                label={ORG_LABELS[key]}
-                value={values[key] ?? 0}
-                options={withAll(key)}
-                onChange={(v) => handleChange(key, v ? v : undefined)}
-              />
-            ))}
-            {view === "time" ? (
-              <>
-                <TextField select size="small" label="Level" value={engLevel} onChange={(e) => setEngLevel(e.target.value)} sx={{ width: 120, ...inputSx }}>
-                  {LEVEL_OPTIONS.map((l) => (
-                    <MenuItem key={l} value={l}>{l === "all" ? "All Levels" : l}</MenuItem>
-                  ))}
-                </TextField>
-                <TextField select size="small" label="Shift" value={shift} onChange={(e) => setShift(e.target.value)} sx={{ width: 120, ...inputSx }}>
-                  {SHIFT_OPTIONS.map((s) => (
-                    <MenuItem key={s} value={s}>{s === "all" ? "All Shifts" : `Shift ${s}`}</MenuItem>
-                  ))}
-                </TextField>
-              </>
-            ) : (
-              <>
-                <TextField select size="small" label="CAB" value={cab} onChange={(e) => setCab(e.target.value)} sx={{ width: 140, ...inputSx }}>
-                  <MenuItem value="all">All</MenuItem>
-                  {CAB_FLAGS.map((f) => (
-                    <MenuItem key={f} value={f}>{f}</MenuItem>
-                  ))}
-                </TextField>
-                <TextField
-                  select
-                  size="small"
-                  label="Stages"
-                  value={onlyGaps ? "yes" : "no"}
-                  onChange={(e) => setOnlyGaps(e.target.value === "yes")}
-                  sx={{ width: 190, ...inputSx }}
-                >
-                  <MenuItem value="no">All CRQs</MenuItem>
-                  <MenuItem value="yes">Unassigned stages only</MenuItem>
-                </TextField>
-              </>
-            )}
-            <TextField
-              size="small"
-              placeholder={view === "member" ? "Search CRQ number or owner…" : "Search engineer, OLM id or CRQ…"}
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              sx={{ minWidth: 240, flex: "1 1 220px", ...inputSx }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchRoundedIcon sx={{ fontSize: 16, color: tk.textDim }} />
-                    </InputAdornment>
-                  ),
+          <Box sx={{ borderRadius: tk.radiusL, bgcolor: tk.surface, border: `1px solid ${tk.border}`, minWidth: 0 }}>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "repeat(2, minmax(0, 1fr))",
+                  sm: "repeat(3, minmax(0, 1fr))",
+                  md: `repeat(${Math.min(filterCount, 4)}, minmax(0, 1fr))`,
+                  lg: `repeat(${filterCount}, minmax(0, 1fr))`,
                 },
+                gap: 1.5,
+                px: 1.5,
+                pt: 1.75,
+                pb: 1.5,
+                "& > .MuiFormControl-root": { minWidth: 0, width: "100%" },
               }}
-            />
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              {scope.nav && (
-                <IconButton size="small" onClick={() => step(-1)}>
-                  <ChevronLeftRoundedIcon fontSize="small" />
-                </IconButton>
+            >
+              {visibleOrg.map((key) => (
+                <OrgFilterSelect
+                  key={key}
+                  label={ORG_LABELS[key]}
+                  value={values[key] ?? 0}
+                  options={withAll(key)}
+                  onChange={(v) => handleChange(key, v ? v : undefined)}
+                />
+              ))}
+              {view === "time" ? (
+                <>
+                  <TextField select size="small" label="Level" value={engLevel} onChange={(e) => setEngLevel(e.target.value)} sx={selectSx}>
+                    {LEVEL_OPTIONS.map((l) => (
+                      <MenuItem key={l} value={l} sx={menuItemSx}>{l === "all" ? "All Levels" : l}</MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField select size="small" label="Shift" value={shift} onChange={(e) => setShift(e.target.value)} sx={selectSx}>
+                    {SHIFT_OPTIONS.map((s) => (
+                      <MenuItem key={s} value={s} sx={menuItemSx}>{s === "all" ? "All Shifts" : `Shift ${s}`}</MenuItem>
+                    ))}
+                  </TextField>
+                </>
+              ) : (
+                <>
+                  <TextField select size="small" label="CAB" value={cab} onChange={(e) => setCab(e.target.value)} sx={selectSx}>
+                    <MenuItem value="all" sx={menuItemSx}>All</MenuItem>
+                    {CAB_FLAGS.map((f) => (
+                      <MenuItem key={f} value={f} sx={menuItemSx}>{f}</MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    select
+                    size="small"
+                    label="Stages"
+                    value={onlyGaps ? "yes" : "no"}
+                    onChange={(e) => setOnlyGaps(e.target.value === "yes")}
+                    sx={selectSx}
+                  >
+                    <MenuItem value="no" sx={menuItemSx}>All CRQs</MenuItem>
+                    <MenuItem value="yes" sx={menuItemSx}>Unassigned stages only</MenuItem>
+                  </TextField>
+                </>
               )}
-              <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: tk.textPrimary, whiteSpace: "nowrap" }}>{scope.value}</Typography>
-              {scope.nav && (
-                <IconButton size="small" onClick={() => step(1)}>
-                  <ChevronRightRoundedIcon fontSize="small" />
-                </IconButton>
-              )}
+            </Box>
+
+            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.5, px: 1.5, py: 1.25, borderTop: `1px solid ${tk.border}` }}>
+              <TextField
+                size="small"
+                placeholder={view === "member" ? "Search CRQ number or owner…" : "Search engineer, OLM id or CRQ…"}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                sx={{ flex: { xs: "1 1 100%", sm: "1 1 260px" }, maxWidth: { sm: 420 }, minWidth: 0, ...inputSx }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchRoundedIcon sx={{ fontSize: 16, color: tk.textDim }} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+              <Box
+                sx={{
+                  ml: { sm: "auto" },
+                  width: { xs: "100%", sm: "auto" },
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: { xs: "space-between", sm: "flex-end" },
+                  gap: 1,
+                }}
+              >
+                {activeFilters > 0 && (
+                  <Button size="small" onClick={clearFilters} sx={{ textTransform: "none", fontSize: "0.78rem", height: 32, whiteSpace: "nowrap" }}>
+                    Clear filters ({activeFilters})
+                  </Button>
+                )}
+                {scope.nav ? (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: "auto" }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => setAnchor(todayYmd())}
+                      sx={{ textTransform: "none", fontSize: "0.78rem", height: 32, minWidth: 0, px: 1.5 }}
+                    >
+                      Today
+                    </Button>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        height: 32,
+                        border: `1px solid ${tk.border}`,
+                        borderRadius: tk.radius,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <IconButton size="small" onClick={() => step(-1)} sx={{ borderRadius: 0, height: "100%" }}>
+                        <ChevronLeftRoundedIcon fontSize="small" />
+                      </IconButton>
+                      <Typography
+                        sx={{
+                          px: 1,
+                          minWidth: { xs: 140, sm: 170 },
+                          textAlign: "center",
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          color: tk.textPrimary,
+                          whiteSpace: "nowrap",
+                          borderLeft: `1px solid ${tk.border}`,
+                          borderRight: `1px solid ${tk.border}`,
+                          lineHeight: "30px",
+                        }}
+                      >
+                        {scope.value}
+                      </Typography>
+                      <IconButton size="small" onClick={() => step(1)} sx={{ borderRadius: 0, height: "100%" }}>
+                        <ChevronRightRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Typography sx={{ ml: "auto", fontSize: 12.5, fontWeight: 600, color: tk.textSecondary, whiteSpace: "nowrap" }}>
+                    {scope.value}
+                  </Typography>
+                )}
+              </Box>
             </Box>
           </Box>
         )}

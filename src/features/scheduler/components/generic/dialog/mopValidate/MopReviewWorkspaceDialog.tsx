@@ -131,7 +131,7 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
 
   const { data, isLoading, isError, isFetching } = useGetMopReviewWorkspaceQuery(
     { crqNo, versionId },
-    { skip: !open || !crqNo },
+    { skip: !open || !crqNo, refetchOnMountOrArgChange: true },
   );
 
   const [addFinding, { isLoading: isAdding }] = useAddMopFindingMutation();

@@ -5,15 +5,12 @@ import {
   AccordionSummary,
   Box,
   Chip,
-  CircularProgress,
   FormControl,
-  FormHelperText,
   InputAdornment,
   InputLabel,
   MenuItem,
   Select,
   Typography,
-  useTheme,
 } from "@mui/material";
 import {
   AccessTime,
@@ -21,13 +18,12 @@ import {
   CheckCircle,
   ExpandMore,
   QueryBuilder,
-  Schedule,
   SignalCellularAlt,
   Update,
 } from "@mui/icons-material";
 import TeamAssignmentSelect from "../../../../orgHierarchy/components/TeamAssignmentSelect";
 import NumericField from "../../../../../components/common/NumericField";
-import { parseShift, shiftColor } from "../utils/shiftFormat";
+import ShiftMultiSelect from "./ShiftMultiSelect";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -39,7 +35,7 @@ interface Props {
   phaseIndex: number;
   shiftError?: boolean;
   teamError?: boolean;
-  /** Live shift names from the DB (GET /monthlyrosterview/shiftdropdowns). */
+  /** Live shift names from the DB (GET /activity/planshiftdropdown). */
   shiftOptions: string[];
   shiftsLoading?: boolean;
 }
@@ -55,7 +51,9 @@ const LEVELS = ["L1", "L2", "L3", "L4"];
 
 const FIELD_GRID_SX = {
   display: "grid",
-  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(4, 1fr)" },
+  // Team on its own row, then 3 equal columns (Shift / Level / Time).
+  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" },
+  alignItems: "start",
   gap: 1.5,
 };
 
@@ -72,7 +70,6 @@ const ActivityPhaseSection: React.FC<Props> = ({
   shiftOptions,
   shiftsLoading,
 }) => {
-  const theme = useTheme();
   const [manuallyExpanded, setManuallyExpanded] = useState(phaseIndex === 0);
   const accent = ACCENT_COLORS[phaseIndex % ACCENT_COLORS.length];
   const isConfigured = !!value.shift && !!value.minimumLevelRequirement;
@@ -161,71 +158,18 @@ const ActivityPhaseSection: React.FC<Props> = ({
       <AccordionDetails sx={{ p: 2, bgcolor: "background.paper" }}>
         {/* ── Row 1: core fields ──────────────────────────────── */}
         <Box sx={FIELD_GRID_SX}>
-          {/* Shift — live from GET /monthlyrosterview/shiftdropdowns */}
-          <FormControl fullWidth size="small" error={shiftError} disabled={shiftsLoading}>
-            <InputLabel>Shift</InputLabel>
-            <Select
-              value={shiftsLoading ? "" : value.shift}
-              label="Shift"
-              onChange={(e) => onChange("shift", e.target.value)}
-              startAdornment={
-                <InputAdornment position="start">
-                  {shiftsLoading ? (
-                    <CircularProgress size={14} thickness={5} />
-                  ) : (
-                    <Schedule fontSize="small" />
-                  )}
-                </InputAdornment>
-              }
-              renderValue={(selected) => {
-                if (!selected) return "";
-                const { code, range } = parseShift(selected as string);
-                return (
-                  <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
-                    <Box
-                      component="span"
-                      sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: shiftColor(range, theme), flexShrink: 0 }}
-                    />
-                    <Box component="span" sx={{ fontWeight: 700, color: shiftColor(range, theme) }}>{code}</Box>
-                    {range && (
-                      <Box component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
-                        {range}
-                      </Box>
-                    )}
-                  </Box>
-                );
-              }}
-            >
-              {shiftsLoading ? (
-                <MenuItem value="" disabled>
-                  Loading shifts…
-                </MenuItem>
-              ) : shiftOptions.length === 0 ? (
-                <MenuItem value="" disabled>
-                  No shifts configured
-                </MenuItem>
-              ) : (
-                shiftOptions.map((s) => {
-                  const { code, range } = parseShift(s);
-                  return (
-                    <MenuItem key={s} value={s} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <Box
-                        component="span"
-                        sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: shiftColor(range, theme), flexShrink: 0 }}
-                      />
-                      <Box component="span" sx={{ fontWeight: 700, color: shiftColor(range, theme), minWidth: 28 }}>{code}</Box>
-                      {range && (
-                        <Box component="span" sx={{ fontSize: 12, color: "text.secondary" }}>
-                          {range}
-                        </Box>
-                      )}
-                    </MenuItem>
-                  );
-                })
-              )}
-            </Select>
-            {shiftError && <FormHelperText>Required</FormHelperText>}
-          </FormControl>
+          {/* Shift — live from GET /activity/planshiftdropdown; multi-select
+              or typed, sent comma-separated */}
+          <Box>
+            <ShiftMultiSelect
+              value={value.shift}
+              onChange={(v) => onChange("shift", v)}
+              options={shiftOptions}
+              loading={shiftsLoading}
+              error={shiftError}
+              helperText={shiftError ? "Required" : undefined}
+            />
+          </Box>
 
           {/* Min Level */}
           <FormControl fullWidth size="small">
@@ -264,8 +208,8 @@ const ActivityPhaseSection: React.FC<Props> = ({
             }}
           />
 
-          {/* Assigned Team */}
-          <Box sx={{ gridColumn: "1 / -1" }}>
+          {/* Assigned Team — first row, above Shift / Level / Time */}
+          <Box sx={{ gridColumn: "1 / -1", order: -1 }}>
             <Typography
               fontSize={12}
               color={teamError ? "error.main" : "text.secondary"}
@@ -292,7 +236,6 @@ const ActivityPhaseSection: React.FC<Props> = ({
           <Box
             sx={{
               ...FIELD_GRID_SX,
-              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" },
               mt: 1.5,
               pt: 1.5,
               borderTop: "1px dashed",

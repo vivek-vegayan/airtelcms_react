@@ -21,6 +21,16 @@ export const fetchProgressApiSlice = api.injectEndpoints({
       providesTags: (_r, _e, arg) => [{ type: "FetchProgress", id: `${arg.crqNo}-${arg.stage}` }],
     }),
 
+    // GET /crqworkflow/fetch/by-crq/{crqNo}/batches - every Impact Analysis
+    // batch job (Batch1..4 per run type), oldest -> newest within a batch.
+    getImpactFetchBatches: builder.query<FetchProgress[], { crqNo: string }>({
+      query: ({ crqNo }) => ({
+        url: `/crqworkflow/fetch/by-crq/${encodeURIComponent(crqNo)}/batches`,
+        method: "GET",
+      }),
+      providesTags: (_r, _e, arg) => [{ type: "FetchProgress", id: `${arg.crqNo}-batches` }],
+    }),
+
     // POST /crqworkflow/fetch/{jobId}/cancel - the daemon checks the flag
     // between units, so it lands mid-job.
     cancelFetchJob: builder.mutation<{ status: string; message: string }, { jobId: number }>({
@@ -34,4 +44,8 @@ export const fetchProgressApiSlice = api.injectEndpoints({
   overrideExisting: false,
 });
 
-export const { useGetFetchProgressByCrqQuery, useCancelFetchJobMutation } = fetchProgressApiSlice;
+export const {
+  useGetFetchProgressByCrqQuery,
+  useGetImpactFetchBatchesQuery,
+  useCancelFetchJobMutation,
+} = fetchProgressApiSlice;

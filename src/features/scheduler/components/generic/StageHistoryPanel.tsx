@@ -6,6 +6,7 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import { format } from "date-fns";
 import type { StageHistoryEntry } from "../../types/crqWorkflow.types";
+import { useCrqWithHistory } from "../../hook/useCrqWithHistory";
 
 interface StageHistoryPanelProps {
   history: StageHistoryEntry[] | null | undefined;
@@ -171,6 +172,21 @@ export const StageHistoryPanel: React.FC<StageHistoryPanelProps> = ({
           );
         })}
       </Stack>
+    </Box>
+  );
+};
+
+/**
+ * Card-body history for the stage listings, which no longer embed history[].
+ * Rendered inside the card's `<Collapse unmountOnExit>`, so the request only
+ * fires once the card is expanded (and is cached per CRQ after that).
+ */
+export const CrqStageHistorySection: React.FC<{ crq: any; colors: any }> = ({ crq, colors }) => {
+  const { history } = useCrqWithHistory(crq);
+  if (!history?.length) return null;
+  return (
+    <Box sx={{ mx: 2, mb: 1.5 }}>
+      <StageHistoryPanel history={history} colors={colors} dense />
     </Box>
   );
 };

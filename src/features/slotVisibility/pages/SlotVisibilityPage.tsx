@@ -1,96 +1,57 @@
 import { useState } from "react";
-import { Box, Tab, Tabs } from "@mui/material";
+import { Box, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
+import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
+import ViewListRoundedIcon from "@mui/icons-material/ViewListRounded";
 
 import CommonContainer from "../../../components/common/CommonContainer";
+import { useTabColorTokens } from "../../../style/theme";
 import ActivityAvailabilityView from "./ActivityAvailabilityView";
 import AllPlansView from "./AllPlansView";
 import TeamCapacityView from "./TeamCapacityView";
 
 type SlotVisibilityTab = "capacity" | "activity" | "plans";
 
+const VIEWS: { value: SlotVisibilityTab; label: string; hint: string; icon: typeof GroupsRoundedIcon }[] = [
+  { value: "capacity", label: "Team capacity", hint: "Free minutes per shift and date for a team", icon: GroupsRoundedIcon },
+  { value: "activity", label: "Check an activity", hint: "Where a specific activity still fits", icon: EventAvailableRoundedIcon },
+  { value: "plans", label: "All plans", hint: "14-day fit for every plan type", icon: ViewListRoundedIcon },
+];
+
 export default function SlotVisibilityPage() {
+  const theme = useTheme();
+  const colors = useTabColorTokens(theme);
   const [activeTab, setActiveTab] = useState<SlotVisibilityTab>("capacity");
 
-  const handleTabChange = (
-    _event: React.SyntheticEvent,
-    value: SlotVisibilityTab,
-  ) => {
-    setActiveTab(value);
-  };
+  const activeView = VIEWS.find((v) => v.value === activeTab);
 
   return (
     <CommonContainer>
-      <Box
-        sx={{
-          minHeight: "100%",
-          backgroundColor: "#F4F3EF",
-          color: "#1C1B19",
-        }}
-      >
-        {/* Header */}
-        <Box
-          sx={{
-            height: "6vh",
-            display: "flex",
-            alignItems: "center",
-            backgroundColor: "#1d2e3e",
-            boxSizing: "border-box",
-            p: 4,
-          }}
-        >
-          <Tabs
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2, py: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+          <ToggleButtonGroup
+            size="small"
+            color="primary"
+            exclusive
             value={activeTab}
-            onChange={handleTabChange}
-            sx={{
-              minHeight: "100%",
-
-              "& .MuiTabs-indicator": {
-                display: "none",
-              },
-
-              "& .MuiTab-root": {
-                minHeight: 40,
-                minWidth: "auto",
-                px: 2,
-                mx: 0.25,
-                borderRadius: 1,
-                color: "#D8D5CC",
-                fontSize: 14,
-                fontWeight: 500,
-                textTransform: "none",
-              },
-
-              "& .MuiTab-root.Mui-selected": {
-                backgroundColor: "#383f71",
-                color: "#FFFFFF",
-              },
-
-              "& .MuiTab-root:hover": {
-                backgroundColor: "#2E2D29",
-                color: "#FFFFFF",
-              },
-            }}
+            onChange={(_e, v: SlotVisibilityTab | null) => v && setActiveTab(v)}
+            sx={{ background: colors.surface, borderRadius: colors.radius }}
           >
-            <Tab value="capacity" label="Team capacity" />
+            {VIEWS.map(({ value, label, icon: Icon }) => (
+              <ToggleButton key={value} value={value} sx={{ textTransform: "none", px: 2, gap: 0.75, fontWeight: 600 }}>
+                <Icon sx={{ fontSize: 18 }} />
+                {label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
 
-            <Tab value="activity" label="Check an activity" />
-
-            <Tab value="plans" label="All plans" />
-          </Tabs>
+          <Typography sx={{ fontSize: 13, color: colors.textSecondary }}>{activeView?.hint}</Typography>
         </Box>
 
-        {/* Content */}
-        <Box>
-          {activeTab === "capacity" && (
-            <TeamCapacityView
-              onCheckActivity={() => setActiveTab("activity")}
-            />
-          )}
-
-          {activeTab === "activity" && <ActivityAvailabilityView />}
-
-          {activeTab === "plans" && <AllPlansView />}
-        </Box>
+        {activeTab === "capacity" && <TeamCapacityView onCheckActivity={() => setActiveTab("activity")} />}
+        {activeTab === "activity" && <ActivityAvailabilityView />}
+        {activeTab === "plans" && <AllPlansView />}
       </Box>
     </CommonContainer>
   );

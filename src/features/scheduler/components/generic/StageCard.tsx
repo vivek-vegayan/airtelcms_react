@@ -17,7 +17,7 @@ import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import { format } from "date-fns";
 import type { StageConfig } from "../../types/stageWorkflow.types";
-import { StageHistoryPanel } from "./StageHistoryPanel";
+import { CrqStageHistorySection } from "./StageHistoryPanel";
 import CrqInfoCards from "./CrqInfoCards";
 import CrqTaskTable from "./CrqTaskTable";
 
@@ -335,12 +335,9 @@ export const StageCard: React.FC<StageCardProps> = ({
           </Box>
         </Box>
 
-        {/* Read-only previous-stage history (no actions). */}
-        {(crq.history?.length ?? 0) > 0 && (
-          <Box sx={{ mx: 2, mb: 1.5 }}>
-            <StageHistoryPanel history={crq.history} colors={colors} dense />
-          </Box>
-        )}
+        {/* Read-only previous-stage history (no actions). Loaded on expand -
+            the listing itself carries no history. */}
+        <CrqStageHistorySection crq={crq} colors={colors} />
       </Collapse>
     </Paper>
   );

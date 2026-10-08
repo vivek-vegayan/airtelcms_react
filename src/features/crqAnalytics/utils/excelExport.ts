@@ -5,6 +5,8 @@ export interface ExcelColumn {
   header: string;
   key: string;
   width?: number;
+  /** Excel number format for the column's cells, e.g. "dd-mm-yyyy hh:mm" for Date values. */
+  numFmt?: string;
 }
 
 /** Generic row → .xlsx export, styled to match the rest of the app's exports
@@ -32,7 +34,9 @@ export async function exportRowsToExcel<T extends object>(
   rows.forEach((row, idx) => {
     const record = row as Record<string, unknown>;
     const dataRow = ws.addRow(columns.map((c) => record[c.key] ?? ""));
-    dataRow.eachCell((cell) => {
+    dataRow.eachCell((cell, colNumber) => {
+      const numFmt = columns[colNumber - 1]?.numFmt;
+      if (numFmt) cell.numFmt = numFmt;
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: idx % 2 === 0 ? "FFFFFFFF" : "FFF7F7F7" } };
       cell.font = { size: 10 };
       cell.alignment = { vertical: "middle" };

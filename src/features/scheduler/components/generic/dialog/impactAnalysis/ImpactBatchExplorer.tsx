@@ -288,7 +288,7 @@ export const ImpactBatchExplorer: React.FC<ImpactBatchExplorerProps> = ({ crqNo,
     data: batchStatus,
     isFetching: batchesLoading,
     error: batchesError,
-  } = useGetImpactBatchStatusQuery({ crqNo: crqNo as string }, { skip: !crqNo });
+  } = useGetImpactBatchStatusQuery({ crqNo: crqNo as string }, { skip: !crqNo, refetchOnMountOrArgChange: true });
 
   const batches = useMemo(() => batchStatus ?? [], [batchStatus]);
 

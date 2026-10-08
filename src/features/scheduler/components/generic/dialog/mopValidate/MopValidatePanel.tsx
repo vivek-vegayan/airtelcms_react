@@ -51,6 +51,7 @@ interface MopValidatePanelProps {
 export const MopValidatePanel: React.FC<MopValidatePanelProps> = ({ crqNo, readOnly, colors }) => {
   const { data, isLoading, isError } = useGetMopValidateDetailsQuery(crqNo as string, {
     skip: !crqNo,
+    refetchOnMountOrArgChange: true,
   });
 
   const [startReview, { isLoading: isStarting }] = useStartMopReviewMutation();

@@ -19,7 +19,7 @@ import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import { format } from "date-fns";
-import { StageHistoryPanel } from "../generic/StageHistoryPanel";
+import { CrqStageHistorySection } from "../generic/StageHistoryPanel";
 interface CrqCardProps {
   crq: any;
   plan: any;
@@ -265,12 +265,9 @@ export const CrqCard: React.FC<CrqCardProps> = ({
         </Box>
 
         {/* Read-only previous-stage history (populated once the CRQ has
-            advanced past at least one stage; empty for fresh CRQs). */}
-        {(crq.history?.length ?? 0) > 0 && (
-          <Box sx={{ mx: 2, mb: 1.5 }}>
-            <StageHistoryPanel history={crq.history} colors={colors} dense />
-          </Box>
-        )}
+            advanced past at least one stage; empty for fresh CRQs). Loaded
+            on expand - the listing itself carries no history. */}
+        <CrqStageHistorySection crq={crq} colors={colors} />
       </Collapse>
     </Paper>
   );

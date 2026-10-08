@@ -18,6 +18,15 @@ const nextStageKey = (stageKey: StageKey): StageKey | null => {
   return idx >= 0 && idx + 1 < STAGE_SEQUENCE.length ? STAGE_SEQUENCE[idx + 1] : null;
 };
 
+/** Per-CRQ dialog caches (MOP, checkpoints, validation, impact batches). */
+const crqDetailTags = (crqNo: string) => [
+  { type: "MopDocument" as const, id: crqNo },
+  { type: "MopReview" as const, id: crqNo },
+  { type: "Checkpoints" as const, id: crqNo },
+  { type: "CrqValidation" as const, id: crqNo },
+  { type: "ImpactBatch" as const, id: `status-${crqNo}` },
+];
+
 export const stageWorkflowApiSlice = api.injectEndpoints({
   endpoints: (builder) => ({
     // `domainId: null` means the caller's role has no domain scope
@@ -51,6 +60,7 @@ export const stageWorkflowApiSlice = api.injectEndpoints({
       invalidatesTags: (_result, _error, arg) => [
         { type: "StageWorkflow", id: arg.stageKey },
         "CrqReview",
+        ...crqDetailTags(arg.crqNo),
       ],
     }),
 
@@ -65,9 +75,14 @@ export const stageWorkflowApiSlice = api.injectEndpoints({
         params,
       }),
       // A pass moves the CRQ into the next stage, so refresh that stage's
-      // listing (and the overview/cockpit data) alongside this one.
+      // listing (and the overview/cockpit data) alongside this one, plus the
+      // per-CRQ dialog data whose state the outcome changes.
       invalidatesTags: (_result, _error, arg) => {
-        const tags: any[] = [{ type: "StageWorkflow", id: arg.stageKey }, "CrqReview"];
+        const tags: any[] = [
+          { type: "StageWorkflow", id: arg.stageKey },
+          "CrqReview",
+          ...crqDetailTags(arg.crqNo),
+        ];
         const next = nextStageKey(arg.stageKey);
         if (next) tags.push({ type: "StageWorkflow", id: next });
         return tags;

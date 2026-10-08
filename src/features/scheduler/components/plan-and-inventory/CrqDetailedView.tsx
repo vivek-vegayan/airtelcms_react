@@ -209,12 +209,14 @@ export const CrqDetailedView: React.FC = () => {
     error: pagedError,
   } = useGetCrqWorkflowOverviewPagedQuery(
     { domainId, subDomainId, search: globalSearch, page, size: pageSize },
-    { skip: !listRequested },
+    { skip: !listRequested, refetchOnMountOrArgChange: true, refetchOnFocus: true },
   );
 
   // Dedicated single-CRQ lookup hydrating the main panel - independent of
-  // whichever page of the list is currently showing, and cached per crqNo
-  // so re-selecting an already-fetched CRQ costs no network call.
+  // whichever page of the list is currently showing. Always refetched on
+  // (re)selection and on window focus: the CRQ may have moved on in another
+  // tab (list pages open this cockpit in a new tab with a separate cache),
+  // so a cached copy here would show a stale stage/status.
   const {
     data: selectedCrqData,
     isFetching: isSelectedCrqFetching,
@@ -222,7 +224,7 @@ export const CrqDetailedView: React.FC = () => {
     refetch: refetchSelectedCrq,
   } = useGetCrqWorkflowOverviewByCrqNoQuery(
     { domainId, subDomainId, crqNo: selectedCrqNo ?? "" },
-    { skip: !selectedCrqNo },
+    { skip: !selectedCrqNo, refetchOnMountOrArgChange: true, refetchOnFocus: true },
   );
 
   const [updateCrqReviewStatus] = useUpdateCrqReviewStatusMutation();
@@ -257,8 +259,11 @@ export const CrqDetailedView: React.FC = () => {
     setPage(0);
   }, [globalSearch]);
 
+  // A new route CRQ (sidebar pick, browser back/forward) must re-seed the
+  // stage/expansion from its own detail, not keep the previous CRQ's.
   useEffect(() => {
     setSelectedCrqNo(crqNo ?? null);
+    setHasInitializedSelection(false);
   }, [crqNo]);
 
   const selectedPlan = selectedCrqData?.plans?.[0] ?? null;
@@ -306,6 +311,9 @@ export const CrqDetailedView: React.FC = () => {
   // current page/search.
   useEffect(() => {
     if (hasInitializedSelection || !selectedCrqNo || !selectedCrq || !selectedPlan) return;
+    // While a newly selected CRQ is loading, the query still returns the
+    // previous CRQ's data - wait for the matching one before seeding.
+    if (selectedCrq.crqNo !== selectedCrqNo) return;
     setExpPlans((prev) => ({ ...prev, [selectedPlan.planNumber]: true }));
     setExpCrqs((prev) => ({ ...prev, [selectedCrqNo]: true }));
     setSelectedStageId(WORKFLOW_STAGES[resolveCurrentStageIndex(selectedCrq)].id);

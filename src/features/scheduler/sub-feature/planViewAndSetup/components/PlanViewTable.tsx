@@ -1,15 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   MaterialReactTable,
   type MRT_ColumnDef,
   type MRT_PaginationState,
-  type MRT_Updater,
 } from "material-react-table";
-import {
-  DEFAULT_PAGE_SIZES,
-  useAppTable,
-  useViewportPageSize,
-} from "../../../../../components/ui/AppTable";
+import { useAppTable } from "../../../../../components/ui/AppTable";
 import {
   Alert,
   Box,
@@ -45,6 +40,9 @@ interface Props {
   selectedChmDomain?: number;
   selectedChmSubDomain?: number;
 }
+
+const DEFAULT_PAGE_SIZE = 50;
+const PLAN_PAGE_SIZES = [10, 25, 50, 100, 200, 300, 500];
 
 // ── Badges ─────────────────────────────────────────────────────────────────
 
@@ -112,20 +110,18 @@ export const PlanViewTable: React.FC<Props> = ({
     null,
   );
 
-  // The first request uses the screen-height size (5–25) only to learn the
-  // total; the effect below then widens the page to show every row. Once the
-  // user picks a size from the rows-per-page control, that choice is kept.
-  const viewportPageSize = useViewportPageSize();
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: viewportPageSize });
-  const userPickedSize = useRef(false);
-
-  const handlePaginationChange = (updater: MRT_Updater<MRT_PaginationState>) => {
-    setPagination((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      if (next.pageSize !== prev.pageSize) userPickedSize.current = true;
-      return next;
-    });
-  };
+  // Server-side paging. Changing any filter jumps back to page 1 so a page
+  // index from the old result set can't point past the end of the new one.
+  const [pagination, setPagination] = useState<MRT_PaginationState>({
+    pageIndex: 0,
+    pageSize: DEFAULT_PAGE_SIZE,
+  });
+  const filterKey = `${verticalId}|${functionId}|${domainId}|${subDomainId}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (prevFilterKey !== filterKey) {
+    setPrevFilterKey(filterKey);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }
 
   const {
     data,
@@ -149,16 +145,6 @@ export const PlanViewTable: React.FC<Props> = ({
   );
 
   const apiRows = data?.content ?? [];
-
-  // Default to all rows on one page: as soon as the total is known (and again
-  // if a filter change raises it), grow the page to fit it.
-  const totalElements = data?.totalElements ?? 0;
-  useEffect(() => {
-    if (userPickedSize.current || totalElements <= 0) return;
-    setPagination((prev) =>
-      prev.pageSize === totalElements ? prev : { pageIndex: 0, pageSize: totalElements },
-    );
-  }, [totalElements]);
 
   const handleOpenEdit = (rowData: PlanViewRow) => {
     setSelectedRowData(rowData);
@@ -289,7 +275,7 @@ export const PlanViewTable: React.FC<Props> = ({
     },
     manualPagination: true,
     rowCount: data?.totalElements ?? 0,
-    onPaginationChange: handlePaginationChange,
+    onPaginationChange: setPagination,
     enableFacetedValues: true,
 
     // ── Column menu (⋮): sort, filter by, reset size, hide / show columns ──
@@ -396,18 +382,9 @@ export const PlanViewTable: React.FC<Props> = ({
     muiTableContainerProps: {
       sx: { maxHeight: "calc(100vh - 305px)" },
     },
-    // Always offer the full rows-per-page ladder. The shared preset trims it
-    // to the rungs below the row count (12 rows -> 5, 10, 12); here every
-    // size stays listed, plus the total as "All" and the current size.
-    muiPaginationProps: ({ table }) => ({
-      rowsPerPageOptions: [
-        ...new Set([
-          ...DEFAULT_PAGE_SIZES,
-          ...(data?.totalElements ? [data.totalElements] : []),
-          table.getState().pagination.pageSize,
-        ]),
-      ].sort((a, b) => a - b),
-    }),
+    // Sizes at or above the total are dropped and the total is added as the
+    // last option (383 rows -> 10, 25, 50, 100, 200, 300, 383).
+    appTable: { pageSizes: PLAN_PAGE_SIZES },
     muiTableBodyRowProps: {
       sx: {
         "&:hover td": {

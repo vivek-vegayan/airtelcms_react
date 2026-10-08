@@ -12,14 +12,19 @@ import {
   isCanceledStatus,
 } from "../../../constants/workflowStages";
 import { useSchedulerAccess } from "../../../hook/useSchedulerAccess";
+import { useCrqWithHistory } from "../../../hook/useCrqWithHistory";
 
 export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
   open,
   onClose,
-  crq,
+  crq: crqProp,
   colors,
   onSubmit,
 }) => {
+  // Listing rows carry no history[]; load it while the dialog is open so the
+  // Done/Cancelled checks below (and the Attribute Update stage meta built
+  // from this crq) see the authoritative stage status.
+  const { crq } = useCrqWithHistory(crqProp, open);
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
   const [panelOpen, setPanelOpen] = useState(true);

@@ -69,7 +69,7 @@ export const useValidateForm = (crqNo: string | null, open: boolean): ValidateFo
     refetch,
   } = useGetCrqValidationDetailsQuery(
     { crqNo: crqNo ?? "" },
-    { skip: !open || !crqNo },
+    { skip: !open || !crqNo, refetchOnMountOrArgChange: true },
   );
 
   const [saveValidationDetails, { isLoading: isSaving }] = useSaveCrqValidationDetailsMutation();

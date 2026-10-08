@@ -150,6 +150,7 @@ export interface UpdateActivityPhaseRequest {
 
 // ─── Shift Dropdown ───────────────────────────────────────────────────────────
 
+// GET /activity/planshiftdropdown (activity_plan_shift_dropdown)
 export interface ShiftDropdown {
   shiftId: number;
   shiftRange: string;
@@ -168,19 +169,36 @@ export interface NetworkDomainDropdown {
 // ─── Plan+Activity Bulk Excel Upload Types ─────────────────────────────────────
 
 /**
- * One row of the Plan+Activity bulk-upload sheet. Mirrors backend
- * PlanActivityExcelRowDto. Every hierarchy/team field is a plain name —
- * sp_insert_plan_activity (updated 2026-07-31) resolves Vertical/Team
- * Function/Domain/Sub Domain/Team names to IDs itself, so no ID fields are
- * ever sent to or echoed back from the backend.
+ * One phase row of an Activity block on the template's Upload sheet.
+ * Mirrors backend PlanActivityExcelPhaseDto.
+ */
+export interface PlanActivityExcelPhase {
+  rowNumber: number;
+  phase: string;
+  shift: string | null;
+  minimumLevelRequirement: string | null;
+  requiredTimeMinutes: number | null;
+  /** "Vertical > Function > Domain > Sub Domain"; blank = activity's own Sub Domain. */
+  teamPath: string | null;
+  daysMargin: number | null;
+  reservationMargin: number | null;
+  rollbackTime: number | null;
+}
+
+/**
+ * One Activity block (6 phase rows sharing an Activity Ref). Mirrors backend
+ * PlanActivityExcelRowDto. Each phase is one sp_insert_plan_activity call,
+ * which resolves every hierarchy/team name to IDs itself.
  */
 export interface PlanActivityExcelRow {
   rowNumber: number;
+  activityRef: string;
 
   verticalName: string;
   functionName: string;
   chmDomainName: string;
   chmSubDomainName: string;
+  networkDomain: string;
   layer: string;
   planType: string;
   vendorOem: string;
@@ -188,42 +206,12 @@ export interface PlanActivityExcelRow {
 
   activityName: string;
 
-  crqReviewShift: string;
-  crqReviewMinimumLevelRequirement: string;
-  crqReviewRequiredTimeMinutes: number | null;
-  crqReviewTeamName: string;
-
-  impactAnalysisShift: string;
-  impactAnalysisMinimumLevelRequirement: string;
-  impactAnalysisRequiredTimeMinutes: number | null;
-  impactAnalysisTeamName: string;
-
-  schedulingShift: string;
-  schedulingMinimumLevelRequirement: string;
-  schedulingRequiredTimeMinutes: number | null;
-  schedulingTeamName: string;
-
-  mopCreateShift: string;
-  mopCreateMinimumLevelRequirement: string;
-  mopCreateRequiredTimeMinutes: number | null;
-  mopCreateTeamName: string;
-
-  mopValidateShift: string;
-  mopValidateMinimumLevelRequirement: string;
-  mopValidateRequiredTimeMinutes: number | null;
-  mopValidateTeamName: string;
-
-  crqExecutionShift: string;
-  crqExecutionMinimumLevelRequirement: string;
-  crqExecutionRequiredTimeMinutes: number | null;
-  crqExecutionDaysMargin: number | null;
-  crqExecutionReservationMargin: number | null;
-  crqExecutionRollbackTime: number | null;
-  crqExecutionTeamName: string;
+  phases: PlanActivityExcelPhase[];
 }
 
 export interface PlanActivityValidationError {
   rowNumber: number;
+  activityRef: string;
   column: string;
   value: string | null;
   error: string;
@@ -239,6 +227,7 @@ export interface PlanActivityExcelParseResponse {
 
 export interface PlanActivityExcelRowResult {
   rowNumber: number;
+  activityRef: string;
   activityName: string;
   status: "SUCCESS" | "FAILED";
   message: string;
@@ -272,7 +261,7 @@ export const planApi = api.injectEndpoints({
     }),
     getShiftDropdowns: builder.query<ShiftDropdown[], void>({
       query: () => ({
-        url: "/monthlyrosterview/shiftdropdowns",
+        url: "/activity/planshiftdropdown",
         method: "GET",
       }),
       providesTags: ["ShiftDropdown"],
@@ -326,14 +315,6 @@ export const planApi = api.injectEndpoints({
     }),
 
     // ── Plan+Activity Bulk Excel Upload ──────────────────────────────────────
-    downloadPlanActivityTemplate: builder.query<Blob, void>({
-      query: () => ({
-        url: "/activity/excel/v1/template",
-        method: "GET",
-        responseHandler: (response) => response.blob(),
-        cache: "no-cache",
-      }),
-    }),
     parsePlanActivityExcel: builder.mutation<PlanActivityExcelParseResponse, File>({
       query: (file) => {
         const formData = new FormData();
@@ -366,7 +347,6 @@ export const {
   useUpdateActivityPhaseMutation,
   useUpdatePlanMutation,
   useAddPlanMutation,
-  useLazyDownloadPlanActivityTemplateQuery,
   useParsePlanActivityExcelMutation,
   useUploadPlanActivityExcelMutation,
 } = planApi;

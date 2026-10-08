@@ -1,24 +1,75 @@
 import {
   Box,
-  Stack,
-  FormControl,
-  Select,
+  Button,
+  InputAdornment,
   MenuItem,
+  Skeleton,
+  Stack,
   TextField,
   Typography,
-  Paper,
-  Button,
-  InputLabel,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import { useEffect, useState } from "react";
+
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
-import { useEffect, useState } from "react";
+import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
+import { useTabColorTokens } from "../../../style/theme";
+import { ChartCard } from "../../crqAnalytics/components/ChartCard";
+import { EmptyOrErrorState } from "../../crqAnalytics/components/EmptyOrErrorState";
+import { SlotFilterBar, SlotLegend } from "../components/slotVisibilityUi";
+import { getRoleName, useSlotTones, type SlotStatus } from "../components/slotVisibility.styles";
 import {
   type AllPlans,
   useLazyGetAllPlansQuery,
 } from "../api/slotVisiblityApi";
 
+const SHOW_OPTIONS = ["All plans", "Plans with a full day", "Plans with no capacity"];
+
+// Plan type | Time | Shifts | 14 days | 14-day fit
+const GRID_COLUMNS = "minmax(220px, 2.5fr) 70px 60px repeat(14, minmax(34px, 1fr)) 72px";
+
+interface PlanCell {
+  value: number;
+  status: string;
+}
+
+interface TableRow {
+  plan_type: string;
+  domain: string;
+  shift_name: string;
+  required_min: number;
+  values: Record<string, PlanCell>;
+}
+
+/** One day's cell → tone bucket, label and tooltip. */
+const resolveCell = (cell?: PlanCell): { tone: SlotStatus; label: string; title: string } => {
+  const value = cell?.value;
+  const status = cell?.status?.toUpperCase();
+
+  const label = value === undefined ? "–" : String(value);
+
+  if (status === "HOLIDAY" || status === "FREEZE") {
+    return { tone: "holiday", label: "H", title: "Holiday / freeze" };
+  }
+  if (value === 0 || status === "FULL") {
+    return { tone: "full", label, title: "Full" };
+  }
+  if (value !== undefined && value > 0 && value <= 2) {
+    return { tone: "low", label, title: `${value} fit` };
+  }
+  if (value !== undefined && value >= 3) {
+    return { tone: "available", label, title: `${value} fit` };
+  }
+  return { tone: "neutral", label, title: "No roster / not eligible" };
+};
+
 export default function AllPlansView() {
+  const theme = useTheme();
+  const colors = useTabColorTokens(theme);
+  const tones = useSlotTones();
+
   const [planTypeSearch, setPlanTypeSearch] = useState("");
   const [showFilter, setShowFilter] = useState("All plans");
 
@@ -36,6 +87,7 @@ export default function AllPlansView() {
       weekday: date.toLocaleDateString("en-US", {
         weekday: "short",
       }),
+      weekend: date.getDay() === 0 || date.getDay() === 6,
     };
   });
 
@@ -45,24 +97,8 @@ export default function AllPlansView() {
     resetAll: resetOrgFilters,
   } = useOrgHierarchyState("allPlans");
 
-  const {
-    options: orgOptions,
-    isLoading: isOrgLoading,
-    isError: isOrgError,
-  } = useOrgHierarchyFilters(orgFilters);
+  const { options: orgOptions } = useOrgHierarchyFilters(orgFilters);
 
-  interface PlanCell {
-    value: number;
-    status: string;
-  }
-
-  interface TableRow {
-    plan_type: string;
-    domain: string;
-    shift_name: string;
-    required_min: number;
-    values: Record<string, PlanCell>;
-  }
   const [allPlansData, setAllPlansData] = useState<AllPlans[]>([]);
 
   const tableRows: TableRow[] = Array.from(
@@ -129,7 +165,7 @@ export default function AllPlansView() {
 
       return true;
     });
-    
+
   const [
     getAllPlans,
     { isLoading: isAllPlansLoading, isError: isAllPlansError },
@@ -159,8 +195,6 @@ export default function AllPlansView() {
         const response = await getAllPlans({
           teamName: selectedSubDomain.value,
         }).unwrap();
-        console.log("Plans Data:-");
-        console.log(response);
         setAllPlansData(response);
       } catch (error) {
         console.error("Failed to load all plans:", error);
@@ -177,772 +211,302 @@ export default function AllPlansView() {
     getAllPlans,
   ]);
 
+  const hasOrgSelection = Boolean(
+    orgFilters.vertical ||
+      orgFilters.teamFunction ||
+      orgFilters.domain ||
+      orgFilters.subDomain,
+  );
+
+  /* =========================================================
+     RENDER
+  ========================================================= */
+
+  const headerTextSx = {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: ".4px",
+    textTransform: "uppercase" as const,
+    color: colors.textSecondary,
+    whiteSpace: "nowrap" as const,
+  };
+
+  const renderBody = () => {
+    if (isAllPlansLoading) {
+      return (
+        <Stack spacing={1} sx={{ p: 2 }}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={44} />
+          ))}
+        </Stack>
+      );
+    }
+
+    if (isAllPlansError) {
+      return <EmptyOrErrorState kind="error" message="Failed to load plan availability." />;
+    }
+
+    if (!orgFilters.subDomain) {
+      return <EmptyOrErrorState kind="empty" message="Select a Sub Domain to view plan availability." />;
+    }
+
+    if (allPlansData.length === 0) {
+      return <EmptyOrErrorState kind="empty" message="No plans available for the selected Sub Domain." />;
+    }
+
+    if (filteredTableRows.length === 0) {
+      return (
+        <EmptyOrErrorState
+          kind="empty"
+          message={planTypeSearch ? `No plans found for "${planTypeSearch}".` : "No plans match this view."}
+        />
+      );
+    }
+
+    return filteredTableRows.map((plan, rowIndex) => {
+      const total = days.reduce((sum, day) => {
+        const cell = plan.values[day.date];
+
+        if (!cell) {
+          return sum;
+        }
+
+        return cell.value > 0 ? sum + cell.value : sum;
+      }, 0);
+
+      return (
+        <Box
+          key={`${plan.plan_type}-${plan.shift_name}-${rowIndex}`}
+          sx={{
+            display: "grid",
+            gridTemplateColumns: GRID_COLUMNS,
+            gap: 0.75,
+            px: 2,
+            py: 1,
+            alignItems: "center",
+            borderBottom: `1px solid ${colors.border}`,
+            "&:last-child": { borderBottom: 0 },
+            "&:hover": { background: colors.selectedRow },
+          }}
+        >
+          {/* PLAN INFORMATION */}
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              title={plan.plan_type}
+              sx={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: colors.textPrimary,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {plan.plan_type}
+            </Typography>
+            <Typography sx={{ mt: 0.25, fontSize: 11.5, color: colors.textSecondary }}>
+              {plan.domain} · {plan.shift_name}
+            </Typography>
+          </Box>
+
+          {/* TIME */}
+          <Typography sx={{ fontSize: 12.5, color: colors.textSecondary, whiteSpace: "nowrap" }}>
+            {plan.required_min} min
+          </Typography>
+
+          {/* SHIFTS */}
+          <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary }}>
+            {plan.shift_name}
+          </Typography>
+
+          {/* DAILY CAPACITY */}
+          {days.map((day) => {
+            const cell = resolveCell(plan.values[day.date]);
+            const tone = tones[cell.tone];
+
+            return (
+              <Box
+                key={day.date}
+                title={cell.title}
+                sx={{
+                  height: 36,
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: tone.bg,
+                  border: `1px solid ${tone.border}`,
+                  color: tone.color,
+                  fontWeight: 800,
+                  fontSize: 12.5,
+                  transition: "transform .12s ease",
+                  "&:hover": { transform: "scale(1.06)" },
+                }}
+              >
+                {cell.label}
+              </Box>
+            );
+          })}
+
+          {/* 14 DAY TOTAL */}
+          <Typography
+            sx={{
+              textAlign: "right",
+              fontSize: 17,
+              fontWeight: 900,
+              color: total < 10 ? tones.full.color : colors.textPrimary,
+            }}
+          >
+            {total}
+          </Typography>
+        </Box>
+      );
+    });
+  };
+
   return (
-    <Box
-      sx={{
-        p: { xs: 2, md: 3 },
-        backgroundColor: "#F4F3EF",
-      }}
-    >
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {/* =========================================================
           FILTERS
       ========================================================= */}
-      <Stack
-        direction={{ xs: "column", md: "row" }}
-        spacing={2}
-        alignItems={{ xs: "stretch", md: "flex-end" }}
-        sx={{
-          py: 2,
-        }}
-      >
-        {/* Team */}
-        {/* Vertical */}
+      <SlotFilterBar>
+        <OrgHierarchyFilters
+          role={getRoleName()}
+          values={orgFilters}
+          options={orgOptions}
+          onChange={handleOrgFilterChange}
+        />
 
-        <FormControl
-          size="small"
-          sx={{ minWidth: 170 }}
-          disabled={isOrgLoading}
-        >
-          <InputLabel>Vertical</InputLabel>
-
-          <Select
-            value={orgFilters.vertical ?? ""}
-            label="Vertical"
-            onChange={(event) => {
-              const value = event.target.value;
-
-              handleOrgFilterChange(
-                "vertical",
-                value === "" ? undefined : Number(value),
-              );
-            }}
-          >
-            {orgOptions.vertical.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {/* Team Function */}
-
-        <FormControl
-          size="small"
-          sx={{ minWidth: 170 }}
-          disabled={!orgFilters.vertical || isOrgLoading}
-        >
-          <InputLabel>Team Function</InputLabel>
-
-          <Select
-            value={orgFilters.teamFunction ?? ""}
-            label="Team Function"
-            onChange={(event) => {
-              const value = event.target.value;
-
-              handleOrgFilterChange(
-                "teamFunction",
-                value === "" ? undefined : Number(value),
-              );
-            }}
-          >
-            {orgOptions.teamFunction.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {/* Domain */}
-
-        <FormControl
-          size="small"
-          sx={{ minWidth: 170 }}
-          disabled={!orgFilters.teamFunction || isOrgLoading}
-        >
-          <InputLabel>Domain</InputLabel>
-
-          <Select
-            value={orgFilters.domain ?? ""}
-            label="Domain"
-            onChange={(event) => {
-              const value = event.target.value;
-
-              handleOrgFilterChange(
-                "domain",
-                value === "" ? undefined : Number(value),
-              );
-            }}
-          >
-            {orgOptions.domain.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {/* SubDomain */}
-
-        <FormControl
-          size="small"
-          sx={{ minWidth: 170 }}
-          disabled={!orgFilters.domain || isOrgLoading}
-        >
-          <InputLabel>SubDomain</InputLabel>
-
-          <Select
-            value={orgFilters.subDomain ?? ""}
-            label="SubDomain"
-            onChange={(event) => {
-              const value = event.target.value;
-
-              handleOrgFilterChange(
-                "subDomain",
-                value === "" ? undefined : Number(value),
-              );
-            }}
-          >
-            {orgOptions.subDomain.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {/* Clear */}
-
-        {(orgFilters.vertical ||
-          orgFilters.teamFunction ||
-          orgFilters.domain ||
-          orgFilters.subDomain) && (
-          <Button
-            size="small"
-            variant="text"
-            onClick={resetOrgFilters}
-            sx={{
-              whiteSpace: "nowrap",
-            }}
-          >
+        {hasOrgSelection && (
+          <Button size="small" variant="text" onClick={resetOrgFilters} sx={{ textTransform: "none" }}>
             Clear
           </Button>
         )}
 
-        {/* Plan type */}
-        <Filter label="Plan type">
-          <TextField
-            size="small"
-            type="search"
-            placeholder="Search plan type"
-            value={planTypeSearch}
-            onChange={(e) => setPlanTypeSearch(e.target.value)}
-            sx={{
-              minWidth: 190,
-              "& .MuiOutlinedInput-root": {
-                backgroundColor: "#FFFFFF",
-              },
-            }}
-          />
-        </Filter>
-
-        {/* Show */}
-        <Filter label="Show">
-          <FormControl
-            size="small"
-            sx={{
-              minWidth: 190,
-            }}
-          >
-            <Select
-              value={showFilter}
-              onChange={(e) => setShowFilter(e.target.value)}
-              sx={{
-                backgroundColor: "#FFFFFF",
-              }}
-            >
-              <MenuItem value="All plans">All plans</MenuItem>
-
-              <MenuItem value="Plans with a full day">
-                Plans with a full day
-              </MenuItem>
-
-              <MenuItem value="Plans with no capacity">
-                Plans with no capacity
-              </MenuItem>
-            </Select>
-          </FormControl>
-        </Filter>
-
-        {/* Refreshed */}
-        {/* <Typography
-          variant="body2"
-          sx={{
-            ml: { xs: 0, md: "auto" },
-            pb: 1,
-            color: "#57554E",
-            fontSize: 13,
-            whiteSpace: "nowrap",
+        <TextField
+          size="small"
+          type="search"
+          label="Plan type"
+          placeholder="Search plan type"
+          value={planTypeSearch}
+          onChange={(e) => setPlanTypeSearch(e.target.value)}
+          sx={{ minWidth: 220 }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchRoundedIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            },
           }}
+        />
+
+        <TextField
+          select
+          size="small"
+          label="Show"
+          value={showFilter}
+          onChange={(e) => setShowFilter(e.target.value)}
+          sx={{ minWidth: 200 }}
         >
-          Refreshed 10:05 · all vendors
-        </Typography> */}
-      </Stack>
+          {SHOW_OPTIONS.map((option) => (
+            <MenuItem key={option} value={option}>
+              {option}
+            </MenuItem>
+          ))}
+        </TextField>
+      </SlotFilterBar>
 
       {/* =========================================================
           TABLE
       ========================================================= */}
-
-      <Paper
-        elevation={0}
-        sx={{
-          backgroundColor: "#FFFFFF",
-          border: "1px solid #DEDBD2",
-          borderRadius: 2,
-          overflow: "hidden",
-          width: "100%",
-        }}
+      <ChartCard
+        title="Plan availability · next 14 days"
+        height="auto"
+        action={
+          filteredTableRows.length > 0 && (
+            <Typography sx={{ fontSize: 12, color: colors.textSecondary }}>
+              {filteredTableRows.length} plan{filteredTableRows.length === 1 ? "" : "s"}
+            </Typography>
+          )
+        }
       >
         <Box
           sx={{
-            width: "100%",
-            minWidth: 0,
-            maxHeight: "calc(100vh - 315px)",
-            overflowY: "auto",
-            overflowX: "hidden",
-
-            "&::-webkit-scrollbar": {
-              width: 8,
-            },
-            "&::-webkit-scrollbar-track": {
-              backgroundColor: "#F4F3EF",
-            },
-            "&::-webkit-scrollbar-thumb": {
-              backgroundColor: "#C8C5BC",
-              borderRadius: 10,
-            },
-            "&::-webkit-scrollbar-thumb:hover": {
-              backgroundColor: "#AAA69C",
-            },
+            border: `1px solid ${colors.border}`,
+            borderRadius: colors.radiusL,
+            overflow: "auto",
+            maxHeight: "calc(100vh - 340px)",
           }}
         >
-          {/* =====================================================
-        TABLE HEADER
-    ===================================================== */}
-
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns:
-                "minmax(220px, 2.5fr) 70px 65px repeat(14, minmax(0, 1fr)) 75px",
-              gap: 0.75,
-              px: 2.5,
-              py: 1.5,
-              backgroundColor: "#F4F3EF",
-              borderBottom: "1px solid #DEDBD2",
-              alignItems: "center",
-            }}
-          >
-            <TableHeader>Plan type</TableHeader>
-
-            <TableHeader>Time</TableHeader>
-
-            <TableHeader>Shifts</TableHeader>
-
-            {days.map((day) => (
-              <Box
-                key={day.date}
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  lineHeight: 1.1,
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: 10,
-                    fontWeight: 500,
-                    color:
-                      day.weekday === "Sat" || day.weekday === "Sun"
-                        ? "#A52A2A"
-                        : "#57554E",
-                  }}
-                >
-                  {day.weekday}
-                </Typography>
-
-                <Typography
-                  sx={{
-                    mt: 0.25,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color:
-                      day.weekday === "Sat" || day.weekday === "Sun"
-                        ? "#A52A2A"
-                        : "#1C1B19",
-                  }}
-                >
-                  {day.day}
-                </Typography>
-              </Box>
-            ))}
-
-            <TableHeader align="right">14-day fit</TableHeader>
-          </Box>
-
-          {/* =====================================================
-        LOADING
-    ===================================================== */}
-
-          {isAllPlansLoading && (
+          <Box sx={{ minWidth: 980 }}>
+            {/* TABLE HEADER */}
             <Box
               sx={{
-                py: 7,
-                textAlign: "center",
+                display: "grid",
+                gridTemplateColumns: GRID_COLUMNS,
+                gap: 0.75,
+                px: 2,
+                py: 1.25,
+                alignItems: "center",
+                background: colors.surface2,
+                borderBottom: `1px solid ${colors.border}`,
+                position: "sticky",
+                top: 0,
+                zIndex: 1,
               }}
             >
-              <Typography
-                sx={{
-                  fontSize: 13,
-                  color: "#6B6961",
-                }}
-              >
-                Loading plans...
-              </Typography>
-            </Box>
-          )}
+              <Typography sx={headerTextSx}>Plan type</Typography>
+              <Typography sx={headerTextSx}>Time</Typography>
+              <Typography sx={headerTextSx}>Shift</Typography>
 
-          {/* =====================================================
-        ERROR
-    ===================================================== */}
-
-          {isAllPlansError && !isAllPlansLoading && (
-            <Box
-              sx={{
-                py: 7,
-                textAlign: "center",
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: 13,
-                  color: "#B42318",
-                }}
-              >
-                Failed to load plan availability.
-              </Typography>
-            </Box>
-          )}
-
-          {/* =====================================================
-        NO SUBDOMAIN SELECTED
-    ===================================================== */}
-
-          {!orgFilters.subDomain && !isAllPlansLoading && !isAllPlansError && (
-            <Box
-              sx={{
-                py: 7,
-                textAlign: "center",
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: 13,
-                  color: "#77746C",
-                }}
-              >
-                Select a SubDomain to view plan availability.
-              </Typography>
-            </Box>
-          )}
-
-          {/* =====================================================
-        NO DATA
-    ===================================================== */}
-
-          {orgFilters.subDomain &&
-            allPlansData.length === 0 &&
-            !isAllPlansLoading &&
-            !isAllPlansError && (
-              <Box
-                sx={{
-                  py: 7,
-                  textAlign: "center",
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: 13,
-                    color: "#77746C",
-                  }}
-                >
-                  No plans available for the selected SubDomain.
-                </Typography>
-              </Box>
-            )}
-
-          {orgFilters.subDomain &&
-            allPlansData.length > 0 &&
-            filteredTableRows.length === 0 &&
-            !isAllPlansLoading &&
-            !isAllPlansError && (
-              <Box
-                sx={{
-                  py: 7,
-                  textAlign: "center",
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: 13,
-                    color: "#77746C",
-                  }}
-                >
-                  No plans found for "{planTypeSearch}".
-                </Typography>
-              </Box>
-            )}
-
-          {/* =====================================================
-        TABLE ROWS
-    ===================================================== */}
-
-          {!isAllPlansLoading &&
-            !isAllPlansError &&
-            filteredTableRows.map((plan, rowIndex) => {
-              const total = days.reduce((sum, day) => {
-                const cell = plan.values[day.date];
-
-                if (!cell) {
-                  return sum;
-                }
-
-                return cell.value > 0 ? sum + cell.value : sum;
-              }, 0);
-
-              return (
-                <Box
-                  key={`${plan.plan_type}-${plan.shift_name}-${rowIndex}`}
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "minmax(220px, 2.5fr) 70px 65px repeat(14, minmax(0, 1fr)) 75px",
-                    gap: 0.75,
-                    px: 2.5,
-                    minHeight: 68,
-                    alignItems: "center",
-                    borderBottom: "1px solid #EEECE6",
-
-                    "&:hover": {
-                      backgroundColor: "#FAF9F6",
-                    },
-                  }}
-                >
-                  {/* =================================================
-                PLAN INFORMATION
-            ================================================= */}
-
-                  <Box
-                    sx={{
-                      minWidth: 0,
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: "#1C1B19",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {plan.plan_type}
-                    </Typography>
-
-                    <Typography
-                      sx={{
-                        mt: 0.25,
-                        fontSize: 12,
-                        color: "#6B6961",
-                        fontFamily: "monospace",
-                      }}
-                    >
-                      {plan.domain} · {plan.shift_name}
-                    </Typography>
-                  </Box>
-
-                  {/* =================================================
-                TIME
-            ================================================= */}
-
+              {days.map((day) => (
+                <Box key={day.date} sx={{ textAlign: "center", lineHeight: 1.1 }}>
                   <Typography
                     sx={{
-                      fontSize: 13,
-                      color: "#3F3D37",
-                      fontFamily: "monospace",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {plan.required_min} min
-                  </Typography>
-
-                  {/* =================================================
-                SHIFTS
-            ================================================= */}
-
-                  <Typography
-                    sx={{
-                      fontSize: 13,
-                      color: "#3F3D37",
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    {plan.shift_name}
-                  </Typography>
-
-                  {/* =================================================
-                DAILY CAPACITY
-            ================================================= */}
-
-                  {days.map((day) => {
-                    const cell = plan.values[day.date];
-
-                    const value = cell?.value;
-                    const status = cell?.status?.toUpperCase();
-
-                    const holiday = status === "HOLIDAY" || status === "FREEZE";
-
-                    const noRoster =
-                      status === "NO ROSTER" || status === "NOT ELIGIBLE";
-
-                    const full = value === 0 || status === "FULL";
-
-                    const low = value !== undefined && value > 0 && value <= 2;
-
-                    let backgroundColor = "#E8E6E1";
-                    let color = "#57554E";
-                    let title = "No roster / not eligible";
-
-                    if (holiday) {
-                      backgroundColor = "#E6DDF5";
-                      color = "#3F2275";
-                      title = "Holiday / freeze";
-                    } else if (full) {
-                      backgroundColor = "#F6D7D2";
-                      color = "#8A1C12";
-                      title = "Full";
-                    } else if (low) {
-                      backgroundColor = "#FBEBC8";
-                      color = "#6E3A00";
-                      title = `${value} fit`;
-                    } else if (value !== undefined && value >= 3) {
-                      backgroundColor = "#DDEFE3";
-                      color = "#14532D";
-                      title = `${value} fit`;
-                    } else if (!noRoster) {
-                      backgroundColor = "#E8E6E1";
-                      color = "#57554E";
-                    }
-
-                    return (
-                      <Box
-                        key={day.date}
-                        title={title}
-                        sx={{
-                          height: 40,
-                          borderRadius: 1,
-
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-
-                          backgroundColor,
-                          color,
-
-                          fontFamily: "monospace",
-                          fontWeight: 600,
-                          fontSize: 13,
-
-                          cursor: "default",
-
-                          transition: "transform 0.12s ease",
-
-                          "&:hover": {
-                            transform: "scale(1.04)",
-                          },
-                        }}
-                      >
-                        {holiday ? "H" : value === undefined ? "–" : value}
-                      </Box>
-                    );
-                  })}
-
-                  {/* =================================================
-                14 DAY TOTAL
-            ================================================= */}
-
-                  <Typography
-                    sx={{
-                      textAlign: "right",
-                      fontFamily: "monospace",
-                      fontSize: 18,
+                      fontSize: 10,
                       fontWeight: 600,
-                      color: total < 10 ? "#8A1C12" : "#1C1B19",
+                      color: day.weekend ? colors.danger : colors.textSecondary,
                     }}
                   >
-                    {total}
+                    {day.weekday}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: day.weekend ? colors.danger : colors.textPrimary,
+                    }}
+                  >
+                    {day.day}
                   </Typography>
                 </Box>
-              );
-            })}
+              ))}
+
+              <Typography sx={{ ...headerTextSx, textAlign: "right" }}>14-day fit</Typography>
+            </Box>
+
+            {renderBody()}
+          </Box>
         </Box>
 
-        {/* =====================================================
-        LEGEND
-    ===================================================== */}
-
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
-            flexWrap: "wrap",
-            px: 2.5,
-            py: 1.5,
-            borderTop: "1px solid #EEECE6",
-            backgroundColor: "#FFFFFF",
-          }}
-        >
-          <Typography
-            sx={{
-              fontSize: 11,
-              color: "#57554E",
-            }}
-          >
-            Cell = activities that still fit that shift date (best allowed
-            shift)
+        {/* LEGEND */}
+        <Box sx={{ mt: 1.75, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 2 }}>
+          <Typography sx={{ fontSize: 11.5, color: colors.textSecondary }}>
+            Cell = activities that still fit that shift date (best allowed shift)
           </Typography>
-
-          <LegendItem backgroundColor="#DDEFE3" label="3+" />
-
-          <LegendItem backgroundColor="#FBEBC8" label="1–2" />
-
-          <LegendItem backgroundColor="#F6D7D2" label="Full" />
-
-          <LegendItem backgroundColor="#E6DDF5" label="Holiday / freeze" />
-
-          <LegendItem
-            backgroundColor="#E8E6E1"
-            label="No roster / not eligible"
+          <SlotLegend
+            items={[
+              { label: "3+", tone: tones.available },
+              { label: "1–2", tone: tones.low },
+              { label: "Full", tone: tones.full },
+              { label: "Holiday / freeze", tone: tones.holiday },
+              { label: "No roster / not eligible", tone: tones.neutral },
+            ]}
           />
         </Box>
-      </Paper>
-    </Box>
-  );
-}
-
-/* ================================================================
-   FILTER
-================================================================ */
-
-function Filter({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 0.75,
-      }}
-    >
-      <Typography
-        variant="caption"
-        sx={{
-          fontSize: 12,
-          fontWeight: 600,
-          color: "#57554E",
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
-        }}
-      >
-        {label}
-      </Typography>
-
-      {children}
-    </Box>
-  );
-}
-
-/* ================================================================
-   TABLE HEADER
-================================================================ */
-
-function TableHeader({
-  children,
-  align = "left",
-}: {
-  children: React.ReactNode;
-  align?: "left" | "center" | "right";
-}) {
-  return (
-    <Typography
-      sx={{
-        fontSize: 11,
-        fontWeight: 600,
-        color: "#57554E",
-        textTransform: "uppercase",
-        letterSpacing: "0.04em",
-        textAlign: align,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {children}
-    </Typography>
-  );
-}
-
-function LegendItem({
-  backgroundColor,
-  label,
-}: {
-  backgroundColor: string;
-  label: string;
-}) {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 0.6,
-      }}
-    >
-      <Box
-        sx={{
-          width: 12,
-          height: 12,
-          borderRadius: 0.7,
-          backgroundColor,
-        }}
-      />
-
-      <Typography
-        sx={{
-          fontSize: 11,
-          color: "#57554E",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {label}
-      </Typography>
+      </ChartCard>
     </Box>
   );
 }

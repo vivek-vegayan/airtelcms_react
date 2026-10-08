@@ -4,7 +4,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import type { StageConfig } from "../../../types/stageWorkflow.types";
 import SmartScrollContainer from "../../../../../components/common/SmartScrollContainer";
-import { ImpactBatchExplorer } from "./impactAnalysis/ImpactBatchExplorer";
+import { ImpactAnalysisPreview } from "./impactAnalysis/ImpactAnalysisPreview";
 import { MopCreateDocumentPanel } from "./mopCreate/MopCreateDocumentPanel";
 import { MopValidatePanel } from "./mopValidate/MopValidatePanel";
 
@@ -51,9 +51,10 @@ const PANEL_COPY: Record<string, { title: string; chip: string; show: string; hi
 
 /**
  * Right panel of `StageReviewDialog`, paired with the stage's action form.
- * What it renders is chosen by stage: Impact Analysis gets the live
- * `ImpactBatchExplorer`, MOP Create the MOP header and document uploader, MOP
- * Validate the current MOP version and its review.
+ * What it renders is chosen by stage: Impact Analysis gets the live fetch
+ * progress, then `ImpactBatchExplorer` on "View data"; MOP Create the MOP
+ * header and document uploader; MOP Validate the current MOP version and its
+ * review.
  */
 export const StagePreviewPanel: React.FC<StagePreviewPanelProps> = ({
   crqNo,
@@ -129,7 +130,7 @@ export const StagePreviewPanel: React.FC<StagePreviewPanelProps> = ({
         ) : (
           <SmartScrollContainer fill>
             <Box sx={{ p: 2.5 }}>
-              <ImpactBatchExplorer crqNo={crqNo} colors={colors} readOnly={readOnly} />
+              <ImpactAnalysisPreview crqNo={crqNo} colors={colors} readOnly={readOnly} />
             </Box>
           </SmartScrollContainer>
         )}

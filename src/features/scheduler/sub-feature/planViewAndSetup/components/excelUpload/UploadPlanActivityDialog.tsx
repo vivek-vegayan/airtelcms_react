@@ -65,8 +65,9 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
   const [parseExcel, { isLoading: isParsing }] = useParsePlanActivityExcelMutation();
   const [uploadExcel, { isLoading: isUploading }] = useUploadPlanActivityExcelMutation();
 
-  const invalidRowNumbers = useMemo(
-    () => new Set((parseResult?.errors ?? []).map((e) => e.rowNumber)),
+  // Validation and upload work per Activity block, keyed by Activity Ref.
+  const invalidRefs = useMemo(
+    () => new Set((parseResult?.errors ?? []).map((e) => e.activityRef)),
     [parseResult],
   );
 
@@ -111,7 +112,7 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
 
   const handleConfirmUpload = async () => {
     if (!parseResult) return;
-    const validRows = parseResult.rows.filter((r) => !invalidRowNumbers.has(r.rowNumber));
+    const validRows = parseResult.rows.filter((r) => !invalidRefs.has(r.activityRef));
     if (validRows.length === 0) return;
     try {
       const response = await uploadExcel(validRows).unwrap();
@@ -141,9 +142,9 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
     if (!parseResult) return;
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Validation Errors");
-    ws.addRow(["Row", "Column", "Value", "Error"]);
+    ws.addRow(["Row", "Activity Ref", "Column", "Value", "Error"]);
     ws.getRow(1).font = { bold: true };
-    parseResult.errors.forEach((e) => ws.addRow([e.rowNumber, e.column, e.value ?? "", e.error]));
+    parseResult.errors.forEach((e) => ws.addRow([e.rowNumber, e.activityRef, e.column, e.value ?? "", e.error]));
     ws.columns.forEach((col) => (col.width = 28));
     const buf = await wb.xlsx.writeBuffer();
     saveAs(new Blob([buf]), `Plan_Activity_Validation_Report_${Date.now()}.xlsx`);
@@ -153,10 +154,10 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
     if (!uploadSummary) return;
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Upload Results");
-    ws.addRow(["Row", "Activity Name", "Status", "Message", "Plan ID", "Activity ID"]);
+    ws.addRow(["Row", "Activity Ref", "Activity Name", "Status", "Message", "Plan ID", "Activity ID"]);
     ws.getRow(1).font = { bold: true };
     uploadSummary.results.forEach((r) =>
-      ws.addRow([r.rowNumber, r.activityName, r.status, r.message, r.planId ?? "", r.activityId ?? ""]),
+      ws.addRow([r.rowNumber, r.activityRef, r.activityName, r.status, r.message, r.planId ?? "", r.activityId ?? ""]),
     );
     ws.columns.forEach((col) => (col.width = 24));
     const buf = await wb.xlsx.writeBuffer();
@@ -167,13 +168,14 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
 
   const previewColumns = useMemo<MRT_ColumnDef<PlanActivityExcelRow>[]>(
     () => [
+      { accessorKey: "activityRef", header: "Activity Ref", size: 100 },
       { accessorKey: "rowNumber", header: "Row", size: 60 },
       {
         id: "rowStatus",
         header: "Status",
         size: 90,
         Cell: ({ row }) => {
-          const invalid = invalidRowNumbers.has(row.original.rowNumber);
+          const invalid = invalidRefs.has(row.original.activityRef);
           return (
             <Chip
               label={invalid ? "Invalid" : "Valid"}
@@ -190,16 +192,24 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
       { accessorKey: "chmSubDomainName", header: "CHM Sub Domain", size: 140 },
       { accessorKey: "layer", header: "Layer", size: 90 },
       { accessorKey: "planType", header: "Plan Type", size: 130 },
+      { accessorKey: "networkDomain", header: "Network Domain", size: 120 },
       { accessorKey: "vendorOem", header: "Vendor / OEM", size: 120 },
       { accessorKey: "changeImpact", header: "Impact", size: 80 },
       { accessorKey: "activityName", header: "Activity Name", size: 180 },
+      {
+        id: "phaseCount",
+        header: "Phases",
+        size: 80,
+        accessorFn: (r) => r.phases.length,
+      },
     ],
-    [invalidRowNumbers],
+    [invalidRefs],
   );
 
   const errorColumns = useMemo<MRT_ColumnDef<PlanActivityValidationError>[]>(
     () => [
       { accessorKey: "rowNumber", header: "Row", size: 60 },
+      { accessorKey: "activityRef", header: "Activity Ref", size: 100 },
       { accessorKey: "column", header: "Column", size: 180 },
       { accessorKey: "value", header: "Value", size: 160 },
       { accessorKey: "error", header: "Error", size: 320 },
@@ -209,6 +219,7 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
 
   const resultColumns = useMemo<MRT_ColumnDef<PlanActivityExcelUploadSummary["results"][number]>[]>(
     () => [
+      { accessorKey: "activityRef", header: "Activity Ref", size: 100 },
       { accessorKey: "rowNumber", header: "Row", size: 60 },
       { accessorKey: "activityName", header: "Activity Name", size: 180 },
       {
@@ -230,18 +241,18 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
   const validCount = parseResult ? parseResult.validRowCount : 0;
   const invalidCount = parseResult ? parseResult.invalidRowCount : 0;
 
-  // Rows skipped before upload, categorized by why they were invalid — a row
-  // can land in more than one bucket (e.g. a bad hierarchy value AND a bad
+  // Activities skipped before upload, categorized by why they were invalid —
+  // one can land in more than one bucket (e.g. a bad hierarchy value AND a bad
   // team name), so counts are not a strict partition of invalidCount.
   const validationBreakdown = useMemo(() => {
     const HIERARCHY_COLUMNS = new Set(["Vertical", "Team Function", "CHM Domain", "CHM Sub Domain"]);
-    const duplicateRows = new Set<number>();
-    const hierarchyRows = new Set<number>();
-    const teamRows = new Set<number>();
+    const duplicateRows = new Set<string>();
+    const hierarchyRows = new Set<string>();
+    const teamRows = new Set<string>();
     (parseResult?.errors ?? []).forEach((e) => {
-      if (e.error.toLowerCase().includes("duplicate")) duplicateRows.add(e.rowNumber);
-      else if (HIERARCHY_COLUMNS.has(e.column)) hierarchyRows.add(e.rowNumber);
-      else if (e.column.endsWith("Team")) teamRows.add(e.rowNumber);
+      if (e.error.toLowerCase().includes("duplicate")) duplicateRows.add(e.activityRef);
+      else if (HIERARCHY_COLUMNS.has(e.column)) hierarchyRows.add(e.activityRef);
+      else if (e.column.endsWith("Team")) teamRows.add(e.activityRef);
     });
     return { duplicate: duplicateRows.size, hierarchy: hierarchyRows.size, team: teamRows.size };
   }, [parseResult]);
@@ -293,9 +304,9 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
                   Start with the official template
                 </Typography>
                 <Typography variant="body2" color="text.secondary" mb={2}>
-                  Download the template with cascading dropdowns for Vertical, Team
-                  Function, CHM Domain / Sub Domain, Layer, Plan Type, Shift, Level
-                  and Team already populated.
+                  One activity = 6 rows (one per phase) sharing an Activity Ref. Fill
+                  the plan columns on the CRQ Review row only; Time (Min) is required on
+                  every phase row. See the &quot;How to load&quot; sheet for details.
                 </Typography>
                 <Button
                   variant="contained"
@@ -410,7 +421,7 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
                     {parseResult.totalRows}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Total Rows
+                    Total Activities
                   </Typography>
                 </Paper>
                 <Paper sx={{ flex: 1, p: 2, borderRadius: 3, border: "1px solid", borderColor: "success.light", bgcolor: "success.50" }}>
@@ -418,7 +429,7 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
                     {validCount}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Valid Rows
+                    Valid Activities
                   </Typography>
                 </Paper>
                 <Paper
@@ -432,7 +443,7 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
                     {invalidCount}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Invalid Rows
+                    Invalid Activities
                   </Typography>
                 </Paper>
               </Stack>
@@ -463,8 +474,8 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
                     </Button>
                   </Box>
                   <Alert severity="warning">
-                    {invalidCount} row{invalidCount > 1 ? "s" : ""} will be skipped. Fix them in the source file and
-                    re-upload, or continue — valid rows will still be created.
+                    {invalidCount} activit{invalidCount > 1 ? "ies" : "y"} will be skipped. Fix them in the source file and
+                    re-upload, or continue — valid activities will still be created.
                   </Alert>
                   <AppTable
                     columns={errorColumns}
@@ -480,7 +491,7 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
                 <Fade in>
                   <Box>
                     <Typography variant="body2" color="text.secondary" mb={1}>
-                      Uploading valid rows…
+                      Uploading valid activities…
                     </Typography>
                     <LinearProgress sx={{ borderRadius: 2 }} />
                   </Box>
@@ -544,7 +555,7 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
               </Stack>
 
               <Typography variant="subtitle2" fontWeight={700}>
-                Rows Skipped Before Upload ({invalidCount})
+                Activities Skipped Before Upload ({invalidCount})
               </Typography>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <Paper

@@ -11,6 +11,7 @@ import {
 } from "../../../constants/workflowStages";
 import type { StageConfig, StageSubmitResult } from "../../../types/stageWorkflow.types";
 import { useSchedulerAccess } from "../../../hook/useSchedulerAccess";
+import { useCrqWithHistory } from "../../../hook/useCrqWithHistory";
 
 interface StageReviewDialogProps {
   open: boolean;
@@ -30,11 +31,15 @@ interface StageReviewDialogProps {
 export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
   open,
   onClose,
-  crq,
+  crq: crqProp,
   colors,
   stageConfig,
   onSubmitDone,
 }) => {
+  // Listing rows carry no history[]; load it while the dialog is open so the
+  // Done/Cancelled checks below (and the Attribute Update stage meta built
+  // from this crq) see the authoritative stage status.
+  const { crq } = useCrqWithHistory(crqProp, open);
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
   const [panelOpen, setPanelOpen] = useState(true);

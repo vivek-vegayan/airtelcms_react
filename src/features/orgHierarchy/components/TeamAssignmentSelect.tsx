@@ -22,6 +22,8 @@ interface Props {
   /** Fires with the newly selected sub-domain id, or undefined when it's cleared/invalidated. */
   onChange: (subDomainId?: number) => void;
   disabled?: boolean;
+  /** Grid gap; pass the parent form's gap so columns align with it. */
+  gap?: number;
 }
 
 /**
@@ -32,13 +34,13 @@ interface Props {
  * GET /users/V1/getOrgHierarchyByUser — nothing here is hardcoded per role or
  * per screen.
  */
-const TeamAssignmentSelect = ({ value, onChange, disabled }: Props) => {
+const TeamAssignmentSelect = ({ value, onChange, disabled, gap = 1.5 }: Props) => {
   const roleName = authStorage.getUser()?.roleCode ?? "TEAM_MEMBER";
   const rawVisible = getOrgFilterVisibility(roleName);
   // "Team" is always stored as a sub-domain id, so the cascade must always be
   // able to reach that leaf even if a role's search-filter visibility list
   // (shared with the plan list's filter bar) stops short.
-  const visible = rawVisible.includes("subDomain")
+  const visible: OrgFilterKey[] = rawVisible.includes("subDomain")
     ? rawVisible
     : [...rawVisible, "subDomain"];
 
@@ -71,7 +73,19 @@ const TeamAssignmentSelect = ({ value, onChange, disabled }: Props) => {
   };
 
   return (
-    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+    // All levels on one row in equal columns (wraps to 2 on small screens).
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "1fr",
+          sm: "1fr 1fr",
+          md: `repeat(${visible.length}, 1fr)`,
+        },
+        gap,
+        "& > .MuiFormControl-root": { minWidth: 0 },
+      }}
+    >
       {visible.map((key) => {
         const parentKey = ORG_FILTER_DEPENDENCY[key];
         const parentUnresolved =

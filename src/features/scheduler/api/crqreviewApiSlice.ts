@@ -1,5 +1,5 @@
 import { api } from "../../../service/api";
-import type { CrqReviewResponse, Plan } from "../types/crqWorkflow.types";
+import type { CrqReviewResponse, Plan, StageHistoryEntry } from "../types/crqWorkflow.types";
 
 /** Mirrors backend common/dto/PageResponseDto.java. */
 export interface CrqWorkflowOverviewPage {
@@ -118,6 +118,19 @@ export const rosterApiSlice = api.injectEndpoints({
       providesTags: ["CrqReview"],
     }),
 
+    // GET /crqworkflow/{crqNo}/history - one CRQ's stage history. The stage
+    // listings no longer embed history[] (loading it for every CRQ in scope
+    // was what made them slow), so cards and review dialogs fetch it here on
+    // demand - see hook/useCrqWithHistory.ts. Tagged with both workflow tags
+    // so any stage action refreshes it alongside the listing.
+    getCrqStageHistory: builder.query<StageHistoryEntry[], string>({
+      query: (crqNo) => ({
+        url: `/crqworkflow/${encodeURIComponent(crqNo)}/history`,
+        method: "GET",
+      }),
+      providesTags: ["CrqReview", "StageWorkflow"],
+    }),
+
     // GET /crqworkflow/{crqNo}/plan-pdf - "Preview CRQ". Backend calls the
     // existing Get_Change_PlanPDF stored procedure and streams back a real
     // application/pdf response (404 JSON if no document is stored).
@@ -228,6 +241,7 @@ export const {
   useGetCrqWorkflowOverviewQuery,
   useGetCrqWorkflowOverviewPagedQuery,
   useGetCrqWorkflowOverviewByCrqNoQuery,
+  useGetCrqStageHistoryQuery,
   useLazyGetCrqPlanPdfQuery,
   useFetchCygnetPlanDataMutation,
   useUpdateCrqReviewStatusMutation,

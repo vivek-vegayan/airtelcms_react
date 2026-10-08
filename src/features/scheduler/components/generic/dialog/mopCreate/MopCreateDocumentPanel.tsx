@@ -43,6 +43,7 @@ export const MopCreateDocumentPanel: React.FC<MopCreateDocumentPanelProps> = ({
 }) => {
   const { data, isLoading, isError } = useGetMopCreateDetailsQuery(crqNo as string, {
     skip: !crqNo,
+    refetchOnMountOrArgChange: true,
   });
 
   const [createMop, { isLoading: isCreating }] = useCreateMopMutation();

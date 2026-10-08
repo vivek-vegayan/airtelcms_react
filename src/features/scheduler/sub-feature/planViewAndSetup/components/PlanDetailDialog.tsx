@@ -39,6 +39,7 @@ import {
   type ActivityPhaseView,
 } from "../api/planApiSlice";
 import AddActivityDialog from "./AddActivityDialog";
+import ShiftMultiSelect from "./ShiftMultiSelect";
 import TeamAssignmentSelect from "../../../../orgHierarchy/components/TeamAssignmentSelect";
 import NumericField from "../../../../../components/common/NumericField";
 
@@ -302,12 +303,14 @@ const PhaseForm = ({
   config,
   onChange,
   shifts = [],
+  shiftsLoading,
   errors,
 }: {
   stageKey: StageKey;
   config: Record<string, any>;
   onChange: (key: string, val: any) => void;
   shifts?: string[];
+  shiftsLoading?: boolean;
   errors?: Set<string>;
 }) => {
   const meta = PHASE_META[stageKey];
@@ -347,7 +350,9 @@ const PhaseForm = ({
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          // Team on its own row, then 3 equal columns (Shift / Level / Time).
+          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" },
+          alignItems: "start",
           gap: 2,
         }}
       >
@@ -367,6 +372,7 @@ const PhaseForm = ({
                   {f.label}
                 </Typography>
                 <TeamAssignmentSelect
+                  gap={2}
                   value={config.assignedSubDomainId}
                   onChange={(subDomainId) =>
                     onChange("assignedSubDomainId", subDomainId)
@@ -404,31 +410,37 @@ const PhaseForm = ({
             );
           }
 
-          // The saved shift (e.g. "G", "LG,N") may not match any dropdown
-          // entry; keep it as an option so the select still displays it.
-          const currentShift = f.key === "shift" ? String(config.shift ?? "").trim() : "";
-          const optionsList: string[] | undefined =
-            f.options ??
-            (f.key === "shift"
-              ? currentShift && !shifts.includes(currentShift)
-                ? [currentShift, ...shifts]
-                : shifts
-              : undefined);
+          // Multi-select + free text; saved as comma-separated (e.g. "LG,N").
+          if (f.key === "shift") {
+            return (
+              <Box key={f.key}>
+                <ShiftMultiSelect
+                  label={f.label}
+                  value={String(config.shift ?? "")}
+                  onChange={(v) => onChange("shift", v)}
+                  options={shifts}
+                  loading={shiftsLoading}
+                  error={errors?.has("shift")}
+                />
+              </Box>
+            );
+          }
+
           return (
           <Box
             key={f.key}
             sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}
           >
             <TextField
-              select={!!optionsList}
+              select={!!f.options}
               fullWidth
               size="small"
               label={f.label}
-              value={f.key === "shift" ? currentShift : (config[f.key] ?? "")}
+              value={config[f.key] ?? ""}
               error={errors?.has(f.key)}
               onChange={(e) => onChange(f.key, e.target.value)}
             >
-              {optionsList?.map((o) => (
+              {f.options?.map((o) => (
                 <MenuItem key={o} value={o}>
                   {o}
                 </MenuItem>
@@ -497,7 +509,7 @@ export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
   );
   const isLoading = isFetching && !data;
 
-  const { data: shiftData } = useGetShiftDropdownsQuery();
+  const { data: shiftData, isFetching: shiftsLoading } = useGetShiftDropdownsQuery();
   const shifts = useMemo(
     () =>
       Array.from(
@@ -943,6 +955,7 @@ export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
                   config={currentConfigs[activeKey]}
                   onChange={handleChange}
                   shifts={shifts}
+                  shiftsLoading={shiftsLoading}
                   errors={saveErrors}
                 />
               </Box>

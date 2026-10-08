@@ -32,6 +32,7 @@ import { filterPlansByChangeImpact, type ChangeImpactFilter } from "../../util/c
 import ChangeImpactSelect from "./ChangeImpactSelect";
 import { injectGlobalStyles } from "../../util/injectGlobalStyles";
 import { buildScopeQuery, isOrgScopeReady } from "../../util/orgScope";
+import { resolveSelectedCrq } from "../../util/resolveSelectedCrq";
 import type { StageKey } from "../../types/stageWorkflow.types";
 import { usePermission } from "../../../auth/hooks/usePermission";
 const RescheduleDialog = lazy(() => import("../crq-workflow/reschedule/RescheduleDialog"));
@@ -93,7 +94,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
 
   const [plansOriginal, setPlansOriginal] = useState<any[]>([]);
   const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({});
-  const [selectedCrq, setSelectedCrq] = useState<any | null>(null);
+  const [selectedCrqSnapshot, setSelectedCrq] = useState<any | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [globalSearchInput, setGlobalSearchInput] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
@@ -101,6 +102,10 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   const [rescheduleCrq, setRescheduleCrq] = useState<any | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [previewPdfOpen, setPreviewPdfOpen] = useState(false);
+  const selectedCrq = useMemo(
+    () => resolveSelectedCrq(plansOriginal, selectedCrqSnapshot),
+    [plansOriginal, selectedCrqSnapshot],
+  );
 
   const { hasPermission } = usePermission();
   // One gate for every mutating affordance on this page. Reschedule already
@@ -127,7 +132,10 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
     refetch: refetchStageData,
   } = useGetStageDataQuery(
     { stageKey, domainId, subDomainId: subDomainId ?? 1 },
-    { skip: !scopeReady },
+    // "View Selected CRQ" opens the cockpit in a new tab with its own store,
+    // so actions taken there never invalidate this tab's cache - refetch on
+    // return/focus instead of serving the cached listing.
+    { skip: !scopeReady, refetchOnMountOrArgChange: true, refetchOnFocus: true },
   );
 
   useEffect(() => {

@@ -37,6 +37,7 @@ import { CrqCard } from "./CrqCard";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
 import { injectGlobalStyles } from "../../util/injectGlobalStyles";
 import { buildScopeQuery, isOrgScopeReady } from "../../util/orgScope";
+import { resolveSelectedCrq } from "../../util/resolveSelectedCrq";
 import {
   useGetCrqReviewQuery,
   useUpdateCrqReviewStatusMutation,
@@ -189,13 +190,17 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
   const [submitCrqReviewDone] = useSubmitCrqReviewDoneMutation();
   const [plansOriginal, setPlansOriginal] = useState<Plan[]>([]);
   const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({});
-  const [selectedCrq, setSelectedCrq] = useState<any | null>(null);
+  const [selectedCrqSnapshot, setSelectedCrq] = useState<any | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [globalSearchInput, setGlobalSearchInput] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
   const [changeImpact, setChangeImpact] = useState<ChangeImpactFilter>("");
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [previewPdfOpen, setPreviewPdfOpen] = useState(false);
+  const selectedCrq = useMemo(
+    () => resolveSelectedCrq(plansOriginal, selectedCrqSnapshot),
+    [plansOriginal, selectedCrqSnapshot],
+  );
 
   const currentUserOlmId = useSelector((state: RootState) => state.auth.user?.olmId);
 
@@ -221,6 +226,11 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
     },
     {
       skip: !scopeReady,
+      // "View Selected CRQ" opens the cockpit in a new tab with its own
+      // store, so actions taken there never invalidate this tab's cache -
+      // refetch on return/focus instead of serving the cached listing.
+      refetchOnMountOrArgChange: true,
+      refetchOnFocus: true,
     },
   );
 

@@ -169,7 +169,7 @@ export function useRescheduleWizard({ open, crqId, onCompleted }: UseRescheduleW
     isFetching: isContextLoading,
     isError: isContextError,
     error: contextError,
-  } = useGetRescheduleContextQuery({ crqId: crqId as number }, { skip: !open || !crqId });
+  } = useGetRescheduleContextQuery({ crqId: crqId as number }, { skip: !open || !crqId, refetchOnMountOrArgChange: true });
 
   /* ── Step 1 (read): sp_reschedule_reason_drop_down ────────────────────── */
   const { data: reasonOptions, isFetching: isReasonOptionsLoading } =

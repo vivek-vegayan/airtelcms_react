@@ -1,20 +1,37 @@
 import {
   Box,
-  Paper,
-  Stack,
-  TextField,
   Button,
-  Grid,
+  ButtonBase,
+  Skeleton,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
 import { useEffect, useMemo, useState } from "react";
 
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
+import { useTabColorTokens } from "../../../style/theme";
+import { getCardSx } from "../../dashboard/constants/dashboard.styles";
+import { StatCard } from "../../dashboard/components/StatCard";
+import type { StatCardConfig } from "../../dashboard/types/dashboard.types";
+import { ChartCard } from "../../crqAnalytics/components/ChartCard";
+import { EmptyOrErrorState } from "../../crqAnalytics/components/EmptyOrErrorState";
+import { MiniStat, SlotFilterBar, SlotLegend, SlotStatusChip } from "../components/slotVisibilityUi";
+import {
+  fromDayjs,
+  getRoleName,
+  toDayjs,
+  useSlotTones,
+  type SlotStatus,
+} from "../components/slotVisibility.styles";
 
 import {
   useLazyGetTeamCapacityCountQuery,
@@ -40,6 +57,10 @@ interface TeamCapacityViewProps {
 export default function TeamCapacityView({
   onCheckActivity,
 }: TeamCapacityViewProps) {
+  const theme = useTheme();
+  const colors = useTabColorTokens(theme);
+  const tones = useSlotTones();
+
   /* =========================================================
      STATE
   ========================================================= */
@@ -106,11 +127,7 @@ export default function TeamCapacityView({
     resetAll: resetOrgFilters,
   } = useOrgHierarchyState("teamCapacity");
 
-  const {
-    options: orgOptions,
-    isLoading: isOrgLoading,
-    isError: isOrgError,
-  } = useOrgHierarchyFilters(orgFilters);
+  const { options: orgOptions } = useOrgHierarchyFilters(orgFilters);
 
   /* =========================================================
      SELECTED TEAM
@@ -137,6 +154,7 @@ export default function TeamCapacityView({
       key: string;
       day: string;
       weekday: string;
+      weekend: boolean;
     }[] = [];
 
     if (!fromDate || !toDate) {
@@ -161,6 +179,7 @@ export default function TeamCapacityView({
             weekday: "short",
           })
           .toUpperCase(),
+        weekend: current.getDay() === 0 || current.getDay() === 6,
       });
 
       current.setDate(current.getDate() + 1);
@@ -191,7 +210,7 @@ export default function TeamCapacityView({
 
   /* =========================================================
      FETCH TEAM CAPACITY
-     
+
      API requires shiftName, therefore one request is made
      for each selected shift and responses are combined.
   ========================================================= */
@@ -242,11 +261,7 @@ export default function TeamCapacityView({
         );
 
         if (!cancelled) {
-          const combinedData = responses.flat();
-
-          console.log("TEAM CAPACITY RESPONSE:", combinedData);
-
-          setCapacityData(combinedData);
+          setCapacityData(responses.flat());
         }
       } catch (error) {
         console.error("Failed to fetch team capacity:", error);
@@ -328,8 +343,6 @@ export default function TeamCapacityView({
             confirmed_cnt: 0,
           },
         );
-
-        console.log("TOTAL TEAM COUNT:", total);
 
         setTotalTeamCount(total);
       } catch (error) {
@@ -442,46 +455,12 @@ export default function TeamCapacityView({
      STATUS
   ========================================================= */
 
-  const getStatus = (freeMin: number) => {
-    if (freeMin < 0) return "HOLIDAY";
-    if (freeMin === 0) return "FULL";
-    if (freeMin <= 120) return "LOW";
+  const getStatus = (freeMin: number): SlotStatus => {
+    if (freeMin < 0) return "holiday";
+    if (freeMin === 0) return "full";
+    if (freeMin <= 120) return "low";
 
-    return "AVAILABLE";
-  };
-
-  const getColors = (status: string) => {
-    switch (status) {
-      case "AVAILABLE":
-        return {
-          bg: "#DDEFE3",
-          fg: "#14532D",
-        };
-
-      case "LOW":
-        return {
-          bg: "#FBEBC8",
-          fg: "#6E3A00",
-        };
-
-      case "FULL":
-        return {
-          bg: "#F6D7D2",
-          fg: "#8A1C12",
-        };
-
-      case "HOLIDAY":
-        return {
-          bg: "#E6DDF5",
-          fg: "#3F2275",
-        };
-
-      default:
-        return {
-          bg: "#ECEAE4",
-          fg: "#57554E",
-        };
-    }
+    return "available";
   };
 
   /* =========================================================
@@ -493,13 +472,6 @@ export default function TeamCapacityView({
       (engineer.confirmedMin ?? 0) +
       (engineer.reservedMin ?? 0) +
       (engineer.freeMin ?? 0);
-
-    console.log("Engineer capacity:", {
-      total,
-      confirmedMin: engineer.confirmedMin,
-      reservedMin: engineer.reservedMin,
-      freeMin: engineer.freeMin,
-    });
 
     if (total <= 0) {
       return {
@@ -517,1242 +489,460 @@ export default function TeamCapacityView({
   };
 
   /* =========================================================
+     DERIVED VIEW VALUES
+  ========================================================= */
+
+  const visibleShifts = shifts.filter((shift) =>
+    selectedShifts.includes(shift.name),
+  );
+
+  const hasOrgSelection = Boolean(
+    orgFilters.vertical ||
+      orgFilters.teamFunction ||
+      orgFilters.domain ||
+      orgFilters.subDomain,
+  );
+
+  const confirmedColor = theme.palette.info.main;
+  const reservedColor = theme.palette.warning.main;
+
+  const kpis: StatCardConfig[] = [
+    {
+      key: "fit",
+      label: "Activities that still fit",
+      display: totalTeamCount?.activities_that_fit ?? "—",
+      sub: "120-min activity, selected shifts",
+      tone: "success",
+      icon: "event",
+    },
+    {
+      key: "reserved",
+      label: "Reserved",
+      display: totalTeamCount?.reserved_cnt ?? "—",
+      sub: "Awaiting CRQ · held up to 1 hour",
+      tone: "warning",
+      icon: "clock",
+    },
+    {
+      key: "confirmed",
+      label: "Confirmed",
+      display: totalTeamCount?.confirmed_cnt ?? "—",
+      sub: "CRQ number attached",
+      tone: "info",
+      icon: "trending",
+    },
+    {
+      key: "team",
+      label: "Team",
+      display: selectedTeamName || "—",
+      sub: `${selectedShifts.length} shift${selectedShifts.length === 1 ? "" : "s"} · ${days.length} day${days.length === 1 ? "" : "s"}`,
+      tone: "accent",
+      icon: "calendar",
+    },
+  ];
+
+  const isSlotSelected = (item?: TeamCapacityCount) =>
+    Boolean(
+      selectedSlot &&
+        item &&
+        selectedSlot.shiftName === item.shiftName &&
+        selectedSlot.shiftDate?.slice(0, 10) === item.shiftDate?.slice(0, 10),
+    );
+
+  /* =========================================================
      RENDER
   ========================================================= */
 
+  const renderGrid = () => {
+    if (!orgFilters.subDomain) {
+      return <EmptyOrErrorState kind="empty" message="Select a Sub Domain to view team capacity." />;
+    }
+
+    if (selectedShifts.length === 0) {
+      return <EmptyOrErrorState kind="empty" message="Select at least one shift." />;
+    }
+
+    if (isCapacityError) {
+      return <EmptyOrErrorState kind="error" message="Failed to load team capacity." />;
+    }
+
+    return (
+      <Box sx={{ overflowX: "auto", pb: 0.5 }}>
+        <Box
+          sx={{
+            display: "grid",
+            // First column = shift name; days share the remaining width.
+            gridTemplateColumns: `84px repeat(${days.length}, minmax(64px, 1fr))`,
+            gap: 0.75,
+            minWidth: 84 + days.length * 70,
+          }}
+        >
+          {/* Empty corner */}
+          <Box />
+
+          {/* DAYS */}
+          {days.map((day) => (
+            <Box key={day.key} sx={{ textAlign: "center", pb: 0.5 }}>
+              <Typography
+                sx={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: ".5px",
+                  color: day.weekend ? colors.danger : colors.textSecondary,
+                }}
+              >
+                {day.weekday}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: 15,
+                  fontWeight: 800,
+                  color: day.weekend ? colors.danger : colors.textPrimary,
+                }}
+              >
+                {day.day}
+              </Typography>
+            </Box>
+          ))}
+
+          {/* SHIFTS */}
+          {visibleShifts.map((shift) => (
+            <Box key={shift.name} sx={{ display: "contents" }}>
+              {/* SHIFT NAME */}
+              <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0 }}>
+                <Typography sx={{ fontSize: 15, fontWeight: 800, color: colors.textPrimary }}>
+                  {shift.name}
+                </Typography>
+                <Typography sx={{ fontSize: 10.5, color: colors.textSecondary, whiteSpace: "nowrap" }}>
+                  {shift.window}
+                </Typography>
+              </Box>
+
+              {/* CELLS */}
+              {days.map((day) => {
+                const key = `${shift.name}_${day.key}`;
+
+                if (isCapacityLoading) {
+                  return <Skeleton key={key} variant="rounded" height={64} sx={{ borderRadius: "10px" }} />;
+                }
+
+                const item = capacityLookup[key];
+                const tone = tones[item ? getStatus(item.free_min ?? 0) : "neutral"];
+                const selected = isSlotSelected(item);
+
+                return (
+                  <ButtonBase
+                    key={key}
+                    disabled={!item}
+                    onClick={() => item && handleSlotClick(item)}
+                    sx={{
+                      height: 64,
+                      minWidth: 0,
+                      borderRadius: "10px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      gap: 0.25,
+                      background: tone.bg,
+                      color: tone.color,
+                      border: `1px solid ${selected ? theme.palette.primary.main : tone.border}`,
+                      boxShadow: selected ? `0 0 0 2px ${theme.palette.primary.main}` : "none",
+                      transition: "transform .15s ease, box-shadow .15s ease",
+                      "&:hover": {
+                        transform: "translateY(-2px)",
+                        boxShadow: selected
+                          ? `0 0 0 2px ${theme.palette.primary.main}`
+                          : colors.shadowCard,
+                      },
+                      "&.Mui-disabled": { opacity: 0.7 },
+                    }}
+                  >
+                    {item ? (
+                      <>
+                        <Typography sx={{ fontSize: 13, fontWeight: 800, lineHeight: 1.2 }}>
+                          {item.free_min}
+                          <Box component="span" sx={{ fontSize: 10, fontWeight: 600, ml: 0.25 }}>
+                            min
+                          </Box>
+                        </Typography>
+                        <Typography sx={{ fontSize: 10, fontWeight: 600, lineHeight: 1.2, opacity: 0.85 }}>
+                          {item.reserved_cnt}R · {item.confirmed_cnt}C
+                        </Typography>
+                      </>
+                    ) : (
+                      <Typography sx={{ fontSize: 11, fontWeight: 600 }}>—</Typography>
+                    )}
+                  </ButtonBase>
+                );
+              })}
+            </Box>
+          ))}
+        </Box>
+      </Box>
+    );
+  };
+
+  const renderEngineers = () => {
+    if (isEngineerLoading) {
+      return (
+        <Stack spacing={1.5}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={36} />
+          ))}
+        </Stack>
+      );
+    }
+
+    if (isEngineerError) {
+      return <EmptyOrErrorState kind="error" message="Failed to load engineer capacity." />;
+    }
+
+    if (engineerData.length === 0) {
+      return <EmptyOrErrorState kind="empty" message="No engineer data available for this slot." />;
+    }
+
+    return (
+      <Stack spacing={1.5}>
+        {engineerData.map((engineer) => {
+          const widths = getEngineerBarWidths(engineer);
+
+          return (
+            <Box key={engineer.rosterId}>
+              <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+                <Typography
+                  sx={{
+                    fontSize: 13,
+                    minWidth: 0,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    color: colors.textPrimary,
+                  }}
+                >
+                  <Box component="span" sx={{ fontWeight: 700 }}>
+                    {engineer.employeeName}
+                  </Box>{" "}
+                  <Box component="span" sx={{ color: colors.textSecondary, fontSize: 12 }}>
+                    {engineer.olmid} · {engineer.jobLevel}
+                  </Box>
+                </Typography>
+
+                <Typography sx={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: tones.available.color }}>
+                  {engineer.freeMin} min free
+                </Typography>
+              </Stack>
+
+              <Box
+                sx={{
+                  mt: 0.75,
+                  height: 8,
+                  borderRadius: colors.radiusPill,
+                  background: colors.trackOff,
+                  overflow: "hidden",
+                  display: "flex",
+                }}
+              >
+                {widths.confirmed > 0 && <Box sx={{ width: `${widths.confirmed}%`, background: confirmedColor }} />}
+                {widths.reserved > 0 && <Box sx={{ width: `${widths.reserved}%`, background: reservedColor }} />}
+              </Box>
+            </Box>
+          );
+        })}
+      </Stack>
+    );
+  };
+
   return (
-    <Box
-      sx={{
-        p: { xs: 2, md: 3 },
-        backgroundColor: "#F4F3EF",
-      }}
-    >
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {/* =====================================================
           FILTERS
       ===================================================== */}
+      <SlotFilterBar>
+        <OrgHierarchyFilters
+          role={getRoleName()}
+          values={orgFilters}
+          options={orgOptions}
+          onChange={handleOrgFilterChange}
+        />
 
-      <Paper
-        elevation={0}
-        sx={{
-          p: 2.5,
-          backgroundColor: "#FBFAF7",
-          border: "1px solid #DEDBD2",
-          borderRadius: 2,
-        }}
-      >
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          spacing={2}
-          alignItems={{ xs: "stretch", md: "flex-end" }}
-          flexWrap="wrap"
-        >
-          {/* ORG FILTERS */}
+        {hasOrgSelection && (
+          <Button size="small" variant="text" onClick={resetOrgFilters} sx={{ textTransform: "none" }}>
+            Clear
+          </Button>
+        )}
 
-          <Stack
-            direction="row"
-            spacing={1.5}
-            flexWrap="wrap"
-            useFlexGap
-            alignItems="center"
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <Box sx={{ display: "flex", gap: 1.5 }}>
+            <DatePicker
+              label="From"
+              value={toDayjs(fromDate)}
+              onChange={(v) => setFromDate(fromDayjs(v))}
+              maxDate={toDayjs(toDate) ?? undefined}
+              slotProps={{ textField: { size: "small", sx: { width: 160 } } }}
+            />
+            <DatePicker
+              label="To"
+              value={toDayjs(toDate)}
+              onChange={(v) => setToDate(fromDayjs(v))}
+              minDate={toDayjs(fromDate) ?? undefined}
+              slotProps={{ textField: { size: "small", sx: { width: 160 } } }}
+            />
+          </Box>
+        </LocalizationProvider>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: colors.textSecondary }}>Shifts</Typography>
+          <ToggleButtonGroup
+            size="small"
+            color="primary"
+            value={selectedShifts}
+            onChange={(_e, value: string[]) => setSelectedShifts(value)}
           >
-            {/* Vertical */}
-
-            <FormControl
-              size="small"
-              sx={{ minWidth: 190 }}
-              disabled={isOrgLoading}
-            >
-              <InputLabel>Vertical</InputLabel>
-
-              <Select
-                value={orgFilters.vertical ?? ""}
-                label="Vertical"
-                onChange={(event) => {
-                  const value = event.target.value;
-
-                  handleOrgFilterChange(
-                    "vertical",
-                    value === "" ? undefined : Number(value),
-                  );
-                }}
+            {shifts.map((shift) => (
+              <ToggleButton
+                key={shift.name}
+                value={shift.name}
+                title={`${shift.name} shift · ${shift.window}`}
+                sx={{ px: 1, py: 0.25, height: 30, minWidth: 34, fontSize: 12, fontWeight: 700 }}
               >
-                {orgOptions.vertical.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Team Function */}
-
-            <FormControl
-              size="small"
-              sx={{ minWidth: 200 }}
-              disabled={!orgFilters.vertical || isOrgLoading}
-            >
-              <InputLabel>Team Function</InputLabel>
-
-              <Select
-                value={orgFilters.teamFunction ?? ""}
-                label="Team Function"
-                onChange={(event) => {
-                  const value = event.target.value;
-
-                  handleOrgFilterChange(
-                    "teamFunction",
-                    value === "" ? undefined : Number(value),
-                  );
-                }}
-              >
-                {orgOptions.teamFunction.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Domain */}
-
-            <FormControl
-              size="small"
-              sx={{ minWidth: 180 }}
-              disabled={!orgFilters.teamFunction || isOrgLoading}
-            >
-              <InputLabel>Domain</InputLabel>
-
-              <Select
-                value={orgFilters.domain ?? ""}
-                label="Domain"
-                onChange={(event) => {
-                  const value = event.target.value;
-
-                  handleOrgFilterChange(
-                    "domain",
-                    value === "" ? undefined : Number(value),
-                  );
-                }}
-              >
-                {orgOptions.domain.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* SubDomain */}
-
-            <FormControl
-              size="small"
-              sx={{ minWidth: 190 }}
-              disabled={!orgFilters.domain || isOrgLoading}
-            >
-              <InputLabel>SubDomain</InputLabel>
-
-              <Select
-                value={orgFilters.subDomain ?? ""}
-                label="SubDomain"
-                onChange={(event) => {
-                  const value = event.target.value;
-
-                  handleOrgFilterChange(
-                    "subDomain",
-                    value === "" ? undefined : Number(value),
-                  );
-                }}
-              >
-                {orgOptions.subDomain.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Clear */}
-
-            {(orgFilters.vertical ||
-              orgFilters.teamFunction ||
-              orgFilters.domain ||
-              orgFilters.subDomain) && (
-              <Button
-                size="small"
-                variant="text"
-                onClick={resetOrgFilters}
-                sx={{
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Clear
-              </Button>
-            )}
-          </Stack>
-
-          {/* FROM */}
-
-          <Filter label="From">
-            <TextField
-              type="date"
-              value={fromDate}
-              onChange={(event) => setFromDate(event.target.value)}
-              size="small"
-              sx={{
-                minWidth: 170,
-                "& .MuiOutlinedInput-root": {
-                  backgroundColor: "#FFFFFF",
-                },
-              }}
-            />
-          </Filter>
-
-          {/* TO */}
-
-          <Filter label="To">
-            <TextField
-              type="date"
-              value={toDate}
-              onChange={(event) => setToDate(event.target.value)}
-              size="small"
-              sx={{
-                minWidth: 170,
-                "& .MuiOutlinedInput-root": {
-                  backgroundColor: "#FFFFFF",
-                },
-              }}
-            />
-          </Filter>
-
-          {/* SHIFTS */}
-
-          <Filter label="Shifts">
-            <Stack direction="row" spacing={0.75}>
-              {shifts.map((shift) => {
-                const active = selectedShifts.includes(shift.name);
-
-                return (
-                  <Button
-                    key={shift.name}
-                    variant={active ? "contained" : "outlined"}
-                    onClick={() => {
-                      setSelectedShifts((prev) =>
-                        prev.includes(shift.name)
-                          ? prev.filter((name) => name !== shift.name)
-                          : [...prev, shift.name],
-                      );
-                    }}
-                    sx={{
-                      minWidth: 52,
-                      height: 40,
-                      px: 1.5,
-                      borderRadius: 1,
-                      fontWeight: 600,
-
-                      ...(active
-                        ? {
-                            backgroundColor: "#1C1B19",
-                            color: "#FFFFFF",
-                            "&:hover": {
-                              backgroundColor: "#2E2D29",
-                            },
-                          }
-                        : {
-                            borderColor: "#CFCBC0",
-                            color: "#3F3D37",
-                            backgroundColor: "#FFFFFF",
-                            "&:hover": {
-                              borderColor: "#1C1B19",
-                              backgroundColor: "#F4F3EF",
-                            },
-                          }),
-                    }}
-                  >
-                    {shift.name}
-                  </Button>
-                );
-              })}
-            </Stack>
-          </Filter>
-        </Stack>
-      </Paper>
+                {shift.name}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Box>
+      </SlotFilterBar>
 
       {/* =====================================================
           KPI CARDS
       ===================================================== */}
-      <Stack style={{ display: "flex", flexDirection: "row", gap: 4 }}>
-        <Kpi
-          title="Activities that still fit"
-          value={String(totalTeamCount?.activities_that_fit ?? 0)}
-          description="120-min activity, selected shifts"
-        />
-
-        <Kpi
-          title="Reserved (awaiting CRQ)"
-          value={String(totalTeamCount?.reserved_cnt ?? 0)}
-          description="Held for up to 1 hour"
-        />
-
-        <Kpi
-          title="Confirmed"
-          value={String(totalTeamCount?.confirmed_cnt ?? 0)}
-          description="CRQ number attached"
-        />
-
-        <Kpi
-          title="Confirmed"
-          value={String(totalTeamCount?.confirmed_cnt ?? 0)}
-          description="Booked ÷ activity-window minutes"
-        />
-      </Stack>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr 1fr", lg: "repeat(4, 1fr)" },
+          gap: "10px",
+        }}
+      >
+        {kpis.map((kpi) => (
+          <StatCard key={kpi.key} config={kpi} colors={colors} size="small" />
+        ))}
+      </Box>
 
       {/* =====================================================
           MAIN CONTENT
       ===================================================== */}
-      {/* //Remove SCroll give inside scroll within the box only */}
-      <Stack
-        direction={{ xs: "column", xl: "row" }}
-        spacing={2}
+      <Box
         sx={{
-          mt: 2,
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", xl: "minmax(0, 1fr) 380px" },
+          gap: 2,
+          alignItems: "start",
         }}
       >
-        {/* ===================================================
-            CAPACITY GRID
-        =================================================== */}
-        <Paper
-          elevation={0}
-          sx={{
-            flex: 1,
-            minWidth: 0,
-            p: 2.5,
-            backgroundColor: "#FFFFFF",
-            border: "1px solid #DEDBD2",
-            borderRadius: 2,
-          }}
+        {/* CAPACITY GRID */}
+        <ChartCard
+          title="Capacity by shift date"
+          height="auto"
+          action={
+            <Typography sx={{ fontSize: 11, color: colors.textSecondary }}>
+              Free min · R reserved · C confirmed
+            </Typography>
+          }
         >
-          <Typography
-            variant="h6"
-            sx={{
-              mb: 2,
-              fontSize: 17,
-              fontWeight: 600,
-              color: "#1C1B19",
-            }}
-          >
-            Capacity by shift date
-          </Typography>
+          {renderGrid()}
 
-          {isCapacityError && (
-            <Typography
-              sx={{
-                mb: 2,
-                color: "#8A1C12",
-                fontSize: 13,
-              }}
-            >
-              Failed to load team capacity.
-            </Typography>
-          )}
-
-          {/* CAPACITY GRID */}
-          <Box
-            sx={{
-              display: "grid",
-
-              // First column = shift name
-              // Remaining columns automatically share available width
-              gridTemplateColumns: `70px repeat(${days.length}, minmax(0, 1fr))`,
-
-              gap: 0.5,
-              width: "100%",
-            }}
-          >
-            {/* Empty corner */}
-            <Box />
-
-            {/* DAYS */}
-            {days.map((day) => (
-              <Box
-                key={day.key}
-                sx={{
-                  minWidth: 0,
-                  textAlign: "center",
-                  pb: 0.75,
-                  fontFamily: "monospace",
-                  fontWeight: 600,
-                  color: "#57554E",
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {day.weekday}
-                </Typography>
-
-                <Typography
-                  sx={{
-                    mt: 0.25,
-                    fontSize: 15,
-                    fontWeight: 700,
-                    color: "#1C1B19",
-                  }}
-                >
-                  {day.day}
-                </Typography>
-              </Box>
-            ))}
-
-            {/* SHIFTS */}
-            {shifts
-              .filter((shift) => selectedShifts.includes(shift.name))
-              .map((shift) => (
-                <Box
-                  key={shift.name}
-                  sx={{
-                    display: "contents",
-                  }}
-                >
-                  {/* SHIFT NAME */}
-                  <Box
-                    sx={{
-                      minWidth: 0,
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                      fontWeight: 700,
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        fontWeight: 700,
-                        fontSize: 16,
-                      }}
-                    >
-                      {shift.name}
-                    </Typography>
-
-                    <Typography
-                      sx={{
-                        fontSize: 11,
-                        color: "#77736A",
-                        fontFamily: "monospace",
-                      }}
-                    >
-                      {shift.window}
-                    </Typography>
-                  </Box>
-
-                  {/* CELLS */}
-                  {days.map((day) => {
-                    const item = capacityLookup[`${shift.name}_${day.key}`];
-
-                    const freeMin = item?.free_min ?? 0;
-                    const status = getStatus(freeMin);
-                    const color = getColors(status);
-
-                    return (
-                      <Button
-                        key={`${shift.name}_${day.key}`}
-                        onClick={() => {
-                          if (!item) return;
-                          handleSlotClick(item);
-                        }}
-                        disableRipple
-                        sx={{
-                          width: "100%",
-                          minWidth: 0,
-                          height: 74,
-                          p: 0.5,
-                          borderRadius: 1,
-
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "center",
-                          gap: 0.25,
-
-                          backgroundColor: color.bg,
-                          color: color.fg,
-
-                          fontFamily: "monospace",
-                          textTransform: "none",
-
-                          "&:hover": {
-                            backgroundColor: color.bg,
-                            filter: "brightness(0.97)",
-                          },
-
-                          ...(selectedSlot &&
-                            item &&
-                            selectedSlot.shiftName === item.shiftName &&
-                            selectedSlot.shiftDate?.slice(0, 10) ===
-                              item.shiftDate?.slice(0, 10) && {
-                              outline: "2px solid #1C1B19",
-                              outlineOffset: -2,
-                            }),
-                        }}
-                      >
-                        {isCapacityLoading ? (
-                          <Typography
-                            sx={{
-                              fontSize: 12,
-                              color: "#77736A",
-                            }}
-                          >
-                            ...
-                          </Typography>
-                        ) : item ? (
-                          <>
-                            <Typography
-                              sx={{
-                                fontSize: 12,
-                                fontWeight: 700,
-                                fontFamily: "monospace",
-                                lineHeight: 1.2,
-                              }}
-                            >
-                              {item.free_min} min
-                            </Typography>
-
-                            <Typography
-                              sx={{
-                                fontSize: 10,
-                                fontWeight: 600,
-                                fontFamily: "monospace",
-                                lineHeight: 1.2,
-                              }}
-                            >
-                              {item.reserved_cnt}R · {item.confirmed_cnt}C
-                            </Typography>
-                          </>
-                        ) : (
-                          <Typography
-                            sx={{
-                              fontSize: 11,
-                              color: "#77736A",
-                            }}
-                          >
-                            No data
-                          </Typography>
-                        )}
-                      </Button>
-                    );
-                  })}
-                </Box>
-              ))}
+          <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${colors.border}` }}>
+            <SlotLegend
+              title="Capacity status"
+              items={[
+                { label: "Available", tone: tones.available },
+                { label: "Low (≤ 120 min)", tone: tones.low },
+                { label: "Full", tone: tones.full },
+                { label: "Holiday", tone: tones.holiday },
+                { label: "No data", tone: tones.neutral },
+              ]}
+            />
           </Box>
+        </ChartCard>
 
-          {/* LEGEND */}
-          <Box
-            sx={{
-              mt: 2.5,
-              pt: 1.75,
-              borderTop: "1px solid #E7E4DC",
-              display: "flex",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 2.5,
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: "#57554E",
-                mr: 0.5,
-              }}
-            >
-              Capacity status
-            </Typography>
-
-            {[
-              {
-                label: "Available",
-                bg: "#DDEFE3",
-                fg: "#14532D",
-              },
-              {
-                label: "Low",
-                bg: "#FBEBC8",
-                fg: "#6E3A00",
-              },
-              {
-                label: "Full",
-                bg: "#F6D7D2",
-                fg: "#8A1C12",
-              },
-              {
-                label: "Holiday",
-                bg: "#E6DDF5",
-                fg: "#3F2275",
-              },
-            ].map((legend) => (
-              <Box
-                key={legend.label}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.75,
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: 0.75,
-                    backgroundColor: legend.bg,
-                    border: `1px solid ${legend.fg}25`,
-                    flexShrink: 0,
-                  }}
-                />
-
-                <Typography
-                  sx={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "#57554E",
-                  }}
-                >
-                  {legend.label}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </Paper>
-        {/* ===================================================
-    SELECTED SLOT
-=================================================== */}
-
-        <Paper
-          elevation={0}
+        {/* SELECTED SLOT */}
+        <Box
           sx={{
-            width: {
-              xs: "100%",
-              xl: "26vw",
-            },
-            minWidth: {
-              xl: 380,
-            },
-
-            // Fixed card height on desktop
-            height: {
-              xs: "auto",
-              xl: "calc(100vh - 110px)",
-            },
-
-            maxHeight: {
-              xs: "none",
-              xl: "calc(100vh - 110px)",
-            },
-
-            p: 2.5,
-            backgroundColor: "#FFFFFF",
-            border: "1px solid #DEDBD2",
-            borderRadius: 2,
-
-            alignSelf: "flex-start",
-
-            // Important for internal scrolling
+            ...getCardSx(colors),
+            // A sticky side panel shouldn't lift on hover like the other cards.
+            "&:hover": { borderColor: colors.borderHover },
+            p: "16px 18px",
             display: "flex",
             flexDirection: "column",
+            position: { xl: "sticky" },
+            top: { xl: 8 },
+            maxHeight: { xl: "calc(100vh - 140px)" },
             overflow: "hidden",
           }}
         >
-          {/* ===================================================
-      TITLE
-  =================================================== */}
-
-          <Typography
-            variant="overline"
-            sx={{
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-              color: "#57554E",
-              flexShrink: 0,
-            }}
-          >
+          <Typography sx={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, flexShrink: 0 }}>
             Selected slot
           </Typography>
 
           {!selectedSlot ? (
-            <Typography
-              sx={{
-                mt: 2,
-                color: "#77736A",
-                fontSize: 13,
-              }}
-            >
-              Select a capacity slot to view details.
-            </Typography>
+            <EmptyOrErrorState kind="empty" message="Click a capacity cell to see who is rostered on it." />
           ) : (
             <>
-              {/* ===================================================
-          SLOT INFORMATION
-      =================================================== */}
-
-              <Typography
-                sx={{
-                  mt: 1,
-                  fontSize: 21,
-                  fontWeight: 700,
-                  color: "#1C1B19",
-                  flexShrink: 0,
-                }}
-              >
-                {selectedSlot.shiftName} shift ·{" "}
-                {formatSelectedDate(selectedSlot.shiftDate)}
-              </Typography>
-
-              {/* WORK WINDOW */}
-
-              <Typography
-                sx={{
-                  mt: 0.5,
-                  color: "#57554E",
-                  fontFamily: "monospace",
-                  fontSize: 13,
-                  flexShrink: 0,
-                }}
-              >
-                Work window {selectedSlotShift?.window ?? "-"}
-              </Typography>
-
-              {/* AVAILABILITY */}
-
-              <Box
-                sx={{
-                  mt: 2,
-                  display: "inline-flex",
-                  alignSelf: "flex-start",
-                  px: 1.5,
-                  py: 0.75,
-                  borderRadius: 999,
-                  backgroundColor:
-                    selectedSlot.free_min > 0 ? "#DDEFE3" : "#F6D7D2",
-                  color: selectedSlot.free_min > 0 ? "#14532D" : "#8A1C12",
-                  flexShrink: 0,
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                  }}
-                >
-                  {selectedSlot.free_min > 0
-                    ? `Available · ${selectedSlot.free_min} min free`
-                    : "Full"}
+              <Box sx={{ mt: 1.5, flexShrink: 0 }}>
+                <Typography sx={{ fontSize: 20, fontWeight: 800, color: colors.textPrimary, lineHeight: 1.2 }}>
+                  {selectedSlot.shiftName} shift · {formatSelectedDate(selectedSlot.shiftDate)}
                 </Typography>
+                <Typography sx={{ mt: 0.5, fontSize: 12.5, color: colors.textSecondary }}>
+                  Work window {selectedSlotShift?.window ?? "-"}
+                </Typography>
+                <Box sx={{ mt: 1.25 }}>
+                  <SlotStatusChip
+                    tone={selectedSlot.free_min > 0 ? tones.available : tones.full}
+                    label={selectedSlot.free_min > 0 ? `Available · ${selectedSlot.free_min} min free` : "Full"}
+                  />
+                </Box>
               </Box>
 
-              {/* ===================================================
-          SUMMARY
-      =================================================== */}
+              <Box sx={{ mt: 2, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, flexShrink: 0 }}>
+                <MiniStat label="Rostered" value={engineerSummary.rostered} />
+                <MiniStat label="Reserved" value={engineerSummary.reserved} color={tones.low.color} />
+                <MiniStat label="Confirmed" value={engineerSummary.confirmed} color={confirmedColor} />
+              </Box>
 
-              <Grid
-                container
-                spacing={1}
-                sx={{
-                  mt: 1.5,
-                  flexShrink: 0,
-                }}
-              >
-                {/* Rostered */}
-
-                <Grid size={4}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      backgroundColor: "#F4F3EF",
-                      borderRadius: 1.5,
-                      minHeight: 78,
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        fontSize: 12,
-                        color: "#57554E",
-                      }}
-                    >
-                      Rostered
-                    </Typography>
-
-                    <Typography
-                      sx={{
-                        mt: 0.25,
-                        fontSize: 23,
-                        fontWeight: 600,
-                        color: "#1C1B19",
-                      }}
-                    >
-                      {engineerSummary.rostered}
-                    </Typography>
-                  </Box>
-                </Grid>
-
-                {/* Reserved */}
-
-                <Grid size={4}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      backgroundColor: "#F4F3EF",
-                      borderRadius: 1.5,
-                      minHeight: 78,
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        fontSize: 12,
-                        color: "#57554E",
-                      }}
-                    >
-                      Reserved
-                    </Typography>
-
-                    <Typography
-                      sx={{
-                        mt: 0.25,
-                        fontSize: 23,
-                        fontWeight: 600,
-                        color: "#B77900",
-                      }}
-                    >
-                      {engineerSummary.reserved}
-                    </Typography>
-                  </Box>
-                </Grid>
-
-                {/* Confirmed */}
-
-                <Grid size={4}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      backgroundColor: "#F4F3EF",
-                      borderRadius: 1.5,
-                      minHeight: 78,
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        fontSize: 12,
-                        color: "#57554E",
-                      }}
-                    >
-                      Confirmed
-                    </Typography>
-
-                    <Typography
-                      sx={{
-                        mt: 0.25,
-                        fontSize: 23,
-                        fontWeight: 600,
-                        color: "#145A8D",
-                      }}
-                    >
-                      {engineerSummary.confirmed}
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-
-              {/* ===================================================
-          ENGINEERS HEADER
-      =================================================== */}
-
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                sx={{
-                  mt: 2.5,
-                  mb: 1.5,
-                  flexShrink: 0,
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: 16,
-                    fontWeight: 600,
-                  }}
-                >
-                  Engineers
-                </Typography>
-
-                <Typography
-                  sx={{
-                    fontSize: 12,
-                    color: "#77736A",
-                  }}
-                >
-                  minutes of activity window
-                </Typography>
+              <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mt: 2.5, mb: 1.25, flexShrink: 0 }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>Engineers</Typography>
+                <Typography sx={{ fontSize: 11, color: colors.textSecondary }}>minutes of activity window</Typography>
               </Stack>
 
-              {/* ===================================================
-          ENGINEER LIST
-          ONLY THIS SECTION SCROLLS
-      =================================================== */}
-
-              <Box
-                sx={{
-                  flex: 1,
-                  minHeight: 12,
-                  overflowY: "auto",
-                  overflowX: "hidden",
-                  pr: 0.75,
-
-                  "&::-webkit-scrollbar": {
-                    width: 6,
-                  },
-
-                  "&::-webkit-scrollbar-track": {
-                    backgroundColor: "#F4F3EF",
-                    borderRadius: 10,
-                  },
-
-                  "&::-webkit-scrollbar-thumb": {
-                    backgroundColor: "#C8C5BC",
-                    borderRadius: 10,
-                  },
-
-                  "&::-webkit-scrollbar-thumb:hover": {
-                    backgroundColor: "#AAA69C",
-                  },
-                }}
-              >
-                {isEngineerLoading ? (
-                  <Typography
-                    sx={{
-                      color: "#77736A",
-                      fontSize: 13,
-                      py: 1,
-                    }}
-                  >
-                    Loading engineers...
-                  </Typography>
-                ) : isEngineerError ? (
-                  <Typography
-                    sx={{
-                      color: "#8A1C12",
-                      fontSize: 13,
-                      py: 1,
-                    }}
-                  >
-                    Failed to load engineer capacity.
-                  </Typography>
-                ) : engineerData.length === 0 ? (
-                  <Typography
-                    sx={{
-                      color: "#77736A",
-                      fontSize: 13,
-                      py: 1,
-                    }}
-                  >
-                    No engineer data available for this slot.
-                  </Typography>
-                ) : (
-                  <Stack spacing={1.75}>
-                    {engineerData.map((engineer) => {
-                      const widths = getEngineerBarWidths(engineer);
-
-                      return (
-                        <Box key={engineer.rosterId}>
-                          {/* ENGINEER HEADER */}
-
-                          <Stack
-                            direction="row"
-                            justifyContent="space-between"
-                            alignItems="center"
-                            spacing={1}
-                          >
-                            <Typography
-                              sx={{
-                                fontSize: 13,
-                                minWidth: 0,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              <strong>{engineer.employeeName}</strong>{" "}
-                              <Box
-                                component="span"
-                                sx={{
-                                  color: "#57554E",
-                                }}
-                              >
-                                {engineer.olmid}
-                              </Box>
-                              {" · "}
-                              <Box
-                                component="span"
-                                sx={{
-                                  color: "#57554E",
-                                }}
-                              >
-                                {engineer.jobLevel}
-                              </Box>
-                            </Typography>
-
-                            <Typography
-                              sx={{
-                                flexShrink: 0,
-                                fontSize: 12,
-                                fontFamily: "monospace",
-                                color: "#14745F",
-                              }}
-                            >
-                              {engineer.freeMin} min free
-                            </Typography>
-                          </Stack>
-
-                          {/* CAPACITY BAR */}
-
-                          <Box
-                            sx={{
-                              mt: 0.75,
-                              height: 11,
-                              borderRadius: 10,
-                              backgroundColor: "#E7E4DC",
-                              overflow: "hidden",
-                              display: "flex",
-                            }}
-                          >
-                            {/* Confirmed */}
-
-                            {widths.confirmed > 0 && (
-                              <Box
-                                sx={{
-                                  width: `${widths.confirmed}%`,
-                                  height: "100%",
-                                  backgroundColor: "#20558A",
-                                }}
-                              />
-                            )}
-
-                            {/* Reserved */}
-
-                            {widths.reserved > 0 && (
-                              <Box
-                                sx={{
-                                  width: `${widths.reserved}%`,
-                                  height: "100%",
-                                  backgroundColor: "#D99A22",
-                                }}
-                              />
-                            )}
-
-                            {/* Free */}
-
-                            {widths.free > 0 && (
-                              <Box
-                                sx={{
-                                  width: `${widths.free}%`,
-                                  height: "100%",
-                                  backgroundColor: "#E7E4DC",
-                                }}
-                              />
-                            )}
-                          </Box>
-                        </Box>
-                      );
-                    })}
-                  </Stack>
-                )}
+              {/* Only the engineer list scrolls */}
+              <Box sx={{ flex: 1, minHeight: 40, overflowY: "auto", overflowX: "hidden", pr: 0.5 }}>
+                {renderEngineers()}
               </Box>
 
-              {/* ===================================================
-          ENGINEER LEGEND
-      =================================================== */}
-
               {engineerData.length > 0 && (
-                <Stack
-                  direction="row"
-                  spacing={2}
-                  sx={{
-                    mt: 2,
-                    flexWrap: "wrap",
-                    flexShrink: 0,
-                  }}
-                >
-                  <LegendItem color="#20558A" label="Confirmed" />
-
-                  <LegendItem color="#D99A22" label="Reserved" />
-
-                  <LegendItem color="#E7E4DC" label="Free" border />
-                </Stack>
+                <Box sx={{ mt: 1.5, flexShrink: 0 }}>
+                  <SlotLegend
+                    items={[
+                      { label: "Confirmed", tone: { color: confirmedColor, bg: confirmedColor, border: confirmedColor } },
+                      { label: "Reserved", tone: { color: reservedColor, bg: reservedColor, border: reservedColor } },
+                      { label: "Free", tone: { color: colors.textSecondary, bg: colors.trackOff, border: colors.trackOffBorder } },
+                    ]}
+                  />
+                </Box>
               )}
 
-              {/* ===================================================
-          ACTIVITY BUTTON
-      =================================================== */}
               <Button
                 fullWidth
                 variant="contained"
-                sx={{
-                  mt: 2.5,
-                  py: 1.25,
-                  backgroundColor: "#106B63",
-                  borderRadius: 1.5,
-                  fontWeight: 600,
-                  textTransform: "none",
-                  flexShrink: 0,
-
-                  "&:hover": {
-                    backgroundColor: "#0D5A53",
-                  },
-                }}
-                onClick={() => {
-                  console.log("Check activity:", selectedSlot);
-                  onCheckActivity();
-                }}
+                startIcon={<EventAvailableRoundedIcon />}
+                onClick={onCheckActivity}
+                sx={{ mt: 2, py: 1, fontWeight: 700, textTransform: "none", flexShrink: 0 }}
               >
                 Check an activity for this date
               </Button>
             </>
           )}
-        </Paper>
-      </Stack>
+        </Box>
+      </Box>
     </Box>
-  );
-}
-
-/* ============================================================
-   FILTER
-============================================================ */
-
-function Filter({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 0.75,
-      }}
-    >
-      <Typography
-        variant="caption"
-        sx={{
-          fontSize: 12,
-          fontWeight: 600,
-          color: "#57554E",
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
-        }}
-      >
-        {label}
-      </Typography>
-
-      {children}
-    </Box>
-  );
-}
-
-/* ============================================================
-   KPI
-============================================================ */
-
-function Kpi({
-  title,
-  value,
-  description,
-}: {
-  title: string;
-  value: string;
-  description?: string;
-}) {
-  return (
-    <Paper
-      elevation={0}
-      sx={{
-        mt: 1,
-        p: "8px 20px",
-        backgroundColor: "#FFFFFF",
-        border: "1px solid #DEDBD2",
-        borderRadius: 2,
-        width: "23vw",
-      }}
-    >
-      <Typography
-        sx={{
-          fontSize: 13,
-          color: "#57554E",
-        }}
-      >
-        {title}
-      </Typography>
-
-      <Typography
-        sx={{
-          mt: 0.5,
-          fontSize: 32,
-          fontWeight: 600,
-          fontFamily: "monospace",
-          color: "#1C1B19",
-        }}
-      >
-        {value}
-      </Typography>
-
-      <Typography
-        sx={{
-          mt: 0.5,
-          fontSize: 12,
-          color: "#77736A",
-        }}
-      >
-        {description || title}
-      </Typography>
-    </Paper>
-  );
-}
-
-/* ============================================================
-   LEGEND
-============================================================ */
-
-function LegendItem({
-  color,
-  label,
-  border = false,
-}: {
-  color: string;
-  label: string;
-  border?: boolean;
-}) {
-  return (
-    <Stack direction="row" spacing={0.75} alignItems="center">
-      <Box
-        sx={{
-          width: 12,
-          height: 12,
-          borderRadius: 0.5,
-          backgroundColor: color,
-          border: border ? "1px solid #CFCBC0" : "none",
-        }}
-      />
-
-      <Typography
-        sx={{
-          fontSize: 12,
-          color: "#57554E",
-        }}
-      >
-        {label}
-      </Typography>
-    </Stack>
   );
 }

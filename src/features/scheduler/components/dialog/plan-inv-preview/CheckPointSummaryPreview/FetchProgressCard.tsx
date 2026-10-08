@@ -2,10 +2,16 @@ import { useEffect, useState } from "react";
 import { Alert, Box, Button, Chip, LinearProgress, Stack, Typography, alpha } from "@mui/material";
 import type { Theme } from "@mui/material";
 
-import { useCancelFetchJobMutation, useGetFetchProgressByCrqQuery } from "../../../../api/fetchProgressApiSlice";
+import {
+  useCancelFetchJobMutation,
+  useGetFetchProgressByCrqQuery,
+  useGetImpactFetchBatchesQuery,
+} from "../../../../api/fetchProgressApiSlice";
 import type { FetchProgress, FetchStage } from "../../../../types/fetchProgress.types";
 
-const POLL_MS = 1500;
+const POLL_MS = 3000;
+/** Slower cadence while no job exists yet or the running job has stalled. */
+const SLOW_POLL_MS = 15000;
 
 /** Statuses whose fetched data is worth opening - FAILED has nothing to show. */
 const VIEWABLE = ["SUCCESS", "PARTIAL", "CANCELLED"];
@@ -122,11 +128,30 @@ export const FetchProgressCard: React.FC<{
   crqNo: string;
   stage?: FetchStage;
   disableActions?: boolean;
-  /** Re-runs the fetch (the existing checkpoint "Data Refresh" script). */
-  onRetry: () => void;
+  /** Re-runs the fetch with the stage's existing script (checkpoint "Data
+   * Refresh" for VALIDATE, the impact script for the job's batch). */
+  onRetry: (job: FetchProgress | null) => void;
   retrying?: boolean;
   onViewData: (job: FetchProgress) => void;
-}> = ({ crqNo, stage = "VALIDATE", disableActions = false, onRetry, retrying = false, onViewData }) => {
+}> = (props) => {
+  const card = <FetchProgressMain {...props} />;
+  if (props.stage !== "IMPACT_ANALYSIS") return card;
+  return (
+    <>
+      {card}
+      <ImpactBatchStrip crqNo={props.crqNo} />
+    </>
+  );
+};
+
+const FetchProgressMain: React.FC<React.ComponentProps<typeof FetchProgressCard>> = ({
+  crqNo,
+  stage = "VALIDATE",
+  disableActions = false,
+  onRetry,
+  retrying = false,
+  onViewData,
+}) => {
   // After a retry, the job that was on screen is stale: keep polling until a
   // different job id turns up so the new run is picked up.
   const [staleJobId, setStaleJobId] = useState<number | null>(null);
@@ -135,20 +160,27 @@ export const FetchProgressCard: React.FC<{
   // once it is terminal so a finished CRQ left open is not hammering the API.
   // The interval is fed back from the previous result.
   const [finishedJobId, setFinishedJobId] = useState<number | null>(null);
+  const [slow, setSlow] = useState(false);
   const polling = finishedJobId === null || finishedJobId === staleJobId;
   const { data, isLoading, isError } = useGetFetchProgressByCrqQuery(
     { crqNo, stage },
-    { pollingInterval: polling ? POLL_MS : 0, refetchOnMountOrArgChange: true },
+    {
+      pollingInterval: !polling ? 0 : slow ? SLOW_POLL_MS : POLL_MS,
+      skipPollingIfUnfocused: true,
+      refetchOnMountOrArgChange: true,
+    },
   );
   const [cancelJob, { isLoading: cancelling }] = useCancelFetchJobMutation();
 
   useEffect(() => {
     setFinishedJobId(data && data.finished ? data.jobId : null);
+    // Back off while the daemon has not picked up the CRQ or the job is stuck.
+    setSlow(data === null || !!data?.stalled);
   }, [data]);
 
   const handleRetry = () => {
     if (data) setStaleJobId(data.jobId);
-    onRetry();
+    onRetry(data ?? null);
   };
 
   // A failed poll does not mean a failed job - the network may have blipped.
@@ -276,6 +308,122 @@ export const FetchProgressCard: React.FC<{
           </Button>
         )}
       </Stack>
+    </Card>
+  );
+};
+
+const BATCH_NUMBERS = [1, 2, 3, 4];
+
+/** Batch1 after validation, Batch2 24h before, Batch3 1h before, Batch4 48h after. */
+const BATCH_HINT: Record<number, string> = {
+  1: "after validation",
+  2: "24h before",
+  3: "1h before",
+  4: "48h after",
+};
+
+function batchTone(status: string): Tone {
+  if (status === "SUCCESS") return "success";
+  if (status === "FAILED") return "error";
+  if (status === "PARTIAL" || status === "CANCELLED") return "warning";
+  return "primary";
+}
+
+/**
+ * Impact Analysis runs four times, each batch its own job row. Shows all four
+ * with their own bars for the run type currently in play; polls with the same
+ * cadence as the headline card while any batch is still unfinished.
+ */
+const ImpactBatchStrip: React.FC<{ crqNo: string }> = ({ crqNo }) => {
+  const [settled, setSettled] = useState(false);
+  const { data: rows = [] } = useGetImpactFetchBatchesQuery(
+    { crqNo },
+    { pollingInterval: settled ? 0 : POLL_MS, skipPollingIfUnfocused: true, refetchOnMountOrArgChange: true },
+  );
+  const { data: current } = useGetFetchProgressByCrqQuery({ crqNo, stage: "IMPACT_ANALYSIS" });
+
+  useEffect(() => {
+    setSettled(rows.length > 0 && rows.every((r) => r.finished));
+  }, [rows]);
+
+  if (!rows.length) return null;
+
+  // The run type of the headline job; fall back to everything if it has none.
+  const runType = current?.runType ?? "";
+  const inPlay = rows.filter((r) => !runType || r.runType === runType);
+  const scoped = inPlay.length ? inPlay : rows;
+
+  // Rows come oldest -> newest within a batch, so the last one wins.
+  const byBatch = new Map<number, FetchProgress>();
+  scoped.forEach((r) => {
+    if (r.batchNo != null) byBatch.set(Number(r.batchNo), r);
+  });
+  const latest = [...byBatch.values()];
+  const doneCount = latest.filter((b) => b.status === "SUCCESS").length;
+  const sumTotal = latest.reduce((s, b) => s + (b.totalUnits || 0), 0);
+  const sumDone = latest.reduce((s, b) => s + (b.doneUnits || 0), 0);
+  const overall = sumTotal === 0 ? 0 : (100 * sumDone) / sumTotal;
+
+  return (
+    <Card>
+      <Stack direction="row" justifyContent="space-between" alignItems="baseline" flexWrap="wrap" gap={1}>
+        <Title text="Batches" tag={runType || null} />
+        <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>{doneCount} of 4 complete</Typography>
+      </Stack>
+      <Typography sx={{ fontSize: 12.5, color: "text.secondary", mt: 0.5 }}>
+        Overall {overall.toFixed(1)}% across the batches run so far.
+      </Typography>
+
+      {BATCH_NUMBERS.map((n) => {
+        const b = byBatch.get(n);
+        const isCurrent = !!b && !!current && b.jobId === current.jobId;
+        const tot = b?.totalUnits || 0;
+        const pct = !b ? 0 : tot === 0 ? (b.finished ? 100 : 0) : (b.percent ?? (100 * b.doneUnits) / tot);
+        return (
+          <Box
+            key={n}
+            sx={{
+              border: "1px solid",
+              borderColor: isCurrent ? "primary.main" : "divider",
+              borderRadius: 2,
+              px: 1.5,
+              py: 1,
+              mt: 1,
+            }}
+          >
+            <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+              <Stack direction="row" alignItems="center" spacing={0.75}>
+                <Typography sx={{ fontSize: 13, fontWeight: 700 }}>Batch{n}</Typography>
+                <Typography sx={{ fontSize: 11.5, color: "text.secondary" }}>{BATCH_HINT[n]}</Typography>
+                {b && (
+                  <Chip
+                    label={b.status}
+                    size="small"
+                    color={b.finished ? (batchTone(b.status) as "success" | "error" | "warning" | "primary") : "primary"}
+                    variant={b.finished ? "outlined" : "filled"}
+                    sx={{ height: 18, fontSize: 10, fontWeight: 700 }}
+                  />
+                )}
+              </Stack>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", fontVariantNumeric: "tabular-nums" }}>
+                {b ? `${b.doneUnits}/${tot}${b.failedUnits ? ` - ${b.failedUnits} failed` : ""}` : "not started"}
+              </Typography>
+            </Stack>
+            <LinearProgress
+              variant="determinate"
+              value={Math.min(100, pct)}
+              color={b ? batchTone(b.status) : "primary"}
+              sx={{
+                height: 6,
+                borderRadius: 999,
+                mt: 0.75,
+                bgcolor: (t: Theme) => alpha(t.palette.text.primary, 0.08),
+                "& .MuiLinearProgress-bar": { borderRadius: 999 },
+              }}
+            />
+          </Box>
+        );
+      })}
     </Card>
   );
 };

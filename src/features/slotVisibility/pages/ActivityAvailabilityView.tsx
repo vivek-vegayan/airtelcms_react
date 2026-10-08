@@ -1,16 +1,36 @@
 import {
   Box,
-  Stack,
-  Paper,
-  Typography,
-  FormControl,
-  Select,
-  MenuItem,
-  Grid,
-  TextField,
   Button,
+  CircularProgress,
+  MenuItem,
+  Skeleton,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { useEffect, useMemo, useState } from "react";
+
+import { useTabColorTokens } from "../../../style/theme";
+import { ChartCard } from "../../crqAnalytics/components/ChartCard";
+import { EmptyOrErrorState } from "../../crqAnalytics/components/EmptyOrErrorState";
+import { MiniStat, SlotStatusChip } from "../components/slotVisibilityUi";
+import {
+  fromDayjs,
+  toDayjs,
+  useSlotTones,
+  type SlotStatus,
+} from "../components/slotVisibility.styles";
 import {
   useLazyGetCheckActivityFilterQuery,
   useLazyGetShowAvailabilityQuery,
@@ -37,7 +57,30 @@ const getDefaultDates = () => {
   };
 };
 
+/** API status string → display label + tone bucket. */
+const resolveStatus = (status: string): { label: string; tone: SlotStatus } => {
+  switch (status?.trim().toUpperCase()) {
+    case "AVAILABLE":
+      return { label: "Available", tone: "available" };
+    case "FULL":
+      return { label: "Full", tone: "full" };
+    case "HOLIDAY":
+      return { label: "Holiday", tone: "holiday" };
+    case "NO ELIGIBLE ENGINEER":
+    case "NOT ELIGIBLE":
+      return { label: "No eligible engineer", tone: "neutral" };
+    case "NOT ROSTERED":
+      return { label: "Not rostered", tone: "neutral" };
+    default:
+      return { label: status, tone: "neutral" };
+  }
+};
+
 export default function ActivityAvailabilityView() {
+  const theme = useTheme();
+  const colors = useTabColorTokens(theme);
+  const tones = useSlotTones();
+
   /* =========================================================
      FILTER VALUES
   ========================================================= */
@@ -56,6 +99,7 @@ export default function ActivityAvailabilityView() {
   const [showAvailability, setShowAvailability] = useState<ShowAvailability[]>(
     [],
   );
+  const [hasSearched, setHasSearched] = useState(false);
 
   const [
     getShowAvailability,
@@ -84,18 +128,16 @@ export default function ActivityAvailabilityView() {
     );
   }, [filterData?.vendor_oem]);
 
+  const canSearch = Boolean(
+    domain && layer && planType && vendor && impact && fromDate && toDate,
+  );
+
   const handleShowAvailability = async () => {
-    if (
-      !domain ||
-      !layer ||
-      !planType ||
-      !vendor ||
-      !impact ||
-      !fromDate ||
-      !toDate
-    ) {
+    if (!canSearch) {
       return;
     }
+
+    setHasSearched(true);
 
     try {
       const response = await getShowAvailability({
@@ -107,8 +149,6 @@ export default function ActivityAvailabilityView() {
         fromDate,
         toDate,
       }).unwrap();
-
-      console.log("SHOW AVAILABILITY RESPONSE:", response);
 
       setShowAvailability(response);
     } catch (error) {
@@ -154,801 +194,300 @@ export default function ActivityAvailabilityView() {
     }
   }, [filterData, domain, layer, planType, vendor, impact, vendorOptions]);
 
-  return (
-    <Box
-      sx={{
-        p: { xs: 2, md: 3 },
-        backgroundColor: "#F4F3EF",
-      }}
-    >
-      <Stack
-        direction={{ xs: "column", xl: "row" }}
-        spacing={2.5}
-        alignItems="flex-start"
-      >
-        {/* =========================================================
-            ACTIVITY FORM
-        ========================================================= */}
+  /* =========================================================
+     RENDER
+  ========================================================= */
 
-        <Paper
-          elevation={0}
-          sx={{
-            width: {
-              xs: "100%",
-              xl: 340,
-            },
-            flexShrink: 0,
-            p: 2.5,
-            backgroundColor: "#FFFFFF",
-            border: "1px solid #DEDBD2",
-            borderRadius: 2,
-          }}
-        >
-          <Stack spacing={2}>
-            {/* TITLE */}
+  const headCellSx = {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: ".4px",
+    textTransform: "uppercase" as const,
+    color: colors.textSecondary,
+    background: colors.surface2,
+    borderBottom: `1px solid ${colors.border}`,
+    whiteSpace: "nowrap" as const,
+  };
 
-            <Box>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontSize: 17,
-                  fontWeight: 600,
-                  color: "#1C1B19",
-                }}
-              >
-                Activity
-              </Typography>
+  const bodyCellSx = {
+    fontSize: 13,
+    color: colors.textPrimary,
+    borderBottom: `1px solid ${colors.border}`,
+  };
 
-              <Typography
-                variant="body2"
-                sx={{
-                  mt: 0.5,
-                  fontSize: 13,
-                  color: "#57554E",
-                }}
-              >
-                Same values the requester enters when booking.
-              </Typography>
-            </Box>
+  const renderResults = () => {
+    if (!hasSearched) {
+      return (
+        <ChartCard title="Availability" height="auto">
+          <EmptyOrErrorState
+            kind="empty"
+            message="Choose the activity on the left and click “Show availability”."
+          />
+        </ChartCard>
+      );
+    }
 
-            {/* =====================================================
-                FILTER ERROR
-            ===================================================== */}
-
-            {isFilterError && (
-              <Typography
-                sx={{
-                  fontSize: 12,
-                  color: "#8A1C12",
-                }}
-              >
-                Failed to load activity filter values.
-              </Typography>
-            )}
-
-            {/* =====================================================
-                DOMAIN
-            ===================================================== */}
-
-            <Field label="Domain">
-              <FormControl fullWidth size="small">
-                <Select
-                  value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
-                  displayEmpty
-                  disabled={isFilterLoading}
-                  sx={{
-                    backgroundColor: "#FFFFFF",
-                  }}
-                >
-                  {isFilterLoading ? (
-                    <MenuItem value="">Loading...</MenuItem>
-                  ) : filterData?.domain?.length ? (
-                    filterData.domain.map((value) => (
-                      <MenuItem key={value} value={value}>
-                        {value}
-                      </MenuItem>
-                    ))
-                  ) : (
-                    <MenuItem value="">No values</MenuItem>
-                  )}
-                </Select>
-              </FormControl>
-            </Field>
-
-            {/* =====================================================
-                LAYER
-            ===================================================== */}
-
-            <Field label="Layer">
-              <FormControl fullWidth size="small">
-                <Select
-                  value={layer}
-                  onChange={(e) => setLayer(e.target.value)}
-                  displayEmpty
-                  disabled={isFilterLoading}
-                  sx={{
-                    backgroundColor: "#FFFFFF",
-                  }}
-                >
-                  {isFilterLoading ? (
-                    <MenuItem value="">Loading...</MenuItem>
-                  ) : filterData?.layer?.length ? (
-                    filterData.layer.map((value) => (
-                      <MenuItem key={value} value={value}>
-                        {value}
-                      </MenuItem>
-                    ))
-                  ) : (
-                    <MenuItem value="">No values</MenuItem>
-                  )}
-                </Select>
-              </FormControl>
-            </Field>
-
-            {/* =====================================================
-                PLAN TYPE
-            ===================================================== */}
-
-            <Field label="Plan type">
-              <FormControl fullWidth size="small">
-                <Select
-                  value={planType}
-                  onChange={(e) => setPlanType(e.target.value)}
-                  displayEmpty
-                  disabled={isFilterLoading}
-                  sx={{
-                    backgroundColor: "#FFFFFF",
-                  }}
-                >
-                  {isFilterLoading ? (
-                    <MenuItem value="">Loading...</MenuItem>
-                  ) : filterData?.plan_type?.length ? (
-                    filterData.plan_type.map((value) => (
-                      <MenuItem key={value} value={value}>
-                        {value}
-                      </MenuItem>
-                    ))
-                  ) : (
-                    <MenuItem value="">No values</MenuItem>
-                  )}
-                </Select>
-              </FormControl>
-            </Field>
-
-            {/* =====================================================
-                VENDOR + IMPACT
-            ===================================================== */}
-
-            <Grid container spacing={1.5}>
-              {/* VENDOR */}
-
-              <Grid size={{ xs: 6 }}>
-                <Field label="Vendor">
-                  <FormControl fullWidth size="small">
-                    <Select
-                      value={vendor}
-                      onChange={(e) => setVendor(e.target.value)}
-                      disabled={isFilterLoading}
-                      sx={{
-                        backgroundColor: "#FFFFFF",
-                      }}
-                    >
-                      {vendorOptions.map((vendorValue) => (
-                        <MenuItem key={vendorValue} value={vendorValue}>
-                          {vendorValue}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Field>
-              </Grid>
-
-              {/* IMPACT */}
-
-              <Grid size={{ xs: 6 }}>
-                <Field label="Impact">
-                  <FormControl fullWidth size="small">
-                    <Select
-                      value={impact}
-                      onChange={(e) => setImpact(e.target.value)}
-                      displayEmpty
-                      disabled={isFilterLoading}
-                      sx={{
-                        backgroundColor: "#FFFFFF",
-                      }}
-                    >
-                      {isFilterLoading ? (
-                        <MenuItem value="">Loading...</MenuItem>
-                      ) : filterData?.change_impact?.length ? (
-                        filterData.change_impact.map((value) => (
-                          <MenuItem key={value} value={value}>
-                            {value}
-                          </MenuItem>
-                        ))
-                      ) : (
-                        <MenuItem value="">No values</MenuItem>
-                      )}
-                    </Select>
-                  </FormControl>
-                </Field>
-              </Grid>
-            </Grid>
-
-            <Grid container spacing={1.5}>
-              {/* FROM */}
-
-              <Grid size={{ xs: 6 }}>
-                <Field label="From">
-                  <TextField
-                    fullWidth
-                    type="date"
-                    size="small"
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    slotProps={{
-                      inputLabel: {
-                        shrink: true,
-                      },
-                    }}
-                  />
-                </Field>
-              </Grid>
-
-              {/* TO */}
-
-              <Grid size={{ xs: 6 }}>
-                <Field label="To">
-                  <TextField
-                    fullWidth
-                    type="date"
-                    size="small"
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                    slotProps={{
-                      inputLabel: {
-                        shrink: true,
-                      },
-                    }}
-                  />
-                </Field>
-              </Grid>
-            </Grid>
-
-            {/* =====================================================
-                SHOW AVAILABILITY
-            ===================================================== */}
-
-            <Button
-              fullWidth
-              variant="contained"
-              disabled={isAvailabilityLoading}
-              onClick={handleShowAvailability}
-              sx={{
-                height: 44,
-                mt: 0.5,
-                backgroundColor: "#0F5F59",
-                color: "#FFFFFF",
-                fontWeight: 600,
-                textTransform: "none",
-                borderRadius: 1,
-
-                "&:hover": {
-                  backgroundColor: "#0A4540",
-                },
-
-                "&.Mui-disabled": {
-                  backgroundColor: "#A7C4C1",
-                  color: "#FFFFFF",
-                },
-              }}
-            >
-              {isAvailabilityLoading ? "Loading..." : "Show availability"}
-            </Button>
-
-            <Typography
-              variant="caption"
-              sx={{
-                fontSize: 12,
-                color: "#6B6961",
-              }}
-            >
-              Up to 93 days. Vendor is matched exactly.
-            </Typography>
-          </Stack>
-        </Paper>
-
-        {/* =========================================================
-    RESULTS
-========================================================= */}
-
+    return (
+      <Stack spacing={2}>
+        {/* RESOLVED ACTIVITY */}
         <Box
           sx={{
-            flex: 1,
-            minWidth: 0,
-            width: "100%",
+            display: "grid",
+            gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(6, 1fr)" },
+            gap: 1,
           }}
         >
-          {!showAvailability.length && !isAvailabilityLoading ? (
-            <Paper
-              elevation={0}
-              sx={{
-                minHeight: 300,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#FFFFFF",
-                border: "1px solid #DEDBD2",
-                borderRadius: 2,
-              }}
-            >
-              <Typography
-                sx={{
-                  color: "#77736A",
-                  fontSize: 13,
-                }}
-              >
-                Select the activity filters and click{" "}
-                <strong>Show availability</strong>.
-              </Typography>
-            </Paper>
+          <MiniStat label="Domain" value={domain} />
+          <MiniStat label="Layer" value={layer} />
+          <MiniStat label="Plan type" value={planType} />
+          <MiniStat label="Vendor" value={vendor} />
+          <MiniStat label="Impact" value={impact} />
+          <MiniStat label="Window" value={`${fromDate} → ${toDate}`} />
+        </Box>
+
+        <ChartCard title="Availability by shift date" height="auto">
+          {isAvailabilityError ? (
+            <EmptyOrErrorState kind="error" message="Failed to load availability." />
+          ) : isAvailabilityLoading ? (
+            <Stack spacing={1}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} variant="rounded" height={40} />
+              ))}
+            </Stack>
+          ) : showAvailability.length === 0 ? (
+            <EmptyOrErrorState kind="empty" message="No availability found for the selected filters." />
           ) : (
-            <Stack spacing={2}>
-              {/* =====================================================
-          RESOLVED ACTIVITY
-      ===================================================== */}
+            <TableContainer sx={{ maxHeight: "calc(100vh - 360px)", borderRadius: colors.radius }}>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={headCellSx}>Shift date</TableCell>
+                    <TableCell sx={headCellSx}>Shift</TableCell>
+                    <TableCell sx={headCellSx}>Work window</TableCell>
+                    <TableCell sx={headCellSx} align="right">Rostered</TableCell>
+                    <TableCell sx={headCellSx} align="right">Eligible</TableCell>
+                    <TableCell sx={headCellSx} align="right">Reserved</TableCell>
+                    <TableCell sx={headCellSx} align="right">Confirmed</TableCell>
+                    <TableCell sx={headCellSx} align="right">Still fits</TableCell>
+                    <TableCell sx={headCellSx}>Status</TableCell>
+                  </TableRow>
+                </TableHead>
 
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2.25,
-                  backgroundColor: "#FFFFFF",
-                  border: "1px solid #DEDBD2",
-                  borderRadius: 2,
-                }}
-              >
-                <Grid container spacing={2}>
-                  <Info label="Domain" value={domain} />
+                <TableBody>
+                  {showAvailability.map((row, index) => {
+                    const status = resolveStatus(row.status);
 
-                  <Info label="Layer" value={layer} />
-
-                  <Info label="Plan type" value={planType} />
-
-                  <Info label="Vendor" value={vendor} />
-
-                  <Info label="Impact" value={impact} />
-
-                  <Info
-                    label="Bookable window"
-                    value={`${fromDate} – ${toDate}`}
-                  />
-                </Grid>
-              </Paper>
-
-              {/* =====================================================
-          ERROR
-      ===================================================== */}
-
-              {isAvailabilityError && (
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 2,
-                    backgroundColor: "#FFF7F5",
-                    border: "1px solid #F1C5BD",
-                    borderRadius: 2,
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      color: "#8A1C12",
-                      fontSize: 13,
-                    }}
-                  >
-                    Failed to load availability.
-                  </Typography>
-                </Paper>
-              )}
-
-              {/* =====================================================
-          AVAILABILITY TABLE
-      ===================================================== */}
-              <Paper
-                elevation={0}
-                sx={{
-                  backgroundColor: "#FFFFFF",
-                  border: "1px solid #DEDBD2",
-                  borderRadius: 2,
-                  overflow: "auto",
-                }}
-              >
-                <Box
-                  sx={{
-                    minWidth: 1100,
-                  }}
-                >
-                  {/* TABLE HEADER */}
-
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "140px 70px 130px repeat(4, minmax(70px, 1fr)) 100px 220px",
-                      gap: 1.5,
-                      px: 2.5,
-                      py: 1.5,
-                      backgroundColor: "#F4F3EF",
-                      borderBottom: "1px solid #DEDBD2",
-                    }}
-                  >
-                    <TableHeader>Shift date</TableHeader>
-
-                    <TableHeader>Shift</TableHeader>
-
-                    <TableHeader>Work window</TableHeader>
-
-                    <TableHeader>Rostered</TableHeader>
-
-                    <TableHeader>Eligible</TableHeader>
-
-                    <TableHeader>Reserved</TableHeader>
-
-                    <TableHeader>Confirmed</TableHeader>
-
-                    <TableHeader>Still fits</TableHeader>
-
-                    <TableHeader>Status</TableHeader>
-                  </Box>
-
-                  {/* LOADING */}
-
-                  {isAvailabilityLoading ? (
-                    <Box
-                      sx={{
-                        py: 5,
-                        textAlign: "center",
-                      }}
-                    >
-                      <Typography
-                        sx={{
-                          color: "#77736A",
-                          fontSize: 13,
-                        }}
-                      >
-                        Loading availability...
-                      </Typography>
-                    </Box>
-                  ) : (
-                    /* TABLE ROWS */
-
-                    showAvailability.map((row, index) => (
-                      <Box
+                    return (
+                      <TableRow
                         key={`${row.shiftDate}-${row.shiftName}-${index}`}
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns:
-                            "140px 70px 130px repeat(4, minmax(70px, 1fr)) 100px 220px",
-                          gap: 1.5,
-                          px: 2.5,
-                          minHeight: 58,
-                          alignItems: "center",
-                          borderBottom: "1px solid #EEECE6",
-
-                          "&:hover": {
-                            backgroundColor: "#FAF9F6",
-                          },
-                        }}
+                        hover
+                        sx={{ "&:last-child td": { borderBottom: 0 } }}
                       >
-                        {/* SHIFT DATE */}
-
-                        <Typography
-                          sx={{
-                            fontSize: 13,
-                            fontFamily: "monospace",
-                            fontWeight: 600,
-                          }}
-                        >
+                        <TableCell sx={{ ...bodyCellSx, fontWeight: 600, whiteSpace: "nowrap" }}>
                           {row.shiftDate}
-                        </Typography>
-
-                        {/* SHIFT */}
-
-                        <Typography
-                          sx={{
-                            fontSize: 14,
-                            fontWeight: 700,
-                          }}
-                        >
-                          {row.shiftName}
-                        </Typography>
-
-                        {/* WORK WINDOW */}
-
-                        <Typography
-                          sx={{
-                            fontSize: 12,
-                            color: "#57554E",
-                            fontFamily: "monospace",
-                          }}
-                        >
+                        </TableCell>
+                        <TableCell sx={{ ...bodyCellSx, fontWeight: 800 }}>{row.shiftName}</TableCell>
+                        <TableCell sx={{ ...bodyCellSx, color: colors.textSecondary, whiteSpace: "nowrap" }}>
                           {row.workWindow}
-                        </Typography>
-
-                        {/* ROSTERED */}
-
-                        <TableValue>{row.rostered}</TableValue>
-
-                        {/* ELIGIBLE */}
-
-                        <TableValue>{row.eligible}</TableValue>
-
-                        {/* RESERVED */}
-
-                        <TableValue color="#8A5A00">{row.reserved}</TableValue>
-
-                        {/* CONFIRMED */}
-
-                        <TableValue color="#1C4E80">{row.confirmed}</TableValue>
-
-                        {/* STILL FITS */}
-
-                        <Typography
+                        </TableCell>
+                        <TableCell sx={bodyCellSx} align="right">{row.rostered}</TableCell>
+                        <TableCell sx={bodyCellSx} align="right">{row.eligible}</TableCell>
+                        <TableCell sx={{ ...bodyCellSx, color: tones.low.color, fontWeight: 600 }} align="right">
+                          {row.reserved}
+                        </TableCell>
+                        <TableCell sx={{ ...bodyCellSx, color: theme.palette.info.main, fontWeight: 600 }} align="right">
+                          {row.confirmed}
+                        </TableCell>
+                        <TableCell
                           sx={{
-                            fontSize: 16,
-                            fontWeight: 600,
-                            fontFamily: "monospace",
-                            color: row.stillFits > 0 ? "#1F6B45" : "#8A1C12",
+                            ...bodyCellSx,
+                            fontSize: 15,
+                            fontWeight: 800,
+                            color: row.stillFits > 0 ? tones.available.color : tones.full.color,
                           }}
+                          align="right"
                         >
                           {row.stillFits}
-                        </Typography>
-
-                        {/* STATUS */}
-
-                        <Box
-                          sx={{
-                            minWidth: 0,
-                          }}
-                        >
-                          <StatusChip status={row.status} />
-
+                        </TableCell>
+                        <TableCell sx={{ ...bodyCellSx, maxWidth: 240 }}>
+                          <SlotStatusChip label={status.label} tone={tones[status.tone]} />
                           {row.reason && (
                             <Typography
+                              title={row.reason}
                               sx={{
-                                mt: 0.25,
+                                mt: 0.4,
                                 fontSize: 11,
-                                color: "#6B6961",
+                                color: colors.textSecondary,
                                 whiteSpace: "nowrap",
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
                               }}
-                              title={row.reason}
                             >
                               {row.reason}
                             </Typography>
                           )}
-                        </Box>
-                      </Box>
-                    ))
-                  )}
-
-                  {/* NO RESULTS */}
-
-                  {!isAvailabilityLoading &&
-                    !isAvailabilityError &&
-                    showAvailability.length === 0 && (
-                      <Box
-                        sx={{
-                          py: 5,
-                          textAlign: "center",
-                        }}
-                      >
-                        <Typography
-                          sx={{
-                            color: "#77736A",
-                            fontSize: 13,
-                          }}
-                        >
-                          No availability found for the selected filters.
-                        </Typography>
-                      </Box>
-                    )}
-                </Box>
-              </Paper>
-            </Stack>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
-        </Box>
+        </ChartCard>
       </Stack>
+    );
+  };
+
+  return (
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", lg: "320px minmax(0, 1fr)" },
+        gap: 2,
+        alignItems: "start",
+      }}
+    >
+      {/* =========================================================
+          ACTIVITY FORM
+      ========================================================= */}
+      <ChartCard title="Activity" height="auto">
+        <Stack spacing={1.75}>
+          <Typography sx={{ fontSize: 12.5, color: colors.textSecondary, mt: -0.75 }}>
+            Same values the requester enters when booking.
+          </Typography>
+
+          {isFilterError && (
+            <Typography sx={{ fontSize: 12, color: colors.danger }}>
+              Failed to load activity filter values.
+            </Typography>
+          )}
+
+          <OptionSelect
+            label="Domain"
+            value={domain}
+            onChange={setDomain}
+            options={filterData?.domain}
+            loading={isFilterLoading}
+          />
+
+          <OptionSelect
+            label="Layer"
+            value={layer}
+            onChange={setLayer}
+            options={filterData?.layer}
+            loading={isFilterLoading}
+          />
+
+          <OptionSelect
+            label="Plan type"
+            value={planType}
+            onChange={setPlanType}
+            options={filterData?.plan_type}
+            loading={isFilterLoading}
+          />
+
+          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+            <OptionSelect
+              label="Vendor"
+              value={vendor}
+              onChange={setVendor}
+              options={vendorOptions}
+              loading={isFilterLoading}
+            />
+            <OptionSelect
+              label="Impact"
+              value={impact}
+              onChange={setImpact}
+              options={filterData?.change_impact}
+              loading={isFilterLoading}
+            />
+          </Box>
+
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+              <DatePicker
+                label="From"
+                value={toDayjs(fromDate)}
+                onChange={(v) => setFromDate(fromDayjs(v))}
+                maxDate={toDayjs(toDate) ?? undefined}
+                slotProps={{ textField: { size: "small", fullWidth: true } }}
+              />
+              <DatePicker
+                label="To"
+                value={toDayjs(toDate)}
+                onChange={(v) => setToDate(fromDayjs(v))}
+                minDate={toDayjs(fromDate) ?? undefined}
+                slotProps={{ textField: { size: "small", fullWidth: true } }}
+              />
+            </Box>
+          </LocalizationProvider>
+
+          <Button
+            fullWidth
+            variant="contained"
+            disabled={isAvailabilityLoading || !canSearch}
+            onClick={handleShowAvailability}
+            startIcon={
+              isAvailabilityLoading ? <CircularProgress size={16} color="inherit" /> : <SearchRoundedIcon />
+            }
+            sx={{ py: 1, fontWeight: 700, textTransform: "none" }}
+          >
+            {isAvailabilityLoading ? "Loading..." : "Show availability"}
+          </Button>
+
+          <Typography sx={{ fontSize: 11.5, color: colors.textSecondary }}>
+            Up to 93 days. Vendor is matched exactly.
+          </Typography>
+        </Stack>
+      </ChartCard>
+
+      {/* =========================================================
+          RESULTS
+      ========================================================= */}
+      <Box sx={{ minWidth: 0 }}>{renderResults()}</Box>
     </Box>
   );
 }
 
 /* ================================================================
-   FIELD
+   OPTION SELECT
 ================================================================ */
 
-function Field({
+function OptionSelect({
   label,
-  children,
+  value,
+  onChange,
+  options,
+  loading,
 }: {
   label: string;
-  children: React.ReactNode;
+  value: string;
+  onChange: (value: string) => void;
+  options?: string[];
+  loading: boolean;
 }) {
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 0.75,
-      }}
+    <TextField
+      select
+      fullWidth
+      size="small"
+      label={label}
+      value={value}
+      disabled={loading}
+      onChange={(e) => onChange(e.target.value)}
     >
-      <Typography
-        variant="caption"
-        sx={{
-          fontSize: 12,
-          fontWeight: 600,
-          color: "#57554E",
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
-        }}
-      >
-        {label}
-      </Typography>
-
-      {children}
-    </Box>
+      {loading ? (
+        <MenuItem value="">Loading...</MenuItem>
+      ) : options?.length ? (
+        options.map((option) => (
+          <MenuItem key={option} value={option}>
+            {option}
+          </MenuItem>
+        ))
+      ) : (
+        <MenuItem value="">No values</MenuItem>
+      )}
+    </TextField>
   );
 }
-
-/* ================================================================
-   INFO
-================================================================ */
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-      <Box>
-        <Typography
-          sx={{
-            fontSize: 12,
-            color: "#57554E",
-          }}
-        >
-          {label}
-        </Typography>
-
-        <Typography
-          sx={{
-            mt: 0.5,
-            fontSize: 15,
-            fontWeight: 600,
-            color: "#1C1B19",
-          }}
-        >
-          {value}
-        </Typography>
-      </Box>
-    </Grid>
-  );
-}
-
-/* ================================================================
-   TABLE HEADER
-================================================================ */
-
-function TableHeader({ children }: { children: React.ReactNode }) {
-  return (
-    <Typography
-      sx={{
-        fontSize: 11,
-        fontWeight: 600,
-        color: "#57554E",
-        textTransform: "uppercase",
-        letterSpacing: "0.04em",
-      }}
-    >
-      {children}
-    </Typography>
-  );
-}
-
-/* ================================================================
-   TABLE VALUE
-================================================================ */
-
-function TableValue({
-  children,
-  color = "#1C1B19",
-}: {
-  children: React.ReactNode;
-  color?: string;
-}) {
-  return (
-    <Typography
-      sx={{
-        fontSize: 13,
-        fontFamily: "monospace",
-        color,
-      }}
-    >
-      {children}
-    </Typography>
-  );
-}
-
-/* ================================================================
-   STATUS CHIP
-================================================================ */
-
-const StatusChip = ({ status }: { status: string }) => {
-  const normalizedStatus = status?.trim().toUpperCase();
-
-  let label = status;
-  let backgroundColor = "#E8E6E1";
-  let color = "#57554E";
-
-  switch (normalizedStatus) {
-    case "AVAILABLE":
-      backgroundColor = "#DDEFE3";
-      color = "#006B4F";
-      label = "Available";
-      break;
-
-    case "FULL":
-      backgroundColor = "#F6D7D2";
-      color = "#B42318";
-      label = "Full";
-      break;
-
-    case "HOLIDAY":
-      backgroundColor = "#E6DDF5";
-      color = "#5B2A86";
-      label = "Holiday";
-      break;
-
-    case "NO ELIGIBLE ENGINEER":
-    case "NOT ELIGIBLE":
-      backgroundColor = "#E8E6E1";
-      color = "#3F3D37";
-      label = "No eligible engineer";
-      break;
-
-    case "NOT ROSTERED":
-      backgroundColor = "#E8E6E1";
-      color = "#3F3D37";
-      label = "Not rostered";
-      break;
-
-    default:
-      backgroundColor = "#E8E6E1";
-      color = "#57554E";
-      label = status;
-  }
-
-  return (
-    <Box
-      sx={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-
-        px: 1.5,
-        py: 0.5,
-
-        borderRadius: "999px",
-
-        backgroundColor,
-        color,
-
-        fontSize: 13,
-        fontWeight: 600,
-        lineHeight: 1.2,
-
-        whiteSpace: "normal",
-        maxWidth: "100%",
-      }}
-    >
-      {label}
-    </Box>
-  );
-};

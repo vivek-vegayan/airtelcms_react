@@ -59,11 +59,17 @@ export default function AddOtherUserDialog({ open, onClose, onCreated }: AddOthe
 
   const set = (key: keyof OtherForm) => (value: string) => setForm((p) => ({ ...p, [key]: value }));
 
+  // Pasted emails often carry spaces, non-breaking/zero-width chars or a "mailto:" prefix.
+  const cleanEmail = (v: string) =>
+    v.replace(/[\s ​-‍﻿]+/g, "").replace(/^mailto:/i, "");
+
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
+    const email = cleanEmail(form.emailId);
     if (!form.olmid.trim()) newErrors.olmid = "Required";
     if (!form.employeeName.trim()) newErrors.employeeName = "Required";
-    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(form.emailId)) newErrors.emailId = "Invalid email format";
+    if (!email) newErrors.emailId = "Required";
+    else if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) newErrors.emailId = "Invalid email format";
     if (!form.mobileNo.trim()) newErrors.mobileNo = "Required";
     if (!form.roleCode) newErrors.roleCode = "Required";
     setErrors(newErrors);
@@ -77,10 +83,10 @@ export default function AddOtherUserDialog({ open, onClose, onCreated }: AddOthe
   const submit = async () => {
     if (!validate()) return;
     const payload: CreateOtherEmployeeRequest = {
-      olmid: form.olmid,
-      employeeName: form.employeeName,
-      emailId: form.emailId,
-      mobileNo: form.mobileNo,
+      olmid: form.olmid.trim(),
+      employeeName: form.employeeName.trim(),
+      emailId: cleanEmail(form.emailId),
+      mobileNo: form.mobileNo.trim(),
       roleCode: form.roleCode,
     };
     try {
