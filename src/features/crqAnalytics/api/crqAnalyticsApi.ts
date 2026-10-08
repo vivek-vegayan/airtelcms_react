@@ -177,6 +177,7 @@ export const {
   useGetCrqGroupBreakdownQuery,
   useGetCrqAgingHeatmapQuery,
   useGetCrqAnalyticsListQuery,
+  useLazyGetCrqAnalyticsListQuery,
   useGetCrqDetailQuery,
   useGetCrqViewAllCircleRegionQuery,
   useGetCrqViewAllOpenDomainQuery,

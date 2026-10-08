@@ -5,6 +5,7 @@ import { useAppTable } from "../../../components/ui/AppTable";
 import { useGetCrqAnalyticsListQuery } from "../api/crqAnalyticsApi";
 import type { CRQAnalyticsFilterParams, CRQTableRowDto } from "../types/crqAnalytics.types";
 import { EmptyOrErrorState } from "./EmptyOrErrorState";
+import type { ExcelColumn } from "../utils/excelExport";
 
 export interface CrqListDrillFilter {
   status?: string;
@@ -25,6 +26,17 @@ const statusColor = (status: string): "success" | "warning" | "error" | "default
   if (s.includes("OPEN") || s.includes("PROGRESS")) return "warning";
   return "default";
 };
+
+/** Shared with the fullscreen Excel export so the file matches the table. */
+export const CRQ_LIST_EXCEL_COLUMNS: ExcelColumn[] = [
+  { key: "crqNo", header: "CRQ No.", width: 20 },
+  { key: "currentStage", header: "Stage", width: 24 },
+  { key: "currentStatus", header: "Status", width: 18 },
+  { key: "teamFunction", header: "Team Function", width: 22 },
+  { key: "teamSubfunction", header: "Team Sub-function", width: 24 },
+  { key: "schedulingFlag", header: "Scheduling", width: 14 },
+  { key: "approvalFlag", header: "Approval", width: 14 },
+];
 
 export function CrqListTable({ filters, drill, onRowClick }: Props) {
   const [pagination, setPagination] = useState<MRT_PaginationState>({ pageIndex: 0, pageSize: 25 });

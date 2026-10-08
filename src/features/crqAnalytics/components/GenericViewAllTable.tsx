@@ -32,7 +32,10 @@ export function GenericViewAllTable({ response, isLoading, isError }: Props) {
         <EmptyOrErrorState kind={isError ? "error" : "empty"} />
       </Box>
     ),
-    initialState: { density: "compact" },
+    initialState: { density: "compact", pagination: { pageIndex: 0, pageSize: 15 } },
+    // Grow to fit the full 15-row page instead of the viewport-sized cap,
+    // which left most of those rows behind an inner scrollbar.
+    appTable: { maxHeight: false },
   });
 
   return <MaterialReactTable table={table} />;
