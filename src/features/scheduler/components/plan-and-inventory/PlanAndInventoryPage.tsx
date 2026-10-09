@@ -226,11 +226,10 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
     },
     {
       skip: !scopeReady,
-      // "View Selected CRQ" opens the cockpit in a new tab with its own
-      // store, so actions taken there never invalidate this tab's cache -
-      // refetch on return/focus instead of serving the cached listing.
+      // No refetchOnFocus: switching browser tabs must not reload the
+      // listing. Use the filter bar's Refresh button to pick up changes
+      // made elsewhere (e.g. in the "View Selected CRQ" tab).
       refetchOnMountOrArgChange: true,
-      refetchOnFocus: true,
     },
   );
 
