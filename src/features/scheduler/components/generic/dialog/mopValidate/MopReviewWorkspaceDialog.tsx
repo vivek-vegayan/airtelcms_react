@@ -5,7 +5,6 @@ import {
   Button,
   CircularProgress,
   Dialog,
-  Divider,
   IconButton,
   LinearProgress,
   Skeleton,
@@ -17,21 +16,34 @@ import {
   useTheme,
 } from "@mui/material";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import FitScreenRoundedIcon from "@mui/icons-material/FitScreenRounded";
 import FlagRoundedIcon from "@mui/icons-material/FlagRounded";
 import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
+import KeyboardRoundedIcon from "@mui/icons-material/KeyboardRounded";
 import RotateRightRoundedIcon from "@mui/icons-material/RotateRightRounded";
 import ZoomInRoundedIcon from "@mui/icons-material/ZoomInRounded";
 import ZoomOutRoundedIcon from "@mui/icons-material/ZoomOutRounded";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "react-toastify";
 import { useTabColorTokens } from "../../../../../../style/theme";
-import { Lbl, MopReviewRail, shortStamp, versionTone } from "./MopReviewRail";
+import { MopReviewRail } from "./MopReviewRail";
+import {
+  ActionDialog,
+  ActionFooter,
+  Lbl,
+  VersionStatusChip,
+  inputSx,
+  outlineBtnSx,
+  shortStamp,
+  solidBtnSx,
+} from "./mopUi";
 import type { PageFindingMarker } from "./MopPdfCanvas";
 import { MopExcelPreview } from "../mopCreate/MopExcelPreview";
 import { useGetMopCreatePdfQuery } from "../../../../api/mopDocumentApiSlice";
@@ -43,7 +55,6 @@ import {
   useValidateMopVersionMutation,
 } from "../../../../api/mopReviewApiSlice";
 import { MOP_EXTENSION } from "../../../../types/mopDocument.types";
-import { MOP_VERSION_STATUS_LABEL } from "../../../../types/mopValidate.types";
 import type { MopFinding } from "../../../../types/mopReview.types";
 
 /**
@@ -63,40 +74,22 @@ interface MopReviewWorkspaceDialogProps {
   onClose: () => void;
 }
 
-/** Square status tag, the design's shape. Filled reads as a decided state. */
-const Tag: React.FC<{ label: string; tone: string; filled?: boolean }> = ({ label, tone, filled }) => (
-  <Box
-    component="span"
-    sx={{
-      fontSize: 11,
-      fontWeight: 800,
-      letterSpacing: "0.02em",
-      px: 1,
-      py: 0.35,
-      lineHeight: 1.2,
-      whiteSpace: "nowrap",
-      border: `1px solid ${tone}`,
-      color: filled ? "#fff" : tone,
-      bgcolor: filled ? tone : alpha(tone, 0.1),
-    }}
-  >
-    {label}
-  </Box>
-);
-
 /**
- * The fullscreen MOP validation workspace, from the "MOP Phase 1 - Core"
- * design's Validate view: the stored document under a page/zoom toolbar on the
- * left, and a 420px rail carrying findings, version history, the audit trail
- * and the two decisions on the right.
+ * The fullscreen MOP validation workspace: the stored document under a
+ * page/zoom toolbar on the left, and a rail carrying findings, version
+ * history, the audit trail and the two decisions on the right.
+ *
+ * Styled as a sibling of `StageReviewDialog` - the same canvas colour, the
+ * same header row, and rounded surface cards from `useTabColorTokens` - so
+ * opening it from the MOP Validate panel reads as going one level deeper
+ * rather than into a different app.
  *
  * The document is rendered by pdf.js (`MopPdfCanvas`) rather than handed to the
  * browser's viewer in an iframe, which is what MOP Create does. The extra cost
  * buys the three things this screen cannot work without: the real page count,
  * control of which page is shown - so a finding's "p.4" can actually go there -
- * and a click target on the page itself, which is the design's flag gesture.
+ * and a click target on the page itself, which is the flag gesture.
  *
- * One honest departure from the design: it flags individual parsed MOP steps.
  * A real MOP is a PDF or workbook out of `SP_GET_CRQ_MOP_CREATE_PDF` whose steps
  * cannot be parsed, so a finding anchors to a page, with an optional free-text
  * step reference. Nothing here invents step text.
@@ -155,6 +148,7 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
   const isExcel = documentType === "XLSX" || documentType === "XLS";
   const isLegacyXls = documentType === "XLS";
   const canFlag = Boolean(data?.canEdit);
+  const showPager = !isExcel && Boolean(data?.documentAttached);
 
   // Reopening on another CRQ must not inherit the previous one's version,
   // page, zoom or drafts.
@@ -225,8 +219,6 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
     });
     return [...byPage.values()];
   }, [data?.findings]);
-
-  const statusTone = versionTone(data?.versionStatus, colors);
 
   const run = async (fn: () => Promise<unknown>, success: string) => {
     setActionError(null);
@@ -325,9 +317,21 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
   const toolIconSx = {
     width: 30,
     height: 30,
-    borderRadius: 0,
-    color: colors.textPrimary,
-    "&:hover": { bgcolor: alpha(colors.textPrimary, 0.08) },
+    borderRadius: colors.radius,
+    color: colors.textSecondary,
+    "&:hover": { bgcolor: alpha(colors.accent, 0.08), color: colors.accent },
+    "&.Mui-disabled": { color: colors.textDim },
+  };
+
+  /** Rounded segment that groups related toolbar controls. */
+  const toolGroupSx = {
+    display: "flex",
+    alignItems: "center",
+    gap: 0.25,
+    p: 0.25,
+    borderRadius: colors.radius,
+    border: `1px solid ${colors.border}`,
+    bgcolor: colors.surface2,
   };
 
   const zoomLabel = zoom === "fit" ? "Fit" : `${zoom}%`;
@@ -337,89 +341,150 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
       return Math.min(200, Math.max(70, base + delta));
     });
 
+  const cardSx = {
+    bgcolor: colors.surface,
+    border: `1px solid ${colors.border}`,
+    borderRadius: colors.radiusL,
+    overflow: "hidden",
+  };
+
+  const facts: Array<{ label: string; value: React.ReactNode; grow?: boolean }> = [
+    {
+      label: "Viewing",
+      value: (
+        <>
+          v{data?.versionNo ?? "—"}
+          <Box component="span" sx={{ fontWeight: 400, color: colors.textSecondary }}>
+            {" "}
+            of {data?.versions.length ?? 0}
+          </Box>
+        </>
+      ),
+    },
+    {
+      label: "Window",
+      value: data?.windowStart
+        ? `${shortStamp(data.windowStart)}${data.windowEnd ? ` – ${shortStamp(data.windowEnd)}` : ""}`
+        : "—",
+    },
+    { label: "Reviewer", value: data?.currentReviewerId ?? "—" },
+    { label: "Document", value: data?.fileName ?? "—", grow: true },
+  ];
+
   return (
     <Dialog
       open={open}
       onClose={onClose}
       fullScreen
-      PaperProps={{ sx: { bgcolor: colors.bg, backgroundImage: "none" } }}
+      keepMounted={false}
+      PaperProps={{
+        elevation: 0,
+        sx: {
+          // Same canvas as StageReviewDialog, the dialog this opens from.
+          bgcolor: colors.isDark ? "#131419" : "#F4F5F7",
+          backgroundImage: "none",
+        },
+      }}
     >
       <Box sx={{ height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
         {/* ── Header ──────────────────────────────────────────────── */}
         <Box
           sx={{
             flex: "none",
-            px: 3,
+            px: 2.5,
             py: 1.5,
             bgcolor: colors.surface,
-            borderBottom: `2px solid ${colors.border}`,
-            // A hairline of accent along the top edge, so the fullscreen
-            // takeover reads as a distinct surface rather than a blank page.
-            boxShadow: `inset 0 3px 0 0 ${colors.accent}`,
+            borderBottom: `1px solid ${colors.border}`,
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-            <FlagRoundedIcon sx={{ fontSize: 20, color: colors.accent }} />
-            <Lbl colors={colors}>Validate MOP</Lbl>
-            <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-            <Typography
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Box
               sx={{
-                fontWeight: 800,
-                fontSize: 19,
-                fontVariantNumeric: "tabular-nums",
-                color: colors.textPrimary,
+                width: 36,
+                height: 36,
+                flex: "none",
+                display: "grid",
+                placeItems: "center",
+                borderRadius: colors.radius,
+                bgcolor: colors.accentDim,
+                border: `1px solid ${colors.accentBorder}`,
+                color: colors.accent,
               }}
             >
-              {data?.crqNo ?? crqNo}
-            </Typography>
-            {data?.versionStatus && (
-              <Tag
-                label={MOP_VERSION_STATUS_LABEL[data.versionStatus] ?? data.versionStatus}
-                tone={statusTone}
-                filled={data.versionStatus === "validated" || data.versionStatus === "rejected"}
-              />
-            )}
-            <Typography
-              sx={{
-                fontSize: 14,
-                color: alpha(colors.textPrimary, 0.7),
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                minWidth: 0,
-                flex: "1 1 200px",
-              }}
-            >
-              {isLoading ? <Skeleton width={220} /> : (data?.title ?? "—")}
-            </Typography>
+              <FactCheckOutlinedIcon sx={{ fontSize: 20 }} />
+            </Box>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                <Typography sx={{ fontWeight: 800, fontSize: 14, color: colors.textPrimary }}>
+                  MOP Validate —{" "}
+                  <Box component="span" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                    {data?.crqNo ?? crqNo}
+                  </Box>
+                </Typography>
+                {data?.versionStatus && <VersionStatusChip status={data.versionStatus} colors={colors} />}
+              </Box>
+              <Typography
+                sx={{
+                  fontSize: 12,
+                  color: colors.textSecondary,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {isLoading ? <Skeleton width={220} /> : (data?.title ?? "—")}
+              </Typography>
+            </Box>
             <Tooltip arrow title="Close (Esc)">
-              <IconButton onClick={onClose} size="small" sx={toolIconSx} aria-label="Close">
-                <CloseRoundedIcon sx={{ fontSize: 20 }} />
+              <IconButton onClick={onClose} size="small" aria-label="Close">
+                <CloseRoundedIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </Tooltip>
           </Box>
 
-          <Box sx={{ display: "flex", gap: 3, mt: 1, flexWrap: "wrap", alignItems: "baseline" }}>
-            <HeaderFact label="Viewing" colors={colors}>
-              v{data?.versionNo ?? "—"}{" "}
-              <Box component="span" sx={{ fontWeight: 400, color: alpha(colors.textPrimary, 0.6) }}>
-                of {data?.versions.length ?? 0}
-              </Box>
-            </HeaderFact>
-            <HeaderFact label="Window" colors={colors}>
-              {data?.windowStart ? shortStamp(data.windowStart) : "—"}
-              {data?.windowEnd ? ` – ${shortStamp(data.windowEnd)}` : ""}
-            </HeaderFact>
-            <HeaderFact label="Reviewer" colors={colors}>
-              {data?.currentReviewerId ?? "—"}
-            </HeaderFact>
-            <HeaderFact label="Document" colors={colors}>
-              {data?.fileName ?? "—"}
-            </HeaderFact>
+          {/* Facts strip - the same divided one-liner as MopVersionStrip. */}
+          <Box
+            sx={{
+              mt: 1.25,
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "stretch",
+              rowGap: 1,
+              px: 1.75,
+              py: 0.9,
+              borderRadius: colors.radius,
+              border: `1px solid ${colors.border}`,
+              bgcolor: colors.surface2,
+            }}
+          >
+            {facts.map((f, i) => (
+              <React.Fragment key={f.label}>
+                {i > 0 && <Box aria-hidden sx={{ width: "1px", bgcolor: colors.border, mx: 1.75 }} />}
+                <Box sx={{ minWidth: 0, flex: f.grow ? "1 1 180px" : "0 1 auto" }}>
+                  <Lbl colors={colors}>{f.label}</Lbl>
+                  <Typography
+                    sx={{
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      lineHeight: 1.5,
+                      fontVariantNumeric: "tabular-nums",
+                      color: colors.textPrimary,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {isLoading ? <Skeleton width={80} /> : f.value}
+                  </Typography>
+                </Box>
+              </React.Fragment>
+            ))}
           </Box>
         </Box>
 
-        {isFetching && <LinearProgress sx={{ height: 2, flex: "none" }} />}
+        <Box sx={{ height: 2, flex: "none" }}>
+          {isFetching && <LinearProgress sx={{ height: 2 }} />}
+        </Box>
 
         <AnimatePresence>
           {actionError && (
@@ -428,88 +493,65 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
             >
-              <Alert
-                severity="error"
-                onClose={() => setActionError(null)}
-                sx={{ fontSize: 12.5, borderRadius: 0 }}
-              >
-                {actionError}
-              </Alert>
+              <Box sx={{ px: 2, pt: 1.5 }}>
+                <Alert severity="error" onClose={() => setActionError(null)} sx={{ fontSize: 12.5 }}>
+                  {actionError}
+                </Alert>
+              </Box>
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* ── Body ────────────────────────────────────────────────── */}
         {isLoading ? (
-          <Box sx={{ flex: 1, display: "flex", minHeight: 0 }}>
-            <Box sx={{ flex: 1, p: 3 }}>
-              <Skeleton variant="rectangular" height="100%" />
-            </Box>
-            <Box sx={{ width: 420, p: 2, borderLeft: `2px solid ${colors.border}` }}>
+          <Box sx={{ flex: 1, display: "flex", gap: 2, p: 2, minHeight: 0 }}>
+            <Skeleton variant="rounded" sx={{ flex: 1, height: "100%", borderRadius: colors.radiusL }} />
+            <Box sx={{ ...cardSx, width: 400, p: 2 }}>
               <Skeleton height={54} />
               <Skeleton height={40} sx={{ mt: 1 }} />
-              <Skeleton variant="rectangular" height={110} sx={{ mt: 2 }} />
-              <Skeleton variant="rectangular" height={110} sx={{ mt: 1 }} />
+              <Skeleton variant="rounded" height={110} sx={{ mt: 2 }} />
+              <Skeleton variant="rounded" height={110} sx={{ mt: 1 }} />
             </Box>
           </Box>
         ) : isError || !data ? (
-          <Box sx={{ p: 3 }}>
-            <Alert severity="warning" sx={{ fontSize: 13, borderRadius: 0 }}>
+          <Box sx={{ p: 2 }}>
+            <Alert severity="warning" sx={{ fontSize: 13 }}>
               The MOP review for {crqNo} could not be loaded.
             </Alert>
           </Box>
         ) : !data.mopExists || !data.versionId ? (
-          <Stack
-            spacing={1.5}
-            sx={{ flex: 1, alignItems: "center", justifyContent: "center", textAlign: "center", p: 4 }}
-          >
-            <DescriptionOutlinedIcon sx={{ fontSize: 36, color: colors.textDim }} />
-            <Typography sx={{ fontSize: 16, fontWeight: 800, color: colors.textPrimary }}>
-              {data.mopExists ? "No version to review" : "No MOP to validate"}
-            </Typography>
-            <Typography sx={{ fontSize: 13, color: colors.textDim, maxWidth: 430 }}>
-              {data.mopExists
-                ? "This MOP exists but carries no version, so there is nothing to validate."
-                : `MOP Create has not run for ${crqNo} yet. Once the MOP is created, its first version appears here.`}
-            </Typography>
-          </Stack>
+          <Box sx={{ flex: 1, p: 2, display: "flex", minHeight: 0 }}>
+            <EmptyCard
+              colors={colors}
+              title={data.mopExists ? "No version to review" : "No MOP to validate"}
+              body={
+                data.mopExists
+                  ? "This MOP exists but carries no version, so there is nothing to validate."
+                  : `MOP Create has not run for ${crqNo} yet. Once the MOP is created, its first version appears here.`
+              }
+            />
+          </Box>
         ) : (
-          <Box sx={{ flex: 1, minHeight: 0, display: "flex" }}>
+          <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 2, p: 2 }}>
             {/* ── Document pane ─────────────────────────────────── */}
-            <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <Box sx={{ ...cardSx, flex: 1, minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
               {data.viewingOld && (
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1.5,
-                    px: 3,
-                    py: 1,
-                    bgcolor: alpha(colors.warning, 0.12),
-                    borderBottom: `1px solid ${alpha(colors.warning, 0.4)}`,
-                    fontSize: 13,
-                    flex: "none",
-                  }}
+                <Alert
+                  severity="warning"
+                  icon={<HistoryRoundedIcon fontSize="small" />}
+                  sx={{ borderRadius: 0, fontSize: 12.5, py: 0.25, alignItems: "center", flex: "none" }}
+                  action={
+                    <Button
+                      size="small"
+                      onClick={() => setVersionId(data.latestVersionId ?? null)}
+                      sx={outlineBtnSx(colors, colors.warning)}
+                    >
+                      Go to v{data.latestVersionNo}
+                    </Button>
+                  }
                 >
-                  <HistoryRoundedIcon sx={{ fontSize: 17, color: colors.warning }} />
-                  <Typography sx={{ fontSize: 13, color: colors.textPrimary }}>
-                    <strong>Read-only.</strong> Superseded version.
-                  </Typography>
-                  <Button
-                    size="small"
-                    onClick={() => setVersionId(data.latestVersionId ?? null)}
-                    sx={{
-                      ml: "auto",
-                      textTransform: "none",
-                      fontWeight: 700,
-                      fontSize: 12.5,
-                      borderRadius: 0,
-                      color: colors.textPrimary,
-                    }}
-                  >
-                    Go to v{data.latestVersionNo}
-                  </Button>
-                </Box>
+                  <strong>Read-only.</strong> You are viewing a superseded version.
+                </Alert>
               )}
 
               {/* Toolbar */}
@@ -517,122 +559,144 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
                 sx={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 0.5,
-                  px: 2,
-                  py: 0.75,
+                  gap: 1,
+                  px: 1.5,
+                  py: 1,
                   borderBottom: `1px solid ${colors.border}`,
-                  bgcolor: colors.surface,
                   flexWrap: "wrap",
                   flex: "none",
                 }}
               >
-                <Tooltip arrow title="Previous page (←)">
-                  <span>
-                    <IconButton size="small" onClick={() => goPage(pageNo - 1)} disabled={pageNo <= 1} sx={toolIconSx}>
-                      <ChevronLeftRoundedIcon sx={{ fontSize: 20 }} />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-                <Typography
-                  sx={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    fontVariantNumeric: "tabular-nums",
-                    minWidth: 78,
-                    textAlign: "center",
-                    color: colors.textPrimary,
-                  }}
-                >
-                  {pageCount ? `${pageNo} / ${pageCount}` : `${pageNo}`}
-                </Typography>
-                <Tooltip arrow title="Next page (→)">
-                  <span>
-                    <IconButton
-                      size="small"
-                      onClick={() => goPage(pageNo + 1)}
-                      disabled={pageCount > 0 && pageNo >= pageCount}
-                      sx={toolIconSx}
-                    >
-                      <ChevronRightRoundedIcon sx={{ fontSize: 20 }} />
-                    </IconButton>
-                  </span>
-                </Tooltip>
+                {showPager && (
+                  <>
+                    <Box sx={toolGroupSx}>
+                      <Tooltip arrow title="Previous page (←)">
+                        <span>
+                          <IconButton
+                            size="small"
+                            onClick={() => goPage(pageNo - 1)}
+                            disabled={pageNo <= 1}
+                            sx={toolIconSx}
+                          >
+                            <ChevronLeftRoundedIcon sx={{ fontSize: 20 }} />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      <Typography
+                        sx={{
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          fontVariantNumeric: "tabular-nums",
+                          minWidth: 64,
+                          textAlign: "center",
+                          color: colors.textPrimary,
+                        }}
+                      >
+                        {pageCount ? `${pageNo} / ${pageCount}` : `${pageNo}`}
+                      </Typography>
+                      <Tooltip arrow title="Next page (→)">
+                        <span>
+                          <IconButton
+                            size="small"
+                            onClick={() => goPage(pageNo + 1)}
+                            disabled={pageCount > 0 && pageNo >= pageCount}
+                            sx={toolIconSx}
+                          >
+                            <ChevronRightRoundedIcon sx={{ fontSize: 20 }} />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </Box>
 
-                <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-
-                <Tooltip arrow title="Zoom out">
-                  <IconButton size="small" onClick={() => stepZoom(-10)} sx={toolIconSx}>
-                    <ZoomOutRoundedIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                </Tooltip>
-                <Typography
-                  sx={{
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    fontVariantNumeric: "tabular-nums",
-                    minWidth: 44,
-                    textAlign: "center",
-                    color: colors.textPrimary,
-                  }}
-                >
-                  {zoomLabel}
-                </Typography>
-                <Tooltip arrow title="Zoom in">
-                  <IconButton size="small" onClick={() => stepZoom(10)} sx={toolIconSx}>
-                    <ZoomInRoundedIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip arrow title="Fit to width">
-                  <IconButton
-                    size="small"
-                    onClick={() => setZoom("fit")}
-                    sx={{ ...toolIconSx, color: zoom === "fit" ? colors.accent : colors.textPrimary }}
-                  >
-                    <FitScreenRoundedIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip arrow title="Rotate">
-                  <IconButton size="small" onClick={() => setRotation((r) => (r + 90) % 360)} sx={toolIconSx}>
-                    <RotateRightRoundedIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                </Tooltip>
-
-                <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+                    <Box sx={toolGroupSx}>
+                      <Tooltip arrow title="Zoom out">
+                        <IconButton size="small" onClick={() => stepZoom(-10)} sx={toolIconSx}>
+                          <ZoomOutRoundedIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Tooltip>
+                      <Typography
+                        sx={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          fontVariantNumeric: "tabular-nums",
+                          minWidth: 40,
+                          textAlign: "center",
+                          color: colors.textPrimary,
+                        }}
+                      >
+                        {zoomLabel}
+                      </Typography>
+                      <Tooltip arrow title="Zoom in">
+                        <IconButton size="small" onClick={() => stepZoom(10)} sx={toolIconSx}>
+                          <ZoomInRoundedIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip arrow title="Fit to width">
+                        <IconButton
+                          size="small"
+                          onClick={() => setZoom("fit")}
+                          sx={{
+                            ...toolIconSx,
+                            ...(zoom === "fit" && { color: colors.accent, bgcolor: colors.accentDim }),
+                          }}
+                        >
+                          <FitScreenRoundedIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip arrow title="Rotate">
+                        <IconButton size="small" onClick={() => setRotation((r) => (r + 90) % 360)} sx={toolIconSx}>
+                          <RotateRightRoundedIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </>
+                )}
 
                 <Tooltip arrow title="Download the MOP">
                   <span>
-                    <IconButton size="small" onClick={handleDownload} disabled={!blob} sx={toolIconSx}>
+                    <IconButton
+                      size="small"
+                      onClick={handleDownload}
+                      disabled={!blob}
+                      sx={{ ...toolIconSx, border: `1px solid ${colors.border}` }}
+                    >
                       <DownloadRoundedIcon sx={{ fontSize: 18 }} />
                     </IconButton>
                   </span>
                 </Tooltip>
 
+                <Box sx={{ flex: 1 }} />
+
+                <Tooltip
+                  arrow
+                  title={canFlag ? "Click the page to flag it · ← → to page · F to flag" : ""}
+                >
+                  <Box
+                    sx={{
+                      display: { xs: "none", lg: "flex" },
+                      alignItems: "center",
+                      gap: 0.5,
+                      fontSize: 11.5,
+                      color: colors.textDim,
+                    }}
+                  >
+                    <KeyboardRoundedIcon sx={{ fontSize: 15 }} />
+                    {canFlag ? "← → page · F flag" : "Read-only"}
+                  </Box>
+                </Tooltip>
+
                 {canFlag && (
                   <Button
                     size="small"
+                    variant="contained"
+                    disableElevation
                     onClick={openComposer}
                     startIcon={<FlagRoundedIcon sx={{ fontSize: "16px !important" }} />}
-                    sx={{
-                      ml: 1,
-                      textTransform: "none",
-                      fontWeight: 700,
-                      fontSize: 12.5,
-                      borderRadius: 0,
-                      px: 1.25,
-                      border: `1px solid ${colors.border}`,
-                      color: colors.textPrimary,
-                      "&:hover": { borderColor: colors.accent, color: colors.accent },
-                    }}
+                    sx={solidBtnSx(colors.accent)}
                   >
                     Flag page {pageNo}
                   </Button>
                 )}
-
-                <Typography
-                  sx={{ ml: "auto", fontSize: 12, color: alpha(colors.textPrimary, 0.55), pl: 1 }}
-                >
-                  {canFlag ? "Click the page to flag it · ← → to page · F to flag" : "Read-only"}
-                </Typography>
               </Box>
 
               {/* Canvas */}
@@ -642,48 +706,40 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
                   minHeight: 0,
                   display: "flex",
                   flexDirection: "column",
-                  bgcolor: alpha(colors.textPrimary, 0.05),
+                  bgcolor: colors.isDark ? alpha("#fff", 0.02) : "#EEF0F3",
                 }}
               >
                 {!data.documentAttached ? (
-                  <Stack
-                    spacing={1.25}
-                    sx={{ flex: 1, alignItems: "center", justifyContent: "center", textAlign: "center", p: 4 }}
-                  >
-                    <DescriptionOutlinedIcon sx={{ fontSize: 34, color: colors.textDim }} />
-                    <Typography sx={{ fontSize: 14.5, fontWeight: 800, color: colors.textPrimary }}>
-                      No document uploaded
-                    </Typography>
-                    <Typography sx={{ fontSize: 12.5, color: colors.textDim, maxWidth: 400 }}>
-                      {data.fileName
+                  <EmptyCard
+                    colors={colors}
+                    bare
+                    title="No document uploaded"
+                    body={`${
+                      data.fileName
                         ? `The MOP record expects "${data.fileName}", but nothing has been uploaded on the MOP Create stage yet.`
-                        : "Nothing has been uploaded on the MOP Create stage yet."}{" "}
-                      Findings can still be recorded against this version.
-                    </Typography>
-                  </Stack>
+                        : "Nothing has been uploaded on the MOP Create stage yet."
+                    } Findings can still be recorded against this version.`}
+                  />
                 ) : isLegacyXls ? (
-                  <Stack
-                    spacing={1.5}
-                    sx={{ flex: 1, alignItems: "center", justifyContent: "center", textAlign: "center", p: 4 }}
-                  >
-                    <Typography sx={{ fontSize: 14.5, fontWeight: 800, color: colors.textPrimary }}>
-                      Legacy .xls workbook
-                    </Typography>
-                    <Typography sx={{ fontSize: 12.5, color: colors.textDim, maxWidth: 400 }}>
-                      This format cannot be rendered in the browser. Download it to open in Excel.
-                    </Typography>
-                    <Button
-                      size="small"
-                      onClick={handleDownload}
-                      disabled={!blob}
-                      startIcon={<DownloadRoundedIcon sx={{ fontSize: 16 }} />}
-                      sx={{ textTransform: "none", fontWeight: 700, borderRadius: 0 }}
-                    >
-                      Download workbook
-                    </Button>
-                  </Stack>
+                  <EmptyCard
+                    colors={colors}
+                    bare
+                    title="Legacy .xls workbook"
+                    body="This format cannot be rendered in the browser. Download it to open in Excel."
+                    action={
+                      <Button
+                        size="small"
+                        onClick={handleDownload}
+                        disabled={!blob}
+                        startIcon={<DownloadRoundedIcon sx={{ fontSize: 16 }} />}
+                        sx={outlineBtnSx(colors)}
+                      >
+                        Download workbook
+                      </Button>
+                    }
+                  />
                 ) : isExcel ? (
-                  <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 3 }}>
+                  <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 2 }}>
                     <MopExcelPreview
                       blob={blob}
                       isFetching={isFetchingDoc}
@@ -753,6 +809,7 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
         kicker={`New finding · v${data?.versionNo ?? "—"}`}
         title="What is wrong?"
         accent={colors.accent}
+        icon={<FlagRoundedIcon />}
       >
         <Box
           sx={{
@@ -762,11 +819,12 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
             px: 1.25,
             py: 0.85,
             mb: 2,
-            border: `1px solid ${colors.border}`,
-            bgcolor: alpha(colors.accent, 0.06),
+            borderRadius: colors.radius,
+            border: `1px solid ${colors.accentBorder}`,
+            bgcolor: colors.accentDim,
           }}
         >
-          <FlagRoundedIcon sx={{ fontSize: 16, color: colors.accent }} />
+          <DescriptionOutlinedIcon sx={{ fontSize: 16, color: colors.accent }} />
           <Typography sx={{ fontSize: 12.5, color: colors.textPrimary }}>
             Attaching to <strong>page {pageNo}</strong>
             {draftStep.trim() ? (
@@ -787,7 +845,7 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
           value={draftStep}
           onChange={(e) => setDraftStep(e.target.value)}
           placeholder="e.g. 15"
-          InputProps={{ sx: { borderRadius: 0, fontSize: 13 } }}
+          InputProps={{ sx: inputSx }}
           sx={{ mb: 2 }}
         />
 
@@ -802,11 +860,11 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
           value={draftFinding}
           onChange={(e) => setDraftFinding(e.target.value)}
           placeholder="What is wrong with this step, and what should it say instead"
-          InputProps={{ sx: { borderRadius: 0, fontSize: 13 } }}
+          InputProps={{ sx: inputSx }}
           sx={{ mb: 2.5 }}
         />
 
-        <DialogActions
+        <ActionFooter
           colors={colors}
           confirmLabel="Add finding"
           confirmTone={colors.accent}
@@ -822,12 +880,13 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
         open={approveOpen}
         onClose={() => setApproveOpen(false)}
         colors={colors}
-        kicker="Confirm"
+        kicker="Confirm validation"
         title={`Release v${data?.latestVersionNo ?? "—"} for execution?`}
         accent={colors.success}
+        icon={<CheckRoundedIcon />}
       >
-        <Typography sx={{ fontSize: 14, color: colors.textPrimary, mb: 2 }}>
-          <Box component="span" sx={{ fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
+        <Typography sx={{ fontSize: 13, color: colors.textSecondary, mb: 2, lineHeight: 1.55 }}>
+          <Box component="span" sx={{ fontWeight: 700, color: colors.textPrimary, fontVariantNumeric: "tabular-nums" }}>
             {crqNo}
           </Box>{" "}
           v{data?.latestVersionNo} becomes the only executable version. Earlier versions stay in
@@ -835,53 +894,33 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
         </Typography>
 
         {(data?.openFindingCount ?? 0) > 0 && (
-          <Alert severity="warning" sx={{ fontSize: 12.5, borderRadius: 0, mb: 2 }}>
+          <Alert severity="warning" sx={{ fontSize: 12.5, mb: 2 }}>
             {data?.openFindingCount} finding(s) are still open. The procedure refuses this unless it is
             overridden, and the override is recorded in the audit trail.
           </Alert>
         )}
 
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-          <Button
-            onClick={() => handleApprove(false)}
-            disabled={isValidating || (data?.openFindingCount ?? 0) > 0}
-            startIcon={isValidating ? <CircularProgress size={13} color="inherit" /> : undefined}
-            sx={{
-              textTransform: "none",
-              fontWeight: 800,
-              borderRadius: 0,
-              px: 2,
-              bgcolor: colors.success,
-              color: "#fff",
-              "&:hover": { bgcolor: colors.success, filter: "brightness(1.08)" },
-            }}
-          >
-            Confirm
-          </Button>
-          {(data?.openFindingCount ?? 0) > 0 && (
-            <Button
-              onClick={() => handleApprove(true)}
-              disabled={isValidating}
-              startIcon={<BlockRoundedIcon sx={{ fontSize: "16px !important" }} />}
-              sx={{
-                textTransform: "none",
-                fontWeight: 800,
-                borderRadius: 0,
-                px: 2,
-                border: `2px solid ${colors.warning}`,
-                color: colors.warning,
-              }}
-            >
-              Override &amp; validate
-            </Button>
-          )}
-          <Button
-            onClick={() => setApproveOpen(false)}
-            sx={{ textTransform: "none", fontWeight: 700, borderRadius: 0, color: colors.textSecondary }}
-          >
-            Cancel
-          </Button>
-        </Box>
+        <ActionFooter
+          colors={colors}
+          confirmLabel="Confirm"
+          confirmTone={colors.success}
+          confirmDisabled={(data?.openFindingCount ?? 0) > 0}
+          busy={isValidating}
+          onConfirm={() => handleApprove(false)}
+          onCancel={() => setApproveOpen(false)}
+          extra={
+            (data?.openFindingCount ?? 0) > 0 ? (
+              <Button
+                onClick={() => handleApprove(true)}
+                disabled={isValidating}
+                startIcon={<BlockRoundedIcon sx={{ fontSize: "16px !important" }} />}
+                sx={outlineBtnSx(colors, colors.warning)}
+              >
+                Override &amp; validate
+              </Button>
+            ) : null
+          }
+        />
       </ActionDialog>
 
       {/* ── Reject ────────────────────────────────────────────────── */}
@@ -889,9 +928,10 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
         open={rejectOpen}
         onClose={() => setRejectOpen(false)}
         colors={colors}
-        kicker="Reject"
+        kicker="Reject version"
         title={`Send v${data?.latestVersionNo ?? "—"} back for correction`}
         accent={colors.danger}
+        icon={<BlockRoundedIcon />}
       >
         <Lbl colors={colors} sx={{ mb: 0.5 }}>
           Reason (kept in history)
@@ -904,10 +944,10 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
           value={rejectReason}
           onChange={(e) => setRejectReason(e.target.value)}
           placeholder="Why this version cannot go forward"
-          InputProps={{ sx: { borderRadius: 0, fontSize: 13 } }}
+          InputProps={{ sx: inputSx }}
           sx={{ mb: 2.5 }}
         />
-        <DialogActions
+        <ActionFooter
           colors={colors}
           confirmLabel="Reject version"
           confirmTone={colors.danger}
@@ -921,101 +961,45 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
   );
 };
 
-/** One labelled fact in the header strip. */
-const HeaderFact: React.FC<{ label: string; colors: any; children: React.ReactNode }> = ({
-  label,
-  colors,
-  children,
-}) => (
-  <Box sx={{ display: "flex", gap: 0.75, alignItems: "baseline", minWidth: 0 }}>
-    <Lbl colors={colors}>{label}</Lbl>
-    <Typography
-      sx={{
-        fontSize: 13,
-        fontWeight: 700,
-        fontVariantNumeric: "tabular-nums",
-        color: colors.textPrimary,
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {children}
-    </Typography>
-  </Box>
-);
-
-/**
- * Shared shell for the three confirm dialogs - the design's square 2px frame
- * with a coloured top rule that tells approve from reject before the text is
- * read.
- */
-const ActionDialog: React.FC<{
-  open: boolean;
-  onClose: () => void;
+/** Centered "nothing to show" state; `bare` drops the card frame inside a card. */
+const EmptyCard: React.FC<{
   colors: any;
-  kicker: string;
   title: string;
-  accent: string;
-  children: React.ReactNode;
-}> = ({ open, onClose, colors, kicker, title, accent, children }) => (
-  <Dialog
-    open={open}
-    onClose={onClose}
-    PaperProps={{
-      sx: {
-        width: "min(520px, 100%)",
-        borderRadius: 0,
-        border: `2px solid ${colors.textPrimary}`,
-        borderTop: `4px solid ${accent}`,
-        backgroundImage: "none",
-      },
+  body: string;
+  action?: React.ReactNode;
+  bare?: boolean;
+}> = ({ colors, title, body, action, bare }) => (
+  <Stack
+    spacing={1.25}
+    sx={{
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      textAlign: "center",
+      p: 4,
+      ...(!bare && {
+        bgcolor: colors.surface,
+        border: `1px solid ${colors.border}`,
+        borderRadius: colors.radiusL,
+      }),
     }}
   >
-    <Box sx={{ p: 2.5 }}>
-      <Lbl colors={colors}>{kicker}</Lbl>
-      <Typography sx={{ fontSize: 20, fontWeight: 800, mt: 0.5, mb: 2, color: colors.textPrimary }}>
-        {title}
-      </Typography>
-      {children}
-    </Box>
-  </Dialog>
-);
-
-/** Confirm + Cancel pair, shared by the composer and the reject dialog. */
-const DialogActions: React.FC<{
-  colors: any;
-  confirmLabel: string;
-  confirmTone: string;
-  confirmDisabled: boolean;
-  busy: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}> = ({ colors, confirmLabel, confirmTone, confirmDisabled, busy, onConfirm, onCancel }) => (
-  <Box sx={{ display: "flex", gap: 1 }}>
-    <Button
-      onClick={onConfirm}
-      disabled={confirmDisabled || busy}
-      startIcon={busy ? <CircularProgress size={13} color="inherit" /> : undefined}
+    <Box
       sx={{
-        textTransform: "none",
-        fontWeight: 800,
-        borderRadius: 0,
-        px: 2,
-        bgcolor: confirmTone,
-        color: "#fff",
-        "&:hover": { bgcolor: confirmTone, filter: "brightness(1.08)" },
+        width: 52,
+        height: 52,
+        display: "grid",
+        placeItems: "center",
+        borderRadius: "50%",
+        bgcolor: alpha(colors.textPrimary, 0.05),
       }}
     >
-      {confirmLabel}
-    </Button>
-    <Button
-      onClick={onCancel}
-      sx={{ textTransform: "none", fontWeight: 700, borderRadius: 0, color: colors.textSecondary }}
-    >
-      Cancel
-    </Button>
-  </Box>
+      <DescriptionOutlinedIcon sx={{ fontSize: 26, color: colors.textDim }} />
+    </Box>
+    <Typography sx={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>{title}</Typography>
+    <Typography sx={{ fontSize: 12.5, color: colors.textSecondary, maxWidth: 420 }}>{body}</Typography>
+    {action}
+  </Stack>
 );
 
 export default MopReviewWorkspaceDialog;

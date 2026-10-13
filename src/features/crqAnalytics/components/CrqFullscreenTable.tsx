@@ -64,7 +64,8 @@ export function CrqFullscreenTable({ config, filters, onBack, onRowClick }: Prop
   const exportDisabled =
     exporting || (activeViewAll !== undefined && (activeViewAll.isFetching || !activeViewAll.data?.data?.length));
 
-  // View All tables are fully loaded already, so export what's on screen. The
+  // View All queries already pull every page (see fetchAllViewAllPages), so
+  // export what's on screen. The
   // CRQ list is server-paginated, so pull every page before writing the file.
   const handleExport = async () => {
     const name = toFileSafe(config.title);

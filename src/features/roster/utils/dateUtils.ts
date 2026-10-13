@@ -8,6 +8,17 @@ export const isFutureDate = (dateToCheck: string | Date): boolean => {
 
   return shiftDate > today;
 };
+
+/** True for today or a later date — the window in which a shift can still be edited. */
+export const isTodayOrFutureDate = (dateToCheck: string | Date): boolean => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const shiftDate = new Date(dateToCheck);
+  shiftDate.setHours(0, 0, 0, 0);
+
+  return shiftDate >= today;
+};
 /** 540 → "9h", 510 → "8h 30m", 45 → "45m". */
 export const formatMinutes = (mins: number | null | undefined): string => {
   const total = Math.max(0, Math.round(mins ?? 0));

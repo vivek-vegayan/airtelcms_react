@@ -1,3 +1,4 @@
+import type { FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query/react";
 import { api } from "../../../service/api";
 import type {
   CRQAnalyticsFilterParams,
@@ -35,13 +36,35 @@ const filterParams = (f: CRQAnalyticsFilterParams) => ({
 });
 
 // The 5 /view-all/* endpoints paginate via page/size (converted to offset/limit
-// server-side) — no total-count field comes back, so callers just request a
-// generous page size and treat it as the full set for now.
-const viewAllParams = (f: ViewAllParams) => ({
-  ...filterParams(f),
-  page: f.page ?? 0,
-  size: f.size ?? 200,
-});
+// server-side) but return no total count, so fetchAllViewAllPages keeps asking
+// for the next page until a short one comes back and hands the table (and its
+// Excel export) the combined set.
+const VIEW_ALL_PAGE_SIZE = 200;
+// Safety stop in case the backend ever ignores `page` and keeps returning a full batch.
+const VIEW_ALL_MAX_PAGES = 100;
+
+type ViewAllBaseQuery = (
+  arg: FetchArgs,
+) => PromiseLike<{ data?: unknown; error?: FetchBaseQueryError }> | { data?: unknown; error?: FetchBaseQueryError };
+
+const fetchAllViewAllPages = async (
+  url: string,
+  params: Record<string, string | number>,
+  baseQuery: ViewAllBaseQuery,
+): Promise<{ data: ViewAllResponse } | { error: FetchBaseQueryError }> => {
+  let headers: string[] = [];
+  const data: ViewAllResponse["data"] = [];
+  for (let page = 0; page < VIEW_ALL_MAX_PAGES; page++) {
+    const res = await baseQuery({ url, params: { ...params, page, size: VIEW_ALL_PAGE_SIZE } });
+    if (res.error) return { error: res.error };
+    const body = res.data as ViewAllResponse | undefined;
+    const batch = body?.data ?? [];
+    if (page === 0) headers = body?.headers ?? [];
+    data.push(...batch);
+    if (batch.length < VIEW_ALL_PAGE_SIZE) break;
+  }
+  return { data: { headers, data } };
+};
 
 export const crqAnalyticsApi = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -115,33 +138,32 @@ export const crqAnalyticsApi = api.injectEndpoints({
 
     // ── "View All" full-screen tables (one per chart) ──────────────────────
     getCrqViewAllCircleRegion: builder.query<ViewAllResponse, ViewAllParams & { groupBy: GroupBreakdownDimension }>({
-      query: ({ groupBy, ...f }) => ({
-        url: "/crq-analytics-new/view-all/circle-region",
-        params: { ...viewAllParams(f), groupBy },
-      }),
+      queryFn: ({ groupBy, ...f }, _api, _extra, baseQuery) =>
+        fetchAllViewAllPages("/crq-analytics-new/view-all/circle-region", { ...filterParams(f), groupBy }, baseQuery),
       providesTags: ["CrqAnalytics"],
     }),
 
     getCrqViewAllOpenDomain: builder.query<ViewAllResponse, ViewAllParams>({
-      query: (f) => ({ url: "/crq-analytics-new/view-all/open-domain", params: viewAllParams(f) }),
+      queryFn: (f, _api, _extra, baseQuery) =>
+        fetchAllViewAllPages("/crq-analytics-new/view-all/open-domain", filterParams(f), baseQuery),
       providesTags: ["CrqAnalytics"],
     }),
 
     getCrqViewAllAgingHeatmap: builder.query<ViewAllResponse, ViewAllParams & { heatmapMode: string }>({
-      query: ({ heatmapMode, ...f }) => ({
-        url: "/crq-analytics-new/view-all/aging-heatmap",
-        params: { ...viewAllParams(f), heatmapMode },
-      }),
+      queryFn: ({ heatmapMode, ...f }, _api, _extra, baseQuery) =>
+        fetchAllViewAllPages("/crq-analytics-new/view-all/aging-heatmap", { ...filterParams(f), heatmapMode }, baseQuery),
       providesTags: ["CrqAnalytics"],
     }),
 
     getCrqViewAllOpenVsClosed: builder.query<ViewAllResponse, ViewAllParams>({
-      query: (f) => ({ url: "/crq-analytics-new/view-all/raised-closed", params: viewAllParams(f) }),
+      queryFn: (f, _api, _extra, baseQuery) =>
+        fetchAllViewAllPages("/crq-analytics-new/view-all/raised-closed", filterParams(f), baseQuery),
       providesTags: ["CrqAnalytics"],
     }),
 
     getCrqViewAllRunRate: builder.query<ViewAllResponse, ViewAllParams>({
-      query: (f) => ({ url: "/crq-analytics-new/view-all/run-rate", params: viewAllParams(f) }),
+      queryFn: (f, _api, _extra, baseQuery) =>
+        fetchAllViewAllPages("/crq-analytics-new/view-all/run-rate", filterParams(f), baseQuery),
       providesTags: ["CrqAnalytics"],
     }),
 

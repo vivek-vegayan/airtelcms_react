@@ -606,6 +606,7 @@ import {
 import type {
   AddCrqToSessionPayload,
   AddCrqToSessionResult,
+  AddExternalCrqPayload,
   AddServiceRulePayload,
   AdminAnalytics,
   AdminUser,
@@ -1259,6 +1260,34 @@ getImplementation: builder.query<ImplementationDetail, void>({
       ],
     }),
 
+    // Tables CRQs raised outside the portal (bulk CSV import) onto a session's
+    // agenda via sp_add_external_crq_to_cab_session. Same partial-add contract
+    // as addCrqsToCabSession: CRQs already on the agenda come back skipped.
+    addExternalCrqsToCabSession: builder.mutation<AddCrqToSessionResult, AddExternalCrqPayload>({
+      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          {
+            url: `/cab/sessions/${encodeURIComponent(body.sessionId)}/external-crqs`,
+            method: "POST",
+            body: { crqs: body.crqs },
+          },
+          baseQuery,
+          async () =>
+            await mockDelay<AddCrqToSessionResult>({
+              cabId: body.sessionId,
+              addedCount: body.crqs.length,
+              skippedCount: 0,
+              addedCrqList: body.crqs.map((c) => c.crq_no),
+              skippedCrqList: [],
+            })
+        ),
+      invalidatesTags: (_r, _e, b) => [
+        { type: "CabSession" as const, id: `AGENDA-${b.sessionId}` },
+        { type: "CabSession" as const, id: b.sessionId },
+        { type: "CabSession" as const, id: "LIST" },
+      ],
+    }),
+
     createCrq: builder.mutation<Crq, NewCrqPayload>({
       queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
         networkOrMock(
@@ -1523,6 +1552,7 @@ export const {
   usePlanCabMutation,
   useRecordCabSessionCrqDecisionMutation,
   useAddCrqsToCabSessionMutation,
+  useAddExternalCrqsToCabSessionMutation,
   useCreateCrqMutation,
   useProceedRingMutation,
   useBlockRingMutation,

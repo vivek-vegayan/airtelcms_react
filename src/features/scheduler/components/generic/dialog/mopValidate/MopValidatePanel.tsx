@@ -1,14 +1,5 @@
 import React, { useState } from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Stack,
-  Typography,
-  alpha,
-} from "@mui/material";
+import { Alert, Box, Button, CircularProgress, Stack, Typography } from "@mui/material";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
@@ -20,6 +11,7 @@ import {
   useStartMopReviewMutation,
 } from "../../../../api/mopValidateApiSlice";
 import { MopReviewWorkspaceDialog } from "./MopReviewWorkspaceDialog";
+import { Lbl, ToneChip, outlineBtnSx, solidBtnSx } from "./mopUi";
 
 interface MopValidatePanelProps {
   crqNo: string | null;
@@ -238,46 +230,11 @@ const ReviewBody: React.FC<{
         </Typography>
       </Box>
 
-      {data.reviewOpen && data.reviewOwnedByMe && (
-        <Chip
-          label="Yours"
-          size="small"
-          sx={{
-            height: 20,
-            fontSize: 10,
-            fontWeight: 700,
-            bgcolor: alpha(colors.accent, 0.15),
-            color: colors.accent,
-          }}
-        />
-      )}
-
-      {/* The workspace is readable whatever the review state - a superseded or
-          already-validated version still has findings and a history worth
-          opening - so this is never gated on canStart. */}
-      <Button
-        size="small"
-        variant="outlined"
-        onClick={onOpenWorkspace}
-        startIcon={<FactCheckOutlinedIcon sx={{ fontSize: "17px !important" }} />}
-        sx={{
-          textTransform: "none",
-          fontSize: 12.5,
-          fontWeight: 700,
-          borderRadius: 1.5,
-          px: 1.4,
-          whiteSpace: "nowrap",
-          color: colors.textPrimary,
-          borderColor: colors.border,
-        }}
-      >
-        Validate
-      </Button>
+      {data.reviewOpen && data.reviewOwnedByMe && <ToneChip label="Yours" tone={colors.accent} />}
 
       {!data.reviewOpen && (
         <Button
           size="small"
-          variant="contained"
           onClick={onStart}
           disabled={!canStart || isStarting}
           startIcon={
@@ -287,20 +244,25 @@ const ReviewBody: React.FC<{
               <PlayArrowRoundedIcon sx={{ fontSize: "17px !important" }} />
             )
           }
-          sx={{
-            textTransform: "none",
-            fontSize: 12.5,
-            fontWeight: 700,
-            borderRadius: 1.5,
-            px: 1.4,
-            whiteSpace: "nowrap",
-            bgcolor: colors.accent,
-            "&:hover": { bgcolor: colors.accent, filter: "brightness(1.08)" },
-          }}
+          sx={outlineBtnSx(colors, colors.accent)}
         >
           {isStarting ? "Starting…" : "Start review"}
         </Button>
       )}
+
+      {/* The workspace is readable whatever the review state - a superseded or
+          already-validated version still has findings and a history worth
+          opening - so this is never gated on canStart. */}
+      <Button
+        size="small"
+        variant="contained"
+        disableElevation
+        onClick={onOpenWorkspace}
+        startIcon={<FactCheckOutlinedIcon sx={{ fontSize: "17px !important" }} />}
+        sx={solidBtnSx(colors.accent)}
+      >
+        Validate
+      </Button>
     </Box>
 
     {readOnly && !data.reviewOpen && (
@@ -335,18 +297,7 @@ const Field: React.FC<{ label: string; value: string; colors: any }> = ({
   colors,
 }) => (
   <Box>
-    <Typography
-      sx={{
-        fontSize: 9.5,
-        letterSpacing: "0.09em",
-        textTransform: "uppercase",
-        fontWeight: 700,
-        color: colors.textSecondary,
-        lineHeight: 1.5,
-      }}
-    >
-      {label}
-    </Typography>
+    <Lbl colors={colors}>{label}</Lbl>
     <Typography sx={{ fontSize: 12.5, color: colors.textPrimary, lineHeight: 1.5 }}>
       {value}
     </Typography>

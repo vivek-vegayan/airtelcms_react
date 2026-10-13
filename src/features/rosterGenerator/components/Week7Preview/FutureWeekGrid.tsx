@@ -59,6 +59,13 @@ const EMP_COL_WIDTH  = { xs: 152, sm: 188, md: 216, lg: 232 };
 const DAY_COL_WIDTH  = 62;
 const STAT_COL_WIDTH = 54;
 const TOTAL_DAY_COLS = 7;
+const FIXED_COLS_WIDTH = TOTAL_DAY_COLS * DAY_COL_WIDTH + 3 * STAT_COL_WIDTH;
+const TABLE_MIN_WIDTH = {
+  xs: EMP_COL_WIDTH.xs + FIXED_COLS_WIDTH,
+  sm: EMP_COL_WIDTH.sm + FIXED_COLS_WIDTH,
+  md: EMP_COL_WIDTH.md + FIXED_COLS_WIDTH,
+  lg: EMP_COL_WIDTH.lg + FIXED_COLS_WIDTH,
+};
 
 // ─── Edit-mode type ───────────────────────────────────────────────────────────
 // "drag" removed — replaced by shift-click range selection built into "select"
@@ -361,7 +368,10 @@ const DayHeaderCell = memo(function DayHeaderCell({
       }
       sx={[
         baseSx,
-        { width: DAY_COL_WIDTH, minWidth: DAY_COL_WIDTH },
+        // No fixed width: under table-layout fixed the day columns absorb
+        // the spare table width, so the name column doesn't stretch and
+        // leave a gap before the shifts. TABLE_MIN_WIDTH keeps the floor.
+        { minWidth: DAY_COL_WIDTH },
         isWeekendStart ? weekendStartBorderSx() : {},
         isClickable
           ? {
@@ -1372,6 +1382,7 @@ export function FutureWeekGrid({
           size="small"
           sx={{
             tableLayout: "fixed",
+            minWidth: TABLE_MIN_WIDTH,
             "& .MuiTableCell-stickyHeader": { backgroundImage: "none" },
           }}
         >

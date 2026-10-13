@@ -16,6 +16,8 @@ export interface FutureWeekRow {
   futureId: number;
   isoWeek: number;
   isoYear: number;
+  weekStartDate?: string;
+  weekEndDate?: string;
   jobLevel: string;
   olmid: string;
   roleCode: string;
@@ -27,6 +29,8 @@ export interface FutureWeekApiResponse {
   totalEmployees: number;
   isoYear: number;
   isoWeek: number;
+  weekStartDate?: string;
+  weekEndDate?: string;
   data: FutureWeekRow[];
 }
 

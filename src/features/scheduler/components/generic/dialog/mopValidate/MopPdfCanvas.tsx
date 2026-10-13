@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
+import { outlineBtnSx } from "./mopUi";
 
 /**
  * pdf.js runs its parser in a worker. Vite resolves this specifier at build
@@ -136,8 +137,6 @@ export const MopPdfCanvas: React.FC<MopPdfCanvasProps> = ({
     flexDirection: "column" as const,
     alignItems: "center",
     justifyContent: "center",
-    border: `1px solid ${colors.border}`,
-    bgcolor: colors.surface,
   };
 
   if (isFetching) {
@@ -165,7 +164,7 @@ export const MopPdfCanvas: React.FC<MopPdfCanvasProps> = ({
           size="small"
           onClick={onRetry}
           startIcon={<RefreshRoundedIcon sx={{ fontSize: 15 }} />}
-          sx={{ textTransform: "none", fontWeight: 700, borderRadius: 0, alignSelf: "center" }}
+          sx={{ ...outlineBtnSx(colors), alignSelf: "center" }}
         >
           Retry
         </Button>
@@ -217,7 +216,7 @@ export const MopPdfCanvas: React.FC<MopPdfCanvasProps> = ({
                 position: "relative",
                 cursor: onFlagPage ? "crosshair" : "default",
                 boxShadow: isHighlighted
-                  ? `0 0 0 3px ${colors.accent}, ${colors.shadowElevated}`
+                  ? `0 0 0 3px ${alpha(colors.warning, 0.85)}, ${colors.shadowElevated}`
                   : colors.shadowCard,
                 transition: "box-shadow 180ms ease",
                 "&:hover .mop-flag-hint": { opacity: onFlagPage ? 1 : 0 },
@@ -249,6 +248,7 @@ export const MopPdfCanvas: React.FC<MopPdfCanvasProps> = ({
                     gap: 0.75,
                     px: 1.25,
                     py: 0.6,
+                    borderRadius: colors.radiusPill,
                     bgcolor: alpha(colors.textPrimary, 0.86),
                     color: colors.bg,
                     fontSize: 12,
@@ -276,7 +276,8 @@ export const MopPdfCanvas: React.FC<MopPdfCanvasProps> = ({
                         gap: 0.75,
                         px: 1.25,
                         py: 0.6,
-                        bgcolor: marker.openCount > 0 ? colors.accent : colors.success,
+                        bgcolor: marker.openCount > 0 ? colors.warning : colors.success,
+                        borderRadius: colors.radiusPill,
                         color: "#fff",
                         fontSize: 12,
                         fontWeight: 800,

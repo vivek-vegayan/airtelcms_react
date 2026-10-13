@@ -22,6 +22,7 @@ import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
 import TouchAppOutlinedIcon from "@mui/icons-material/TouchAppOutlined";
 import PlaylistRemoveOutlinedIcon from "@mui/icons-material/PlaylistRemoveOutlined";
 import PlaylistAddOutlinedIcon from "@mui/icons-material/PlaylistAddOutlined";
+import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import { useEffect, useMemo, useState } from "react";
@@ -31,6 +32,7 @@ import {
   useGetCabSessionsQuery,
 } from "../api/cabManagerApiSlice";
 import { AddCrqToSessionModal } from "../components/modals/AddCrqToSessionModal";
+import { ImportExternalCrqModal } from "../components/modals/ImportExternalCrqModal";
 import { RecordCabDecisionModal } from "../components/modals/RecordCabDecisionModal";
 import { CabDecisionChip, ImpactChip } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
@@ -110,6 +112,7 @@ export function CabSessionsPage() {
   const [pendingOnly, setPendingOnly] = useState(false);
   const [decisionRow, setDecisionRow] = useState<CabAgendaRow | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const sessionList = sessions.data ?? [];
   const noSessions = !sessions.isLoading && !sessions.isError && sessionList.length === 0;
@@ -147,7 +150,7 @@ export function CabSessionsPage() {
       if (impact && r.changeImpact !== impact) return false;
       if (pendingOnly && r.cabDecision?.toUpperCase() !== "PENDING") return false;
       if (q) {
-        const hay = `${r.crqNo} ${r.nodeName ?? ""} ${r.circle ?? ""}`.toLowerCase();
+        const hay = `${r.crqNo} ${r.typeOfActivity ?? ""} ${r.nodeName ?? ""} ${r.circle ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -337,13 +340,23 @@ export function CabSessionsPage() {
                       Join session
                     </Button>
                   )}
-                  <Button
+                  {/* mahesh told me to hide this button  */}
+                  {/* <Button
                     size="small"
                     variant="outlined"
                     startIcon={<PlaylistAddOutlinedIcon />}
                     onClick={() => setAddOpen(true)}
                   >
                     Add CRQs
+                  </Button> */}
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<UploadFileOutlinedIcon />}
+                    onClick={() => setImportOpen(true)}
+                    sx={{ whiteSpace: "nowrap" }}
+                  >
+                    Add External CRQ
                   </Button>
                 </Stack>
               </Box>
@@ -440,7 +453,7 @@ export function CabSessionsPage() {
                     <Table size="small" stickyHeader>
                       <TableHead>
                         <TableRow>
-                          {["Circle", "CRQ No", "Node name", "Impact", "CAB decision", ""].map((h, i) => (
+                          {["Circle", "CRQ No", "Type of activity", "Node name", "Impact", "CAB decision", ""].map((h, i) => (
                             <TableCell
                               key={h || `col-${i}`}
                               sx={{
@@ -462,6 +475,9 @@ export function CabSessionsPage() {
                               <TableCell>{r.circle ?? "—"}</TableCell>
                               <TableCell sx={{ ...MONO, fontSize: 12.5, color: "primary.main", fontWeight: 500 }}>
                                 {r.crqNo}
+                              </TableCell>
+                              <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>
+                                {r.typeOfActivity ?? "—"}
                               </TableCell>
                               <TableCell sx={{ ...MONO, fontSize: 11.5, color: "text.secondary" }}>
                                 {r.nodeName ?? "—"}
@@ -506,6 +522,12 @@ export function CabSessionsPage() {
             sessionId={activeId}
             alreadyTabled={rows.map((r) => r.crqNo)}
             onClose={() => setAddOpen(false)}
+          />
+          <ImportExternalCrqModal
+            open={importOpen}
+            sessionId={activeId}
+            alreadyTabled={rows.map((r) => r.crqNo)}
+            onClose={() => setImportOpen(false)}
           />
         </>
       )}

@@ -292,10 +292,10 @@ export const buildAgendaBoard = (sessionId: string): CabAgendaRow[] => {
   const chair = session?.host ?? "Rahul Sharma";
   const base = { cabSessionDate: date, chairedBy: chair };
   return [
-    { mappingId: 1, circle: "NCR",  crqNo: "CRQ000005097287", nodeName: "NDL-2B2-901-1AG-A-ASR1XXXR064", changeImpact: "NSA", cabDecision: "APPROVED",    ...base },
-    { mappingId: 2, circle: "UP-E", crqNo: "CRQ000005097397", nodeName: null,                            changeImpact: "SA",  cabDecision: "PENDING",     ...base },
-    { mappingId: 3, circle: null,   crqNo: "CRQ000005097484", nodeName: "BHA-MPL-LTE-PE-RTR-42-163",     changeImpact: "NSA", cabDecision: "REJECTED",    ...base },
-    { mappingId: 4, circle: "WB",   crqNo: "TESTCRQ",         nodeName: null,                            changeImpact: "NSA", cabDecision: "RESCHEDULED", ...base },
+    { mappingId: 1, circle: "NCR",  crqNo: "CRQ000005097287", typeOfActivity: "NodeDeletion,LinkDeletion",                         nodeName: "NDL-2B2-901-1AG-A-ASR1XXXR064", changeImpact: "NSA", cabDecision: "APPROVED",    ...base },
+    { mappingId: 2, circle: "UP-E", crqNo: "CRQ000005097397", typeOfActivity: "ip_new_equipment_activity,inter_new_link_activity", nodeName: null,                            changeImpact: "SA",  cabDecision: "PENDING",     ...base },
+    { mappingId: 3, circle: null,   crqNo: "CRQ000005097484", typeOfActivity: "LinkDeletion",                                      nodeName: "BHA-MPL-LTE-PE-RTR-42-163",     changeImpact: "NSA", cabDecision: "REJECTED",    ...base },
+    { mappingId: 4, circle: "WB",   crqNo: "TESTCRQ",         typeOfActivity: null,                                                nodeName: null,                            changeImpact: "NSA", cabDecision: "RESCHEDULED", ...base },
   ];
 };
 

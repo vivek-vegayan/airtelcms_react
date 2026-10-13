@@ -13,7 +13,7 @@ import InfoIcon from "@mui/icons-material/Info";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import dayjs from "dayjs";
-import { formatMinutes, isFutureDate } from "../utils/dateUtils";
+import { formatMinutes, isTodayOrFutureDate } from "../utils/dateUtils";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { usePermission } from "../../auth/hooks/usePermission";
 import {
@@ -71,15 +71,15 @@ export const RosterShiftCell = memo(function RosterShiftCell({
   /** Dim this cell when highlight is active and this shift doesn't match */
   const isDimmed = highlightShift !== "" && shiftKey !== highlightShift;
 
-  const isFuture = isFutureDate(shiftDate);
+  const isEditableDate = isTodayOrFutureDate(shiftDate);
   const canEdit = useMemo(() => {
-    if (!isFuture) return false;
+    if (!isEditableDate) return false;
     if (role === "TEAM_MEMBER")
       return String(user?.userId) === String(rowUserId);
     return (
       hasPermission("Roster Management", "UPDATE") || role === "SUPER_ADMIN" || "SUB_DOMAIN_HEAD"
     );
-  }, [isFuture, role, user, rowUserId, hasPermission]);
+  }, [isEditableDate, role, user, rowUserId, hasPermission]);
 
   const isClickable = canEdit || isSwapMode;
   const title = isOff

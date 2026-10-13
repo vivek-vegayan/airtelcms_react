@@ -1,10 +1,7 @@
 import React from "react";
-import { Box, Chip, Skeleton, Typography, alpha } from "@mui/material";
-import {
-  MOP_VERSION_STATUS_LABEL,
-  type MopValidateDetails,
-  type MopVersionStatus,
-} from "../../../../types/mopValidate.types";
+import { Box, Skeleton, Typography } from "@mui/material";
+import type { MopValidateDetails } from "../../../../types/mopValidate.types";
+import { Lbl, VersionStatusChip } from "./mopUi";
 
 interface MopVersionStripProps {
   details?: MopValidateDetails;
@@ -35,18 +32,6 @@ const formatBytes = (bytes: number | null | undefined): string | null => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
-/**
- * Which colour a version status earns. Only a decided version is green or red;
- * everything still in flight reads as the neutral accent, so the strip never
- * implies an outcome that has not been reached.
- */
-const statusColor = (status: MopVersionStatus, colors: any): string => {
-  if (status === "validated") return colors.success;
-  if (status === "rejected") return colors.danger;
-  if (status === "superseded") return colors.textDim;
-  return colors.accent;
 };
 
 /**
@@ -101,18 +86,7 @@ export const MopVersionStrip: React.FC<MopVersionStripProps> = ({ details, loadi
             />
           )}
           <Box sx={{ minWidth: 0, flex: item.grow ? "1 1 180px" : "0 1 auto" }}>
-            <Typography
-              sx={{
-                fontSize: 9.5,
-                letterSpacing: "0.09em",
-                textTransform: "uppercase",
-                fontWeight: 700,
-                color: colors.textSecondary,
-                lineHeight: 1.5,
-              }}
-            >
-              {item.label}
-            </Typography>
+            <Lbl colors={colors}>{item.label}</Lbl>
             {loading ? (
               <Skeleton variant="text" width={80} sx={{ fontSize: 13 }} />
             ) : (
@@ -143,17 +117,7 @@ export const MopVersionStrip: React.FC<MopVersionStripProps> = ({ details, loadi
             sx={{ width: "1px", bgcolor: colors.border, mx: 1.75, alignSelf: "stretch" }}
           />
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <Chip
-              label={MOP_VERSION_STATUS_LABEL[status] ?? status}
-              size="small"
-              sx={{
-                height: 20,
-                fontSize: 10,
-                fontWeight: 700,
-                bgcolor: alpha(statusColor(status, colors), 0.15),
-                color: statusColor(status, colors),
-              }}
-            />
+            <VersionStatusChip status={status} colors={colors} />
           </Box>
         </>
       )}

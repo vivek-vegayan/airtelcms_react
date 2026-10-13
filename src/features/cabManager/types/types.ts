@@ -228,13 +228,15 @@ export type CabDecision = "PENDING" | "APPROVED" | "REJECTED" | "RESCHEDULED";
  *
  * `mappingId` — not the CRQ number — is what a decision is recorded against:
  * the same CRQ can be tabled again at a later session, and each sitting keeps
- * its own decision. circle / nodeName / changeImpact are nullable because a CRQ
+ * its own decision. circle / typeOfActivity / nodeName / changeImpact are nullable because a CRQ
  * can reach the CAB before its circle or node inventory is filled in.
  */
 export interface CabAgendaRow {
   mappingId: number;
   circle: string | null;
   crqNo: string;
+  /** Comma-joined activity types across the CRQ's nodes, e.g. "NodeDeletion,LinkDeletion". */
+  typeOfActivity: string | null;
   nodeName: string | null;
   changeImpact: ImpactCode | null;
   cabDecision: CabDecision | string;
@@ -275,6 +277,21 @@ export interface AddCrqToSessionResult {
   skippedCount: number;
   addedCrqList: string[];
   skippedCrqList: string[];
+}
+
+/** One row of the External CRQ CSV — keys match sp_add_external_crq_to_cab_session's JSON. */
+export interface ExternalCrqRow {
+  crq_no: string;
+  circle: string;
+  node_name: string;
+  type_of_activity: string;
+  change_impact: string;
+}
+
+/** CRQs raised outside the portal, tabled straight onto a session's agenda. */
+export interface AddExternalCrqPayload {
+  sessionId: string;
+  crqs: ExternalCrqRow[];
 }
 
 // ── Implementation (Field SE) ───────────────────────────────────────────────

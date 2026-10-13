@@ -1,7 +1,7 @@
 import { memo, useMemo } from "react";
 import { TableCell, Box, Tooltip, Typography, useTheme } from "@mui/material";
 import dayjs from "dayjs";
-import { formatMinutes, isFutureDate } from "../utils/dateUtils";
+import { formatMinutes, isTodayOrFutureDate } from "../utils/dateUtils";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { usePermission } from "../../auth/hooks/usePermission";
 import {
@@ -46,15 +46,15 @@ export const RosterShiftCellCompact = memo(function RosterShiftCellCompact({
 
   const isDimmed = highlightShift !== "" && shiftKey !== highlightShift;
 
-  const isFuture = isFutureDate(shiftDate);
+  const isEditableDate = isTodayOrFutureDate(shiftDate);
   const canEdit = useMemo(() => {
-    if (!isFuture) return false;
+    if (!isEditableDate) return false;
     if (role === "TEAM_MEMBER")
       return String(user?.userId) === String(rowUserId);
     return (
       hasPermission("Roster Management", "UPDATE") || role === "SUPER_ADMIN"
     );
-  }, [isFuture, role, user, rowUserId, hasPermission]);
+  }, [isEditableDate, role, user, rowUserId, hasPermission]);
 
   const isClickable = canEdit || isSwapMode;
 

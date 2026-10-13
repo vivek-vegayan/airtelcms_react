@@ -8,6 +8,8 @@ export interface PaginatedFutureWeekState {
   employees: NormalisedEmployee[];
   isoWeek: number;
   isoYear: number;
+  weekStartDate: string;
+  weekEndDate: string;
   totalEmployees: number;
   isLoading: boolean;
   isFetchingMore: boolean;
@@ -24,6 +26,8 @@ export function usePaginatedFutureWeek(): PaginatedFutureWeekState {
   const [employees, setEmployees] = useState<NormalisedEmployee[]>([]);
   const [isoWeek, setIsoWeek] = useState(0);
   const [isoYear, setIsoYear] = useState(0);
+  const [weekStartDate, setWeekStartDate] = useState("");
+  const [weekEndDate, setWeekEndDate] = useState("");
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -57,6 +61,8 @@ export function usePaginatedFutureWeek(): PaginatedFutureWeekState {
       setEmployees([]);
       setIsoWeek(0);
       setIsoYear(0);
+      setWeekStartDate("");
+      setWeekEndDate("");
       setTotalEmployees(0);
       setIsLoading(true);
       setIsFetchingMore(false);
@@ -78,6 +84,8 @@ export function usePaginatedFutureWeek(): PaginatedFutureWeekState {
 
         setIsoWeek(first.isoWeek);
         setIsoYear(first.isoYear);
+        setWeekStartDate(first.weekStartDate ?? first.data?.[0]?.weekStartDate ?? "");
+        setWeekEndDate(first.weekEndDate ?? first.data?.[0]?.weekEndDate ?? "");
         setTotalEmployees(total);
         setIsLoading(false);
         setHasMore(totalPages > 1);
@@ -147,6 +155,8 @@ export function usePaginatedFutureWeek(): PaginatedFutureWeekState {
     employees,
     isoWeek,
     isoYear,
+    weekStartDate,
+    weekEndDate,
     totalEmployees,
     isLoading,
     isFetchingMore,

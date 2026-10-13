@@ -14,6 +14,7 @@ import {
   useTheme,
 } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
+import DateRangeOutlinedIcon from "@mui/icons-material/DateRangeOutlined";
 import EditOffOutlinedIcon from "@mui/icons-material/EditOffOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
@@ -29,7 +30,7 @@ import { ShiftChip } from "./Shiftchip";
 import { SHIFT_DISPLAY_ORDER, SHIFT_TO_API } from "../../util/Shiftconstants";
 import { useUpdateFutureWeekBatchMutation } from "../../api/rosterGenerationApiSlice";
 import type { ShiftCode } from "../../types/Futureweek.types";
-import { isoWeekLabel } from "../../util/Futureweek.utils";
+import { isoWeekLabel, weekRangeLabel } from "../../util/Futureweek.utils";
 
 interface GridscreenMainProps {
   subDomainId: number | string | undefined;
@@ -240,6 +241,8 @@ export default function GridscreenMain({ subDomainId, domainId, onLoadedWeekChan
     employees,
     isoWeek,
     isoYear,
+    weekStartDate,
+    weekEndDate,
     totalEmployees,
     isLoading,
     isFetchingMore,
@@ -261,6 +264,7 @@ export default function GridscreenMain({ subDomainId, domainId, onLoadedWeekChan
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const weekLabel = isoWeek > 0 ? isoWeekLabel(isoYear, isoWeek) : "";
+  const weekRange = weekRangeLabel(weekStartDate, weekEndDate);
   const loaded    = employees.length;
   const loadedWeek = !isLoading && !isError && loaded > 0 && isoWeek > 0 ? isoWeek : null;
 
@@ -426,6 +430,39 @@ export default function GridscreenMain({ subDomainId, domainId, onLoadedWeekChan
         <ShiftLegend />
 
         <Box sx={{ flex: 1 }} />
+
+        {/* ISO week + date range */}
+        {!isLoading && weekLabel && (
+          <Chip
+            size="small"
+            icon={<VerifiedOutlinedIcon sx={{ fontSize: "12px !important" }} />}
+            label={weekLabel}
+            sx={{
+              height: 22,
+              fontSize: 10.5,
+              fontWeight: 650,
+              borderRadius: "6px",
+              bgcolor: isDark ? "rgba(16,185,129,0.14)" : "rgba(16,185,129,0.08)",
+              color: isDark ? "#6EE7B7" : "#065F46",
+              border: `1px solid ${isDark ? "rgba(16,185,129,0.3)" : "rgba(16,185,129,0.2)"}`,
+            }}
+          />
+        )}
+
+        {!isLoading && weekRange && (
+          <Chip
+            size="small"
+            icon={<DateRangeOutlinedIcon sx={{ fontSize: "12px !important" }} />}
+            label={weekRange}
+            sx={{
+              height: 22,
+              fontSize: 10.5,
+              fontWeight: 650,
+              borderRadius: "6px",
+              fontFamily: MONO_FONT,
+            }}
+          />
+        )}
 
         {/* Employee count */}
         {!isLoading && (

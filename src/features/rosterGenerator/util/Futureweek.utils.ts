@@ -82,6 +82,23 @@ export function isoWeekLabel(isoYear: number, isoWeek: number): string {
   return `ISO ${isoYear} · Week ${isoWeek}`;
 }
 
+// "2026-11-30" → "30 Nov 2026". Parsed by parts so no timezone shift.
+function formatWeekDate(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+/** "30 Nov 2026 – 06 Dec 2026", or "" when either date is missing. */
+export function weekRangeLabel(start?: string, end?: string): string {
+  if (!start || !end) return "";
+  return `${formatWeekDate(start)} – ${formatWeekDate(end)}`;
+}
+
 // ─── Initials from full name ──────────────────────────────────────────────────
 
 export function nameInitials(name: string): string {
