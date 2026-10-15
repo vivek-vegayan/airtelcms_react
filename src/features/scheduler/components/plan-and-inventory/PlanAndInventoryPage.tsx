@@ -33,6 +33,12 @@ import { deepSearch } from "../../util/stringUtils";
 import { taskNumbersOf } from "../../constants/stageConfig";
 import { filterPlansByChangeImpact, type ChangeImpactFilter } from "../../util/changeImpact";
 import ChangeImpactSelect from "../generic/ChangeImpactSelect";
+import {
+  searchFieldSx,
+  stageToolbarContainerSx,
+  stageToolbarRowSx,
+  stageToolbarSpacerSx,
+} from "../generic/stageToolbarSx";
 import { CrqCard } from "./CrqCard";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
 import { injectGlobalStyles } from "../../util/injectGlobalStyles";
@@ -430,7 +436,13 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
   );
 
   const renderTopToolbarCustomActions = () => (
-    <Stack direction="row" alignItems="center" spacing={1.2} flexWrap="wrap">
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={{ xs: 0.8, xl: 1.2 }}
+      useFlexGap
+      sx={stageToolbarRowSx}
+    >
       <ChangeImpactSelect value={changeImpact} onChange={setChangeImpact} colors={colors} />
       <TextField
         size="small"
@@ -460,7 +472,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
             "& input::placeholder": { color: colors.textDim, opacity: 1 },
           },
         }}
-        sx={{ width: 260 }}
+        sx={searchFieldSx}
       />
       <Tooltip title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
         <IconButton
@@ -492,6 +504,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
       {/* Button opens route in a new tab */}
       <CustomActionButton
         label="View Selected CRQ"
+        shortLabel="View CRQ"
         disabled={!selectedCrq}
         url={
           selectedCrq
@@ -502,6 +515,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
       />
       <CustomActionButton
         label="Review Plan & Inventory"
+        shortLabel="Review"
         disabled={!selectedCrq}
         onClick={() => setReviewDialogOpen(true)}
         startIcon={<FactCheckRoundedIcon sx={{ fontSize: 16 }} />}
@@ -509,13 +523,14 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
       />
       <CustomActionButton
         label="PDF View"
+        shortLabel="PDF"
         disabled={!selectedCrq}
         onClick={() => setPreviewPdfOpen(true)}
         startIcon={<PictureAsPdfOutlinedIcon sx={{ fontSize: 16 }} />}
         colors={colors}
       />
 
-      <Stack direction="row" spacing={0.8}>
+      <Stack direction="row" spacing={0.6} sx={{ flexShrink: 0 }}>
         <Chip
           label={`${filteredPlans.length} plans`}
           size="small"
@@ -541,6 +556,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
           }}
         />
       </Stack>
+      <Box sx={stageToolbarSpacerSx} />
     </Stack>
   );
 
@@ -584,6 +600,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
         px: 2,
         py: 1,
         minHeight: 52,
+        ...stageToolbarContainerSx,
       },
     },
     muiTableContainerProps: {

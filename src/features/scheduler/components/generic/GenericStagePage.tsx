@@ -2,11 +2,9 @@ import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import {
   Box,
   Chip,
-  IconButton,
   InputAdornment,
   Stack,
   TextField,
-  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -15,8 +13,6 @@ import {
   type MRT_ColumnDef,
 } from "material-react-table";
 import { useAppTable } from "../../../../components/ui/AppTable";
-import FullscreenIcon from "@mui/icons-material/Fullscreen";
-import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
@@ -30,6 +26,12 @@ import { useStageWorkflow } from "../../hook/useStageWorkflow";
 import { filterPlansBySearch } from "../../util/filterPlansBySearch";
 import { filterPlansByChangeImpact, type ChangeImpactFilter } from "../../util/changeImpact";
 import ChangeImpactSelect from "./ChangeImpactSelect";
+import {
+  searchFieldSx,
+  stageToolbarContainerSx,
+  stageToolbarRowSx,
+  stageToolbarSpacerSx,
+} from "./stageToolbarSx";
 import { injectGlobalStyles } from "../../util/injectGlobalStyles";
 import { buildScopeQuery, isOrgScopeReady } from "../../util/orgScope";
 import { resolveSelectedCrq } from "../../util/resolveSelectedCrq";
@@ -95,7 +97,6 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   const [plansOriginal, setPlansOriginal] = useState<any[]>([]);
   const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({});
   const [selectedCrqSnapshot, setSelectedCrq] = useState<any | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [globalSearchInput, setGlobalSearchInput] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
   const [changeImpact, setChangeImpact] = useState<ChangeImpactFilter>("");
@@ -194,17 +195,6 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
     return result;
   };
 
-  const toggleFullScreen = () => {
-    const elem = document.getElementById(`${stageKey}-container`);
-    if (!document.fullscreenElement) {
-      elem?.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  };
-
   const toggleCrq = (id: string) => setOpenCrqs((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const filteredPlans = useMemo(
@@ -251,7 +241,13 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   );
 
   const renderTopToolbarCustomActions = () => (
-    <Stack direction="row" alignItems="center" spacing={1.2} flexWrap="wrap">
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={{ xs: 0.8, xl: 1.2 }}
+      useFlexGap
+      sx={stageToolbarRowSx}
+    >
       <ChangeImpactSelect value={changeImpact} onChange={setChangeImpact} colors={colors} />
       <TextField
         size="small"
@@ -266,16 +262,12 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
           ),
           sx: { fontSize: 13, height: 34, borderRadius: "9px", bgcolor: colors.trackOff },
         }}
-        sx={{ width: 260 }}
+        sx={searchFieldSx}
       />
-      <Tooltip title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
-        <IconButton size="small" onClick={toggleFullScreen}>
-          {isFullscreen ? <FullscreenExitIcon sx={{ fontSize: 17 }} /> : <FullscreenIcon sx={{ fontSize: 17 }} />}
-        </IconButton>
-      </Tooltip>
 
       <CustomActionButton
         label="View Selected CRQ"
+        shortLabel="View CRQ"
         disabled={!selectedCrq}
         url={
           selectedCrq
@@ -286,6 +278,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
       />
       <CustomActionButton
         label={`Review ${stageConfig.label}`}
+        shortLabel="Review"
         disabled={!selectedCrq}
         onClick={() => setReviewDialogOpen(true)}
         startIcon={<FactCheckRoundedIcon sx={{ fontSize: 16 }} />}
@@ -293,12 +286,13 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
       />
       <CustomActionButton
         label="PDF View"
+        shortLabel="PDF"
         disabled={!selectedCrq}
         onClick={() => setPreviewPdfOpen(true)}
         startIcon={<PictureAsPdfOutlinedIcon sx={{ fontSize: 16 }} />}
         colors={colors}
       />
-      <Stack direction="row" spacing={0.8}>
+      <Stack direction="row" spacing={0.6} sx={{ flexShrink: 0 }}>
         <Chip label={`${filteredPlans.length} plans`} size="small" sx={{ height: 24, fontSize: 11, fontWeight: 700 }} />
         <Chip
           label={`${filteredPlans.reduce((a: number, p: any) => a + (p.crqs?.length || 0), 0)} CRQs`}
@@ -306,6 +300,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
           sx={{ height: 24, fontSize: 11, fontWeight: 700 }}
         />
       </Stack>
+      <Box sx={stageToolbarSpacerSx} />
     </Stack>
   );
 
@@ -333,6 +328,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
     initialState: { density: "compact" },
     state: { isLoading: isFetching },
     muiDetailPanelProps: { sx: { padding: 0 } },
+    muiTopToolbarProps: { sx: stageToolbarContainerSx },
     muiTableContainerProps: { sx: { maxHeight: "calc(100vh - 350px)" } },
   });
 

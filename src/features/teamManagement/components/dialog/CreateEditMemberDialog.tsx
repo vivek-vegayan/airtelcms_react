@@ -268,7 +268,7 @@ export const CreateEditMemberDialog = ({
       jobLevel: form.jobLevel,
       officeLocation: form.officeLocation,
       gender: form.gender as UpdateEmployeeRequest["gender"],
-      deviceVendorCapability: form.deviceVendorCapability,
+      deviceVendorCapability: form.deviceVendorCapability.trim(),
       dateOfJoining: form.dateOfJoining,
       dateOfLeaving: null,
       replacementEmpOlmid: null,
@@ -330,13 +330,24 @@ export const CreateEditMemberDialog = ({
     icon: React.ReactNode,
     options: string[] | undefined,
     key: keyof MemberForm,
-    opts?: { required?: boolean; format?: (v: string) => string },
+    opts?: { required?: boolean; format?: (v: string) => string; freeSolo?: boolean },
   ) => (
     <Autocomplete
       size="small"
       options={options ?? []}
       value={(form[key] as string) || null}
+      freeSolo={opts?.freeSolo}
       onChange={(_, v) => set(key, (v ?? "") as MemberForm[typeof key])}
+      // freeSolo: keep typed text in the form so a value that isn't in the
+      // list is saved even if the user never presses Enter. "reset" events are
+      // ignored — they just echo the current value back.
+      onInputChange={
+        opts?.freeSolo
+          ? (_, v, reason) => {
+              if (reason !== "reset") set(key, v as MemberForm[typeof key]);
+            }
+          : undefined
+      }
       getOptionLabel={(o) => (opts?.format ? opts.format(o) : o)}
       disabled={busy}
       renderInput={(params) => (
@@ -639,6 +650,7 @@ export const CreateEditMemberDialog = ({
                   <MemoryIcon />,
                   d?.deviceVendorCapabilities,
                   "deviceVendorCapability",
+                  { freeSolo: true },
                 )}
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Box, Button } from "@mui/material";
+import { Box, Button, Tooltip } from "@mui/material";
 import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
 
 import { authStorage } from "../../../../app/store/auth.storage";
@@ -77,20 +77,18 @@ export const TeamManagementFilter = ({
           filters.subDomain != null ? "Refresh members" : "Pick a Sub Domain first"
         }
       >
+        {/* Single row next to the org pickers: takes whatever width is left
+            and is the container-query root, so the Add Member button drops
+            to icon-only when that space gets tight instead of wrapping. */}
         <Box
           sx={{
-            display: "flex", flexWrap: "wrap", alignItems: "center",
-            justifyContent: "space-between", gap: 2, width: "100%",
+            display: "flex", flexWrap: "nowrap", alignItems: "center",
+            gap: 1.5, flex: "1 1 auto", minWidth: 0,
+            containerType: "inline-size", containerName: "team-actions",
           }}
         >
           {/* LEFT: status toggle */}
-          <Box
-            sx={{
-              display: "flex", flex: "1 1 auto",
-              minWidth: { xs: "100%", sm: "max-content" },
-              justifyContent: { xs: "center", sm: "flex-start" },
-            }}
-          >
+          <Box sx={{ display: "flex", flexShrink: 0 }}>
             <RichStatusToggle
               status={status}
               setStatus={setStatus}
@@ -102,31 +100,36 @@ export const TeamManagementFilter = ({
           {/* RIGHT: action buttons */}
           <Box
             sx={{
-              display: "flex", flexWrap: "wrap", alignItems: "center", gap: 2,
-              flex: "1 1 auto",
-              justifyContent: { xs: "center", sm: "flex-start", md: "flex-end" },
-              minWidth: { xs: "100%", sm: "max-content" },
+              display: "flex", flexWrap: "nowrap", alignItems: "center", gap: 1.5,
+              ml: "auto", flexShrink: 0,
             }}
           >
             {canCreateTeam && (
-              <Button
-                variant="contained"
-                disableElevation
-                startIcon={<PersonAddAltIcon />}
-                onClick={() => setOpenTypeDialog(true)}
-                sx={{
-                  flex: { xs: "1 1 100%", sm: "0 1 auto" },
-                  minWidth: "max-content",
-                  textTransform: "none", fontWeight: 600,
-                  borderRadius: "8px", px: 2, whiteSpace: "nowrap",
-                }}
-              >
-                Add Member
-              </Button>
+              <Tooltip title="Add Member">
+                <Button
+                  variant="contained"
+                  disableElevation
+                  aria-label="Add Member"
+                  startIcon={<PersonAddAltIcon />}
+                  onClick={() => setOpenTypeDialog(true)}
+                  sx={{
+                    height: 36, flexShrink: 0,
+                    textTransform: "none", fontWeight: 600,
+                    borderRadius: "8px", px: 2, whiteSpace: "nowrap",
+                    "@container team-actions (max-width: 300px)": {
+                      minWidth: 36, px: 0,
+                      "& .MuiButton-startIcon": { m: 0 },
+                      "& .add-member-label": { display: "none" },
+                    },
+                  }}
+                >
+                  <span className="add-member-label">Add Member</span>
+                </Button>
+              </Tooltip>
             )}
 
             {/*  ExportPanel now receives live data props */}
-            <Box sx={{ flex: { xs: "1 1 100%", sm: "0 1 auto" }, minWidth: "max-content", display: "flex" }}>
+            <Box sx={{ flexShrink: 0, display: "flex" }}>
               <ExportPanel
                 filteredRows={filteredRows}
                 totalRowCount={totalRowCount}
