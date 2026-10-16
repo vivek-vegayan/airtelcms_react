@@ -73,7 +73,7 @@ export function initials(name: string): string {
 
 export function summarise(shifts: string[]): ShiftSummary {
   const work = shifts.filter(
-    (s) => !["W", "H", "C", "Leave"].includes(s),
+    (s) => !["W", "H", "C", "L", "Leave"].includes(s),
   ).length;
   const night = shifts.filter((s) => s === "N").length;
   const off = shifts.filter((s) => ["W", "H", "C"].includes(s)).length;
@@ -83,7 +83,7 @@ export function summarise(shifts: string[]): ShiftSummary {
 
 export function workingCount(counts: Record<string, number>): number {
   return Object.entries(counts)
-    .filter(([k]) => !["W", "H", "C", "Leave"].includes(k))
+    .filter(([k]) => !["W", "H", "C", "L", "Leave"].includes(k))
     .reduce((a, [, v]) => a + v, 0);
 }
 

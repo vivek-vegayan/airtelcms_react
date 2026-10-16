@@ -42,7 +42,7 @@ const SHIFT_LABEL: Record<string, string> = {
   N: "Night",
   B: "Break",
   LG: "Late General",
-  A: "Afternoon",
+  A: "Early Morning",
 };
 
 const SHIFT_COLOR: Record<string, { bg: string; text: string; border: string }> = {

@@ -873,7 +873,7 @@ function SkeletonRow({ isDark }: { isDark: boolean }) {
           <Skeleton variant="rounded" width={40} height={28} sx={{ mx: "auto", borderRadius: "6px" }} />
         </TableCell>
       ))}
-      {["W", "N", "OFF"].map((s) => (
+      {["Work", "N", "OFF"].map((s) => (
         <TableCell key={s} sx={statCellSx()}>
           <Skeleton variant="text" width={22} height={14} sx={{ mx: "auto" }} />
         </TableCell>
@@ -1412,7 +1412,7 @@ export function FutureWeekGrid({
                 />
               ))}
 
-              {(["W", "N", "Off"] as const).map((label, i) => (
+              {(["Work", "N", "Off"] as const).map((label, i) => (
                 <TableCell
                   key={label}
                   align="center"

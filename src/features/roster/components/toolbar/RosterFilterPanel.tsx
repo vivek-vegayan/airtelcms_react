@@ -16,6 +16,9 @@ import { alpha } from "@mui/material/styles";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { SHIFT_COLOR_MAP } from "../../constant/shiftPalette";
 
+// Comp Off and New Joinee aren't offered as shift-type filters.
+const HIDDEN_FILTER_SHIFTS = new Set(["C", "NJ"]);
+
 /* ─── Filter toggle button (lives in the toolbar row) ───────────────────── */
 interface ToggleProps {
   open: boolean;
@@ -143,7 +146,7 @@ export const RosterFilterPanel = ({
           }}
         >
           {Object.entries(SHIFT_COLOR_MAP)
-
+            .filter(([k]) => !HIDDEN_FILTER_SHIFTS.has(k))
             .map(([k, p]) => (
               <MenuItem key={k} value={k} sx={{ py: "4px" }}>
                 <Checkbox
