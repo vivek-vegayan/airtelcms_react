@@ -1,6 +1,67 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// Heavy libraries that only a few screens use. Each gets its own chunk so it
+// is downloaded when one of those screens (or its export button) first needs
+// it, instead of riding along in the 'vendor' chunk every page loads.
+//
+// pdf.js is ~430KB that only the MOP validation workspace needs, and that
+// screen lazy-loads its canvas, so this chunk is fetched on the first Validate
+// click and never on app start. Anchored on the package directory so it
+// matches the standalone `react-pdf` viewer only - a bare 'react-pdf'
+// substring would also catch `@react-pdf/renderer`, a different library
+// (team-management's employee PDF export) that gets its own group below.
+const HEAVY_CHUNK_GROUPS: Array<[RegExp, string]> = [
+  [/node_modules[\\/](pdfjs-dist|react-pdf)[\\/]/, 'pdfjs'],
+  [/node_modules[\\/]@react-pdf[\\/]/, 'pdf-export'],
+  [/node_modules[\\/]exceljs[\\/]/, 'excel'],
+  [/node_modules[\\/](chart\.js|react-chartjs-2|@kurkle)[\\/]/, 'charts'],
+  [/node_modules[\\/]react-big-calendar[\\/]/, 'calendar'],
+]
+
+type ModuleInfoLookup = (id: string) => {
+  importers: readonly string[]
+  dynamicImporters: readonly string[]
+} | null
+
+const directGroup = (id: string) =>
+  HEAVY_CHUNK_GROUPS.find(([pattern]) => pattern.test(id))?.[1]
+
+// A dependency follows its heavy library into that library's chunk only when
+// nothing else imports it - e.g. fontkit/yoga-layout, which only
+// @react-pdf/renderer uses. Anything also reachable from app code or another
+// library (React, date-fns, ...) stays in 'vendor'. That keeps the import
+// direction one-way (heavy chunk -> vendor, never back), which is what makes
+// these splits safe from the cross-chunk initialization cycle described in
+// manualChunks below.
+const resolveChunk = (
+  id: string,
+  getModuleInfo: ModuleInfoLookup,
+  memo: Map<string, string>,
+  visiting: Set<string>,
+): string => {
+  const cached = memo.get(id)
+  if (cached) return cached
+  const direct = directGroup(id)
+  if (direct) return direct
+  // App code, or an import cycle we're already inside of: not exclusive to
+  // any one heavy library.
+  if (!id.includes('node_modules') || visiting.has(id)) return 'vendor'
+
+  visiting.add(id)
+  const info = getModuleInfo(id)
+  const importers = info ? [...info.importers, ...info.dynamicImporters] : []
+  const groups = new Set(
+    importers.map((importer) => resolveChunk(importer, getModuleInfo, memo, visiting)),
+  )
+  visiting.delete(id)
+
+  const [only] = groups
+  const chunk = groups.size === 1 && only !== 'vendor' ? only : 'vendor'
+  memo.set(id, chunk)
+  return chunk
+}
+
 export default defineConfig(({ mode }) => {
   // Loads .env, .env.[mode] and their .local variants exactly like Vite does
   // internally (empty prefix = don't restrict to VITE_-prefixed keys only).
@@ -14,6 +75,8 @@ export default defineConfig(({ mode }) => {
   // Falls back to "/" (domain root) when unset, so a fresh clone with no env
   // override still builds a working app.
   const basePath = env.VITE_APP_BASE_PATH || '/'
+  // Per-build cache for resolveChunk's importer walk.
+  const heavyChunkMemo = new Map<string, string>()
 
   return {
     plugins: [react()],
@@ -89,21 +152,15 @@ export default defineConfig(({ mode }) => {
           // 429s: real payload is ~5.7MB total, so the problem is request
           // *count*, not size. Grouping vendor code into a handful of larger,
           // long-lived-cache chunks collapses that burst.
-          manualChunks(id: string) {
+          manualChunks(id: string, { getModuleInfo }) {
             if (!id.includes('node_modules')) return undefined
-            // pdf.js is the one library worth keeping out of 'vendor': it is
-            // ~430KB that only the MOP validation workspace needs, and that
-            // screen lazy-loads its canvas, so this chunk is fetched on the
-            // first Validate click and never on app start. Safe to split
-            // despite the note below - react-pdf imports React one way and
-            // nothing in 'vendor' imports back into it, so there is no
-            // cross-chunk cycle to trip over.
-            // Anchored on the package directory so it matches the standalone
-            // `react-pdf` viewer only. A bare 'react-pdf' substring would also
-            // catch `@react-pdf/renderer`, which is a different library that
-            // team-management's employee export uses - dragging it into a chunk
-            // only the MOP viewer pulls would make every export wait on pdf.js.
-            if (/node_modules[\\/](pdfjs-dist|react-pdf)[\\/]/.test(id)) return 'pdfjs'
+            // The heavy, screen-specific libraries (see HEAVY_CHUNK_GROUPS)
+            // and the dependencies only they use are safe to split despite
+            // the note below: they import React/vendor one way and nothing
+            // in 'vendor' imports back into them, so there is no cross-chunk
+            // cycle to trip over.
+            const heavy = resolveChunk(id, getModuleInfo, heavyChunkMemo, new Set())
+            if (heavy !== 'vendor') return heavy
             // MUI/Emotion, React, React-DOM and React-Router have circular
             // internal references (react-is, prop-types, etc). Splitting them
             // into separate chunk *files* forces the browser to execute one

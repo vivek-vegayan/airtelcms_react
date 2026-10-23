@@ -23,7 +23,7 @@ import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import { toast } from "react-toastify";
 import { type PlanViewRow, useUpdatePlanMutation } from "../api/planApiSlice";
-import { authStorage } from "../../../../../app/store/auth.storage";
+import { useAuth } from "../../../../auth/hooks/useAuth";
 
 export interface FilterOption {
   label: string;
@@ -63,7 +63,7 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
   const [formData, setFormData] = useState<FormDataState | null>(null);
   const [errors, setErrors] = useState<Partial<Record<keyof FormDataState, string>>>({});
   const [updatePlan, { isLoading: isUpdating }] = useUpdatePlanMutation();
-  const loggedUser = authStorage.getUser();
+  const { user: loggedUser } = useAuth();
 
   // CHANGE_IMPACT options
   const CHANGE_IMPACT_OPTIONS = ["SA", "NSA"];
@@ -108,7 +108,7 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
       if (!validateForm(formData)) return;
       try {
         const updatePayload = {
-          actorUserId: loggedUser?.id ?? 0,
+          actorUserId: Number(loggedUser?.userId ?? 0),
           planId: formData.planId,
           planType: formData.planType,
           status: formData.status,

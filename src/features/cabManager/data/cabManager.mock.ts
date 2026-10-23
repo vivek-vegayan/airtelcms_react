@@ -272,8 +272,8 @@ export const buildMyCrqs = (): MyCrqsResponse => ({
 });
 
 export const buildCabQueue = (): CabQueueRow[] => [
-  { crqNo: "CRQ-2026-0410", impact: "SA",  circle: "Mumbai",    domain: "Packet",   executionWindow: "02:00 - 05:00 IST" },
-  { crqNo: "CRQ-2026-0411", impact: "NSA", circle: "Bangalore", domain: "Embedded", executionWindow: "01:00 - 03:00 IST" },
+  { crqNo: "CRQ-2026-0410", currentStage: "SCHEDULING_APPROVAL", currentStatus: "PENDING",     impact: "SA",  circle: "Mumbai",    domain: "Packet",   executionWindow: "02:00 - 05:00 IST" },
+  { crqNo: "CRQ-2026-0411", currentStage: "MOP_VALIDATION",      currentStatus: "IN_PROGRESS", impact: "NSA", circle: "Bangalore", domain: "Embedded", executionWindow: "01:00 - 03:00 IST" },
 ];
 
 export const buildCabPlanDates = (): CabPlanDate[] => [

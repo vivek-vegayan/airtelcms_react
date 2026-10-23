@@ -38,7 +38,7 @@ import {
 } from "@mui/icons-material";
 
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
-import { authStorage } from "../../../app/store/auth.storage";
+import { useAuth } from "../../auth/hooks/useAuth";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import { useApiRefresh } from "../../../hooks/useApiRefresh";
@@ -216,7 +216,7 @@ export const UserLogs: React.FC = () => {
     .toISOString()
     .slice(0, 10);
 
-  const loggedUser = authStorage.getUser();
+  const { user: loggedUser } = useAuth();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { values, handleChange } = useOrgHierarchyState("userLogs");
   const { options } = useOrgHierarchyFilters(values);

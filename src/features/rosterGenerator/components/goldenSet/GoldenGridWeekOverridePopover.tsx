@@ -1,5 +1,5 @@
 import { Box, Divider, Popover, Stack, Tooltip, Typography, useTheme } from "@mui/material";
-import { MONO, SHIFT_CODES, SHIFT_META } from "./goldenGrid.constants";
+import { displayShiftCode, MONO, SHIFT_CODES, SHIFT_META } from "./goldenGrid.constants";
 import { getShiftColor } from "./goldenGrid.utils";
 import { useGoldenGridTokens } from "./useGoldenGridTokens";
 
@@ -92,7 +92,7 @@ export default function GoldenGridWeekOverridePopover({
                   "&:active": { transform: "scale(.96)" },
                 }}
               >
-                {code}
+                {displayShiftCode(code)}
               </Box>
             </Tooltip>
           );

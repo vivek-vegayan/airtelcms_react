@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Box, Button, Chip, CircularProgress, Stack, Tab, Tabs, Typography, alpha } from "@mui/material";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
-import ExcelJS from "exceljs";
+import type { CellValue } from "exceljs";
 
 interface MopExcelPreviewProps {
   blob?: Blob;
@@ -31,7 +31,7 @@ const MAX_COLUMNS = 40;
  * on their own - `String(cell.value)` yields "[object Object]" for four of
  * those five.
  */
-const cellText = (value: ExcelJS.CellValue): string => {
+const cellText = (value: CellValue): string => {
   if (value === null || value === undefined) return "";
   if (value instanceof Date) return value.toLocaleDateString();
   if (typeof value === "object") {
@@ -79,7 +79,12 @@ export const MopExcelPreview: React.FC<MopExcelPreviewProps> = ({
 
     blob
       .arrayBuffer()
-      .then((buf) => new ExcelJS.Workbook().xlsx.load(buf))
+      // Loaded on demand so the ~1MB exceljs chunk only downloads when a
+      // workbook MOP is actually previewed.
+      .then(async (buf) => {
+        const { default: ExcelJS } = await import("exceljs");
+        return new ExcelJS.Workbook().xlsx.load(buf);
+      })
       .then((workbook) => {
         if (cancelled) return;
         const parsed: Sheet[] = workbook.worksheets.map((ws) => {

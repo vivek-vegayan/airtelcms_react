@@ -10,7 +10,6 @@ import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFilte
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import { useApiRefresh, type ApiTag } from "../../../hooks/useApiRefresh";
-import { authStorage } from "../../../app/store/auth.storage";
 import {
   RosterViewSwitch,
   type RosterViewMode,
@@ -30,7 +29,7 @@ export const RosterViewMain = () => {
   const [view, setView] = useState<RosterViewMode>("weekly");
   const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs());
 
-  const loggedUser = authStorage.getUser();
+  const { user: loggedUser } = useAuth();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
 
   const { values, handleChange } = useOrgHierarchyState("rosterView");

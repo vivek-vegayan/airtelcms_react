@@ -32,6 +32,20 @@ export const mopReviewApiSlice = api.injectEndpoints({
       providesTags: (_result, _error, arg) => [{ type: "MopReview", id: arg.crqNo }],
     }),
 
+    // GET /crqworkflow/mopvalidate/{crqNo}/versions/{versionId}/document -
+    // the document of the version being viewed: the CRQ's stored file for the
+    // current version, the archived copy for a replaced one. Tagged with the
+    // CRQ's document tag so any upload refetches it.
+    getMopVersionDocument: builder.query<Blob, { crqNo: string; versionId: number }>({
+      query: ({ crqNo, versionId }) => ({
+        url: `/crqworkflow/mopvalidate/${crqNo}/versions/${versionId}/document`,
+        method: "GET",
+        responseHandler: (response) => response.blob(),
+        cache: "no-cache",
+      }),
+      providesTags: (_result, _error, arg) => [{ type: "MopDocument", id: `${arg.crqNo}-pdf` }],
+    }),
+
     // POST /crqworkflow/mopvalidate/{crqNo}/findings - sp_mop_finding_add,
     // which numbers the finding ("F-01"), stores it and audits the raise.
     addMopFinding: builder.mutation<MopReviewWorkspace, AddMopFindingArgs>({
@@ -89,6 +103,7 @@ export const mopReviewApiSlice = api.injectEndpoints({
 
 export const {
   useGetMopReviewWorkspaceQuery,
+  useGetMopVersionDocumentQuery,
   useAddMopFindingMutation,
   useSetMopFindingStateMutation,
   useValidateMopVersionMutation,

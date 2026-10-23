@@ -6,6 +6,7 @@ import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import moment from "moment";
 import { useRosterCalendar } from "../context/RosterCalendarContext";
 import { extractShiftTimeLabel } from "../utils/rosterTransform";
+import { displayShiftCode } from "../constants/shiftColors";
 import type { CalendarEvent } from "../types/roster.types";
 
 /** Multi-line hover card — replaces the old single concatenated string. */
@@ -59,7 +60,7 @@ const EventCell: React.FC<EventProps<CalendarEvent>> = ({ event }) => {
   const { tokens } = useRosterCalendar();
 
   const resource = event.resource;
-  const code = resource?.code ?? event.title;
+  const code = displayShiftCode(resource?.code ?? event.title);
   const label = resource?.label ?? event.title;
   const workMode = resource?.workMode ?? null;
   const assignActCount = resource?.assignActCount ?? 0;

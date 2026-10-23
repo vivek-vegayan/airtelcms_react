@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { Box, useTheme } from "@mui/material";
-import { authStorage } from "../../../app/store/auth.storage";
+import { useAuth } from "../../auth/hooks/useAuth";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
@@ -69,7 +69,7 @@ const WORKFLOW_TAGS: ApiTag[] = ["CrqReview", "StageWorkflow"];
 
 export const PlanAndInventoryMain = () => {
   // Existing Hook Logic
-  const loggedUser = authStorage.getUser();
+  const { user: loggedUser } = useAuth();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { values, setValues, handleChange } = useOrgHierarchyState("schedulerWorkflow");
   const { options } = useOrgHierarchyFilters(values);

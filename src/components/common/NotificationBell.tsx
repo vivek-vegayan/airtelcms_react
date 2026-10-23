@@ -38,7 +38,7 @@ import {
   type NotificationItem,
 } from "../../features/inbox/api/inboxApiSlice";
 import { toast } from "react-toastify";
-import { authStorage } from "../../app/store/auth.storage";
+import { useAuth } from "../../features/auth/hooks/useAuth";
 import {
   getRoleTier,
   getSubModuleActionMeta,
@@ -166,7 +166,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
   const [expanded, setExpanded] = useState<number | null>(null);
   const [pulse, setPulse] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<NotificationItem | null>(null);
-  const currentUserRole = authStorage.getUser()?.roleCode ?? "TEAM_MEMBER";
+  const currentUserRole = useAuth().role ?? "TEAM_MEMBER";
 
   // ── API calls ──────────────────────────────────────────────────────────────
 

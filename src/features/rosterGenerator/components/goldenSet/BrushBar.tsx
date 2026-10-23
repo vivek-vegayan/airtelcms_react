@@ -76,7 +76,7 @@ export default function BrushBar({
           display: { xs: "none", md: "block" },
         }}
       >
-        Click or drag cells · hotkeys: G N A B L W H C
+        Click or drag cells · hotkeys: G N A B L W H
       </Typography>
     </Stack>
   );

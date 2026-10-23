@@ -19,7 +19,7 @@ import { useTabColorTokens } from "../../../style/theme";
 import { ChartCard } from "../../crqAnalytics/components/ChartCard";
 import { EmptyOrErrorState } from "../../crqAnalytics/components/EmptyOrErrorState";
 import { SlotFilterBar, SlotLegend } from "../components/slotVisibilityUi";
-import { getRoleName, useSlotTones, type SlotStatus } from "../components/slotVisibility.styles";
+import { useRoleName, useSlotTones, type SlotStatus } from "../components/slotVisibility.styles";
 import {
   type AllPlans,
   useLazyGetAllPlansQuery,
@@ -69,6 +69,7 @@ export default function AllPlansView() {
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
   const tones = useSlotTones();
+  const roleName = useRoleName();
 
   const [planTypeSearch, setPlanTypeSearch] = useState("");
   const [showFilter, setShowFilter] = useState("All plans");
@@ -371,7 +372,7 @@ export default function AllPlansView() {
       ========================================================= */}
       <SlotFilterBar>
         <OrgHierarchyFilters
-          role={getRoleName()}
+          role={roleName}
           values={orgFilters}
           options={orgOptions}
           onChange={handleOrgFilterChange}

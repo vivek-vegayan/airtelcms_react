@@ -1,5 +1,5 @@
 import { alpha, Box } from "@mui/material";
-import { MONO } from "./goldenGrid.constants";
+import { displayShiftCode, MONO } from "./goldenGrid.constants";
 import { getShiftColor } from "./goldenGrid.utils";
 
 export default function ShiftPill({
@@ -40,7 +40,7 @@ export default function ShiftPill({
           : undefined,
       }}
     >
-      {code}
+      {displayShiftCode(code)}
     </Box>
   );
 }

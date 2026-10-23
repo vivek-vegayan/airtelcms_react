@@ -10,7 +10,9 @@ import rosterReducer from "../features/roster/slices/roster.slice";
 // reducer through the barrel here would pull that entire subtree into the
 // main bundle and silently defeat the dialog's React.lazy() code-split.
 import attributeUpdateReducer from "../features/scheduler/sub-feature/attributeUpdate/slices/attributeUpdate.slice";
-import { planViewAndSetupReducer } from "../features/scheduler/sub-feature/planViewAndSetup";
+// Same reason as above: the planViewAndSetup barrel re-exports the
+// PlanViewAndSetup page, which would otherwise ride into the main bundle.
+import planViewAndSetupReducer from "../features/scheduler/sub-feature/planViewAndSetup/slices/activity.slice";
 import orgFiltersReducer from "../features/orgHierarchy/slices/orgFilters.slice";
 
 const appReducer = combineReducers({

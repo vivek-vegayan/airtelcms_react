@@ -8,7 +8,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { MONO, SHIFT_CODES, SHIFT_META } from "./goldenGrid.constants";
+import { displayShiftCode, MONO, SHIFT_CODES, SHIFT_META } from "./goldenGrid.constants";
 import { getShiftColor } from "./goldenGrid.utils";
 import { useGoldenGridTokens } from "./useGoldenGridTokens";
 
@@ -183,7 +183,7 @@ export default function GoldenGridBulkActionBar({
           return (
             <Tooltip
               key={code}
-              title={`Apply "${code}" — ${SHIFT_META[code]?.label}`}
+              title={`Apply "${displayShiftCode(code)}" — ${SHIFT_META[code]?.label}`}
               arrow
             >
               <Box
@@ -211,7 +211,7 @@ export default function GoldenGridBulkActionBar({
                   "&:active": { transform: "scale(.97)" },
                 }}
               >
-                {code}
+                {displayShiftCode(code)}
               </Box>
             </Tooltip>
           );

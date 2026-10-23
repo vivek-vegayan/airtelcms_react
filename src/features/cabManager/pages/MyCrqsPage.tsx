@@ -21,7 +21,19 @@ import { useGetMyCrqsQuery} from "../api/cabManagerApiSlice";
 import { MyCrqDetailDrawer } from "../components/shared/MyCrqDetailDrawer";
 import { CabKpiCard } from "../components/dashboard/CabKpiCard";
 import { errMsg } from "../components/shared/errMsg";
+import { ExportExcelButton } from "../components/shared/ExportExcelButton";
+import { exportRowsToExcel, type ExcelColumn } from "../../crqAnalytics/utils/excelExport";
 import type { Crq, DashboardKpi } from "../types/types";
+
+const MY_CRQS_EXPORT_COLUMNS: ExcelColumn[] = [
+  { header: "CRQ No", key: "crqNo", width: 20 },
+  { header: "Domain", key: "domainName", width: 16 },
+  { header: "Circle", key: "circleCode", width: 12 },
+  { header: "Stage", key: "currentStage", width: 22 },
+  { header: "Stage Status", key: "stageStatus", width: 18 },
+  { header: "Service", key: "serviceCode", width: 18 },
+  { header: "Approval Status", key: "serviceApprovalStatus", width: 18 },
+];
 
 export function MyCrqsPage() {
   const theme = useTheme();
@@ -68,7 +80,7 @@ export function MyCrqsPage() {
     () => [
       {
         accessorKey: "crqNo",
-        header: "CRQ ID",
+        header: "CRQ No",
         size: 160,
         Cell: ({ row }) => (
           <Box>
@@ -140,7 +152,7 @@ export function MyCrqsPage() {
       },
       {
         accessorKey: "serviceApprovalStatus",
-        header: "Service Status",
+        header: "Approval Status",
         size: 170,
         Cell: ({ cell }) => (
           <Chip
@@ -250,6 +262,36 @@ export function MyCrqsPage() {
         sx={{ border: "1px solid", borderColor: "divider", overflow: "hidden" }}
         elevation={0}
       >
+        <Box
+          sx={{
+            px: 2,
+            py: 1.25,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 2,
+          }}
+        >
+          <Typography sx={{ fontWeight: 500 }}>
+            My CRQs
+            <Typography component="span" variant="caption" sx={{ color: "text.secondary", ml: 1 }}>
+              {data.rows.length} CRQ{data.rows.length === 1 ? "" : "s"}
+            </Typography>
+          </Typography>
+          <ExportExcelButton
+            onExport={() =>
+              exportRowsToExcel(
+                table.getPrePaginationRowModel().rows.map((r) => r.original),
+                MY_CRQS_EXPORT_COLUMNS,
+                "My CRQs",
+                "My_CRQs",
+              )
+            }
+            disabled={data.rows.length === 0}
+          />
+        </Box>
         <MaterialReactTable table={table} />
       </Paper>
 

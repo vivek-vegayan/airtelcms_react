@@ -10,7 +10,7 @@ import { SHELL_MIN_HEIGHT } from "../../../components/layout/layoutConstants";
 import { RefreshIconButton } from "../../../components/ui/RefreshIconButton";
 import { api } from "../../../service/api";
 import { useAppDispatch } from "../../../app/hooks";
-import { authStorage } from "../../../app/store/auth.storage";
+import { useAuth } from "../../auth/hooks/useAuth";
 import OrgFilterSelect from "../../orgHierarchy/components/OrgFilterSelect";
 import { getOrgFilterVisibility } from "../../orgHierarchy/config/orgFilterVisibility";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
@@ -87,7 +87,7 @@ export default function CrqReassignMainPage({ setDynamicHeaderText, setDynamicHe
   const [note, setNote] = useState<Note | null>(null);
   const [batchId, setBatchIdState] = useState<string | null>(() => batchStorage.get());
 
-  const roleName = authStorage.getUser()?.roleCode ?? "TEAM_MEMBER";
+  const roleName = useAuth().role ?? "TEAM_MEMBER";
   const { values, handleChange, resetAll } = useOrgHierarchyState("crqReassign");
   const { options } = useOrgHierarchyFilters(values);
   const visibleOrg = useMemo(() => {
@@ -189,7 +189,11 @@ export default function CrqReassignMainPage({ setDynamicHeaderText, setDynamicHe
     setOnlyGaps(false);
     setSearchInput("");
   };
-  const withAll = (key: OrgFilterKey): OrgFilterOption[] => [{ label: ORG_ALL[key], value: 0 }, ...options[key]];
+  // The API already sends a catch-all row with id 0 (e.g. "ALL"); drop it so it doesn't duplicate ours.
+  const withAll = (key: OrgFilterKey): OrgFilterOption[] => [
+    { label: ORG_ALL[key], value: 0 },
+    ...options[key].filter((o) => o.value !== 0),
+  ];
 
   return (
     <Box

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { alpha, useTheme, type Theme } from "@mui/material/styles";
 import dayjs from "dayjs";
 import { useTabColorTokens } from "../../../style/theme";
-import { authStorage } from "../../../app/store/auth.storage";
+import { useAuth } from "../../auth/hooks/useAuth";
 
 /* ══════════════ Status tones ══════════════
  * Every slot cell / chip / legend on these screens resolves to one of these
@@ -67,7 +67,7 @@ export const getFilterBarSx = (theme: Theme) => ({
 });
 
 /** Role used by <OrgHierarchyFilters> to decide which pickers this user sees. */
-export const getRoleName = () => authStorage.getUser()?.roleCode ?? "TEAM_MEMBER";
+export const useRoleName = () => useAuth().role ?? "TEAM_MEMBER";
 
 /* ══════════════ Dates ══════════════
  * The views keep dates as "YYYY-MM-DD" strings (what the API takes); these

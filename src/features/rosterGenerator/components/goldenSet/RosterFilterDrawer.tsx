@@ -71,7 +71,7 @@ interface RosterFilterDrawerProps {
 // ── Local Constants ───────────────────────────────────────────────────────────
 const TOTAL_COLS = 42;
 const ALL_LEVELS = ["L1", "L2", "L3", "L4"];
-const SHIFT_CODES = ["G", "N", "A", "B", "L", "W", "H", "C"];
+const SHIFT_CODES = ["G", "N", "A", "B", "L", "W", "H"];
 const MONO = "'Roboto Mono', 'Fira Mono', monospace";
 
 const SHIFT_META: Record<string, { label: string }> = {
@@ -82,7 +82,6 @@ const SHIFT_META: Record<string, { label: string }> = {
   L: { label: "Leave" },
   W: { label: "Week Off" },
   H: { label: "Holiday" },
-  C: { label: "Comp Off" },
 };
 
 const LEVEL_META: Record<string, LevelMeta> = {
@@ -438,7 +437,7 @@ export default function RosterFilterDrawer({
                       border: `1px solid ${sc.border}`,
                     }}
                   >
-                    {code}
+                    {code === "W" ? "WO" : code}
                   </Box>
                   <Typography sx={{ fontSize: 11, fontWeight: 550, color: tk.textPrimary }} noWrap>
                     {SHIFT_META[code]?.label ?? code}

@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import { useActivity } from "./hooks/useActivity";
-import { authStorage } from "../../../../app/store/auth.storage";
+import { useAuth } from "../../../auth/hooks/useAuth";
 import { useOrgHierarchyState } from "../../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
@@ -16,7 +16,7 @@ const PLAN_TAGS: ApiTag[] = ["Plan", "ActivityPhase"];
 export const PlanViewAndSetup = () => {
   const { selectedPlan, planDialogOpen, handleClosePlanDialog } = useActivity();
 
-  const loggedUser = authStorage.getUser();
+  const { user: loggedUser } = useAuth();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
 
   const { values, handleChange } = useOrgHierarchyState("planViewAndSetup");

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
-import { authStorage } from "../../../app/store/auth.storage";
+import { useAuth } from "../../auth/hooks/useAuth";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import {
@@ -25,7 +25,7 @@ import type { CrqJourneySearchRow } from "../types/crqJourney.types";
  * re-pick org scope + CRQ from the dropdown.
  */
 export const useCrqJourney = () => {
-  const loggedUser = authStorage.getUser();
+  const { user: loggedUser } = useAuth();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { id: crqNoFromRoute } = useParams<{ id: string }>();
 

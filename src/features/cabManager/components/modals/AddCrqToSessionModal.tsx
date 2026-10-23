@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { authStorage } from "../../../../app/store/auth.storage";
+import { useAuth } from "../../../auth/hooks/useAuth";
 import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import { useOrgHierarchyState } from "../../../orgHierarchy/hooks/useOrgHierarchyState";
@@ -44,7 +44,7 @@ export function AddCrqToSessionModal({
   alreadyTabled: string[];
   onClose: () => void;
 }) {
-  const roleCode = authStorage.getUser()?.roleCode ?? "TEAM_MEMBER";
+  const roleCode = useAuth().role ?? "TEAM_MEMBER";
   const { values, handleChange, resetAll } = useOrgHierarchyState();
   const { options } = useOrgHierarchyFilters(values);
   const [picked, setPicked] = useState<string[]>([]);

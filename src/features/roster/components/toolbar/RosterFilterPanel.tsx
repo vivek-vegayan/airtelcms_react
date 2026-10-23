@@ -165,7 +165,7 @@ export const RosterFilterPanel = ({
                   }}
                 />
                 <ListItemText
-                  primary={`${k} – ${p.label}`}
+                  primary={`${k === "W" ? "WO" : k} – ${p.label}`}
                   primaryTypographyProps={{ fontSize: 11 }}
                 />
               </MenuItem>

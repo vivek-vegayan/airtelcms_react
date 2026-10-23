@@ -1,6 +1,6 @@
 import { memo, useEffect } from "react";
 import { Box } from "@mui/material";
-import { authStorage } from "../../../app/store/auth.storage";
+import { useAuth } from "../../auth/hooks/useAuth";
 import { useGetOrgHierarchyByUserQuery } from "../api/orgHierarchy.api";
 import { useOrgHierarchyState } from "../hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../hooks/useOrgHierarchyFilters";
@@ -35,7 +35,7 @@ interface Props {
  * per screen.
  */
 const TeamAssignmentSelect = ({ value, onChange, disabled, gap = 1.5 }: Props) => {
-  const roleName = authStorage.getUser()?.roleCode ?? "TEAM_MEMBER";
+  const roleName = useAuth().role ?? "TEAM_MEMBER";
   const rawVisible = getOrgFilterVisibility(roleName);
   // "Team" is always stored as a sub-domain id, so the cascade must always be
   // able to reach that leaf even if a role's search-filter visibility list

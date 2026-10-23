@@ -7,6 +7,7 @@ import { Home } from "@mui/icons-material";
 import AppRoutes from "./routes/AppRoutes";
 import { PublicRoute } from "./routes/PublicRoute";
 import LoginPage from "./features/auth/pages/LoginPage";
+import IdleTimeoutGuard from "./features/auth/components/IdleTimeoutGuard";
 import { useAppSelector } from "./app/hooks";
 
 const App: React.FC = () => {
@@ -26,6 +27,7 @@ const App: React.FC = () => {
       <ColorModeContext.Provider value={colorMode}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
+          {isAuth && isHydrated && <IdleTimeoutGuard />}
           <AppLayout
             showChrome={isAuth && isHydrated}
             dynamicHeaderText={dynamicHeaderText}

@@ -27,8 +27,8 @@ import { EmptyOrErrorState } from "../../crqAnalytics/components/EmptyOrErrorSta
 import { MiniStat, SlotFilterBar, SlotLegend, SlotStatusChip } from "../components/slotVisibilityUi";
 import {
   fromDayjs,
-  getRoleName,
   toDayjs,
+  useRoleName,
   useSlotTones,
   type SlotStatus,
 } from "../components/slotVisibility.styles";
@@ -60,6 +60,7 @@ export default function TeamCapacityView({
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
   const tones = useSlotTones();
+  const roleName = useRoleName();
 
   /* =========================================================
      STATE
@@ -759,7 +760,7 @@ export default function TeamCapacityView({
       ===================================================== */}
       <SlotFilterBar>
         <OrgHierarchyFilters
-          role={getRoleName()}
+          role={roleName}
           values={orgFilters}
           options={orgOptions}
           onChange={handleOrgFilterChange}

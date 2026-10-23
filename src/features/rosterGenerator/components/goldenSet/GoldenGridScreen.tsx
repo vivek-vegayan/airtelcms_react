@@ -5,7 +5,7 @@ import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CalendarViewWeekIcon from "@mui/icons-material/CalendarViewWeek";
 
 import RosterFilterDrawer from "./RosterFilterDrawer";
-import { TOTAL_COLS } from "./goldenGrid.constants";
+import { displayShiftCode, TOTAL_COLS } from "./goldenGrid.constants";
 import type { GoldenGridScreenProps } from "./goldenGrid.types";
 import { useGoldenGridTokens } from "./useGoldenGridTokens";
 import { useGoldenGridData } from "./useGoldenGridData";
@@ -134,7 +134,7 @@ export default function GoldenGridScreen({
       });
       setWeekPopover(null);
       setToast({
-        msg: `Set Week ${weekIdx + 1} → "${code}" for ${targets.length} employee${targets.length !== 1 ? "s" : ""}`,
+        msg: `Set Week ${weekIdx + 1} → "${displayShiftCode(code)}" for ${targets.length} employee${targets.length !== 1 ? "s" : ""}`,
         severity: "success",
       });
     },

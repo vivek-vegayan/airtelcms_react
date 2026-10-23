@@ -1,6 +1,6 @@
 import { Box, CircularProgress, useTheme } from "@mui/material";
 import { lazy, Suspense, useState } from "react";
-import { authStorage } from "../../../app/store/auth.storage";
+import { useAuth } from "../../auth/hooks/useAuth";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
@@ -35,7 +35,7 @@ function TabContentFallback() {
 const ROSTER_GEN_TAGS: ApiTag[] = ["GoldenSetTag", "FutureWeekTag"];
 
 export const RosterGenerationMain = () => {
-  const loggedUser = authStorage.getUser();
+  const { user: loggedUser } = useAuth();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { values, handleChange } = useOrgHierarchyState("rosterGeneration");
   const { options } = useOrgHierarchyFilters(values);
