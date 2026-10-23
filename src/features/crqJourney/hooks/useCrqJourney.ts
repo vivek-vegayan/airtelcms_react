@@ -171,6 +171,7 @@ export const useCrqJourney = () => {
     serviceRoster,
     approverIndex,
     scope: journey?.scope ?? null,
+    stageAssignments: journey?.stageAssignments ?? [],
     details: selectedDetails,
     isLoadingDetails: isLoadingDetails && !selectedDetails,
     refetch: () => {

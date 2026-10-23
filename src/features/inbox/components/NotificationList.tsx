@@ -184,10 +184,16 @@ export const NotificationList = ({
                 // ── Background ──
                 bgcolor: isSelected
                   ? alpha(theme.palette.primary.main, isDark ? 0.1 : 0.05)
-                  : "transparent",
+                  : item.isDone
+                    ? alpha(theme.palette.text.primary, isDark ? 0.03 : 0.02)
+                    : "transparent",
+
+                // ── Done (completed / already read) items are greyed out ──
+                opacity: item.isDone && !isSelected ? 0.6 : 1,
+                filter: item.isDone && !isSelected ? "grayscale(1)" : "none",
 
                 transition:
-                  "background-color 0.15s ease, border-color 0.15s ease",
+                  "background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease",
 
                 // ── Hover ──
                 "&:hover": {
@@ -302,7 +308,11 @@ export const NotificationList = ({
                   {item.date} · {item.time}
                 </Typography>
                 <Chip
-                  label={item.isActionable ? "Action Required" : item.status}
+                  label={
+                    item.isActionable && !item.isDone
+                      ? "Action Required"
+                      : item.status
+                  }
                   size="small"
                   sx={{
                     height: 18,
@@ -311,16 +321,20 @@ export const NotificationList = ({
                     letterSpacing: "0.04em",
                     textTransform: "uppercase",
                     borderRadius: "4px",
-                    bgcolor: item.isActionable
-                      ? alpha(theme.palette.warning.main, isDark ? 0.18 : 0.1)
-                      : alpha(theme.palette.success.main, isDark ? 0.18 : 0.1),
-                    color: item.isActionable
-                      ? isDark
-                        ? "warning.light"
-                        : "warning.dark"
-                      : isDark
-                        ? "success.light"
-                        : "success.dark",
+                    bgcolor: item.isDone
+                      ? alpha(theme.palette.text.primary, isDark ? 0.12 : 0.07)
+                      : item.isActionable
+                        ? alpha(theme.palette.warning.main, isDark ? 0.18 : 0.1)
+                        : alpha(theme.palette.success.main, isDark ? 0.18 : 0.1),
+                    color: item.isDone
+                      ? "text.secondary"
+                      : item.isActionable
+                        ? isDark
+                          ? "warning.light"
+                          : "warning.dark"
+                        : isDark
+                          ? "success.light"
+                          : "success.dark",
                     "& .MuiChip-label": { px: 0.75 },
                   }}
                 />

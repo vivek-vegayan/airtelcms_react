@@ -54,7 +54,8 @@ export const inboxApiSlice = api.injectEndpoints({
   endpoints: (builder) => ({
     getUnreadNotifications: builder.query<
       NotificationItem[],
-      { readFlag: number }
+      // readFlag false/0 -> unread only; true/1 -> every notification
+      { readFlag: number | boolean }
     >({
       queryFn: async ({ readFlag }, _api, _extraOptions, baseQuery) => {
         const result = await baseQuery(

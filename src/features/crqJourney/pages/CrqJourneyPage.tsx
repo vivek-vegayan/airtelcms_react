@@ -11,6 +11,7 @@ import {
   ServiceRosterPanel,
   serviceRosterReserve,
 } from "../components/ServiceRosterPanel";
+import { StageAssignmentPanel } from "../components/StageAssignmentPanel";
 import { SpocFeDetailsModal } from "../../cabManager/components/modals/SpocFeDetailsModal";
 
 export const CrqJourneyPage: React.FC = () => {
@@ -33,6 +34,7 @@ export const CrqJourneyPage: React.FC = () => {
     serviceRoster,
     approverIndex,
     scope,
+    stageAssignments,
     details,
     isLoadingDetails,
     refetch,
@@ -50,6 +52,7 @@ export const CrqJourneyPage: React.FC = () => {
   // reused as-is: it is keyed on the CRQ number and fetches its own row, so the
   // journey page only has to own the open state.
   const [spocFeOpen, setSpocFeOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(true);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1, pb: 1 }}>
@@ -125,6 +128,14 @@ export const CrqJourneyPage: React.FC = () => {
             scope={scope}
             open={rosterOpen}
             onToggle={() => setRosterOpen((v) => !v)}
+          />
+
+          {/* Who was assigned each workflow stage, and when it ran. */}
+          <StageAssignmentPanel
+            rows={stageAssignments}
+            currentStage={info.currentStage}
+            open={assignOpen}
+            onToggle={() => setAssignOpen((v) => !v)}
           />
 
           <SpocFeDetailsModal

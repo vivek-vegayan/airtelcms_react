@@ -120,7 +120,8 @@ export function RescheduleCrqModal({
   onSuccess,
 }: RescheduleCrqModalProps) {
   const [newDate, setNewDate] = useState("");
-  const [newWindow, setNewWindow] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [reason, setReason] = useState("");
 
   const [reschedule, { isLoading }] = useRescheduleCrqMutation();
@@ -129,11 +130,21 @@ export function RescheduleCrqModal({
   // Also guards typed/pasted values - the input's `min` only constrains the picker.
   const isPastDate = !!newDate && newDate < minDate;
 
+  // An end before the start is allowed: overnight windows (22:00 – 02:00) are normal.
+  const isSameTime = !!startTime && startTime === endTime;
+  const now = new Date();
+  const nowHHmm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const isPastStart = newDate === minDate && !!startTime && startTime < nowHHmm;
+  const windowInvalid = !startTime || !endTime || isSameTime || isPastStart;
+
+  // Same string format the backend has always received from the free-text field.
+  const newWindow = `${startTime} – ${endTime} IST`;
+
   const submit = async () => {
     if (
       serviceApprovalId == null ||
       !newDate ||
-      !newWindow ||
+      windowInvalid ||
       !reason ||
       isPastDate
     ) {
@@ -151,7 +162,8 @@ export function RescheduleCrqModal({
       if (result.status === "Success") {
         toast.success(result.message);
         setNewDate("");
-        setNewWindow("");
+        setStartTime("");
+        setEndTime("");
         setReason("");
         onSuccess ? onSuccess() : onClose();
       } else {
@@ -223,16 +235,45 @@ export function RescheduleCrqModal({
           sx={{ mb: 1 }}
         />
 
-        <TextField
-          fullWidth
-          required
-          label="Maintenance window"
-          placeholder="e.g. 02:00 – 04:30 IST"
-          InputLabelProps={{ shrink: true }}
-          value={newWindow}
-          onChange={(e) => setNewWindow(e.target.value)}
-          sx={{ mb: 2 }}
-        />
+        <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1 }}>
+          Maintenance window (IST)
+        </Typography>
+        <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
+          <TextField
+            fullWidth
+            required
+            type="time"
+            label="Start time"
+            InputLabelProps={{ shrink: true }}
+            inputProps={{ step: 300 }}
+            error={isPastStart}
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+          />
+          <TextField
+            fullWidth
+            required
+            type="time"
+            label="End time"
+            InputLabelProps={{ shrink: true }}
+            inputProps={{ step: 300 }}
+            error={isSameTime}
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
+          />
+        </Box>
+        <Typography
+          variant="caption"
+          sx={{ display: "block", mb: 2, color: isPastStart || isSameTime ? "error.main" : "text.secondary" }}
+        >
+          {isPastStart
+            ? "Start time has already passed today."
+            : isSameTime
+              ? "End time must differ from start time."
+              : startTime && endTime
+                ? `${newWindow}${endTime < startTime ? " (ends next day)" : ""}`
+                : " "}
+        </Typography>
 
         <TextField
           fullWidth
@@ -256,7 +297,7 @@ export function RescheduleCrqModal({
             isLoading ||
             serviceApprovalId == null ||
             !newDate ||
-            !newWindow ||
+            windowInvalid ||
             !reason ||
             isPastDate
           }

@@ -4,28 +4,54 @@ import type { CRQWorkflowStageDto } from "../types/crqAnalytics.types";
 interface Props {
   stages: CRQWorkflowStageDto[];
   mode: "total" | "open";
+  /** KPI card value — the authoritative count; stage rows may not sum to it. */
+  kpiTotal: number | null;
   onStageClick: (stage: string) => void;
+  onViewAll?: () => void;
 }
 
 /** Grid of per-stage cards (count, % of total, progress bar) — mirrors the old
  * dashboard's Total/Open KPI expand panel. Not a chart component because the
  * old design wasn't a chart here, it was clickable stat cards. */
-export function WorkflowStageBreakdown({ stages, mode, onStageClick }: Props) {
+export function WorkflowStageBreakdown({ stages, mode, kpiTotal, onStageClick, onViewAll }: Props) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
 
   const data = stages.map((s) => ({ name: s.stage, count: mode === "total" ? s.totalCount : s.openCount }));
   const maxVal = Math.max(...data.map((d) => d.count), 1);
-  const total = data.reduce((a, b) => a + b.count, 0) || 1;
+  const stageSum = data.reduce((a, b) => a + b.count, 0);
+  // Prefer the KPI value so the panel matches the card that was clicked.
+  const displayTotal = kpiTotal ?? stageSum;
+  const total = displayTotal || 1;
+  const unstaged = displayTotal - stageSum;
 
   return (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", mb: 1.5 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: 1, mb: 1.5 }}>
+        {unstaged !== 0 && (
+          <Chip
+            label={`Stages account for ${stageSum} of ${displayTotal}`}
+            size="small"
+            color="warning"
+            variant="outlined"
+            sx={{ fontSize: 10, fontWeight: 600 }}
+          />
+        )}
         <Chip
-          label={`${total} across ${data.length} stages`}
+          label={`${displayTotal} across ${data.length} stages`}
           size="small"
           sx={{ fontSize: 10, fontWeight: 600, bgcolor: `${theme.palette.primary.main}18`, color: theme.palette.primary.main }}
         />
+        {onViewAll && (
+          <Chip
+            label={`View all ${displayTotal} CRQs`}
+            size="small"
+            clickable
+            onClick={onViewAll}
+            color="primary"
+            sx={{ fontSize: 10, fontWeight: 700 }}
+          />
+        )}
       </Box>
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(155px,1fr))", gap: 1.5 }}>
         {data.map((s) => {

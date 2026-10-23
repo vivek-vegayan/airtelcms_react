@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Badge,
@@ -248,20 +248,49 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
-  const markRead = (id: number) => {
-    setLocalReadIds((p) => ({ ...p, [id]: true }));
-    acknowledgeNotification({ notificationId: id }).catch(() => {});
+  // An actionable notification still awaiting a decision must stay in the
+  // list until it is approved/rejected (requestStatus leaves PENDING), so it
+  // is never acknowledged or dismissed just by being opened or "read".
+  const isPendingAction = (n: NotificationItem) =>
+    coerceBoolean(n.isActionable) && n.requestStatus === "PENDING";
+
+  // Opening a notification only marks it read locally; the acknowledge call
+  // (which drops it from the unread list) is deferred until the panel
+  // closes, so the item doesn't vanish while the user is still reading it.
+  const pendingAckIds = useRef<Set<number>>(new Set());
+
+  const flushPendingAcks = () => {
+    pendingAckIds.current.forEach((id) => {
+      acknowledgeNotification({ notificationId: id }).catch(() => {});
+    });
+    pendingAckIds.current.clear();
   };
 
-  const dismiss = (id: number) => {
-    setDismissed((p) => ({ ...p, [id]: true }));
-    markRead(id);
+  useEffect(() => {
+    if (!open) flushPendingAcks();
+  }, [open]);
+
+  useEffect(() => () => flushPendingAcks(), []);
+
+  const markRead = (n: NotificationItem) => {
+    setLocalReadIds((p) => ({ ...p, [n.notificationId]: true }));
+    if (isPendingAction(n)) return;
+    pendingAckIds.current.add(n.notificationId);
+  };
+
+  const dismiss = (n: NotificationItem) => {
+    if (isPendingAction(n)) return;
+    setDismissed((p) => ({ ...p, [n.notificationId]: true }));
+    setLocalReadIds((p) => ({ ...p, [n.notificationId]: true }));
+    pendingAckIds.current.delete(n.notificationId);
+    acknowledgeNotification({ notificationId: n.notificationId }).catch(() => {});
   };
 
   const markAll = () => {
     const patch: Record<number, boolean> = {};
     active.forEach((n) => {
       patch[n.notificationId] = true;
+      if (isPendingAction(n)) return;
       acknowledgeNotification({ notificationId: n.notificationId }).catch(
         () => {},
       );
@@ -747,7 +776,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                             <Box
                               onClick={() => {
                                 toggleExpand(n.notificationId);
-                                markRead(n.notificationId);
+                                markRead(n);
                               }}
                               sx={{
                                 display: "flex",
@@ -929,7 +958,12 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                 size="small"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  dismiss(n.notificationId);
+                                  if (isPendingAction(n)) {
+                                    if (!isExpanded) toggleExpand(n.notificationId);
+                                    markRead(n);
+                                  } else {
+                                    dismiss(n);
+                                  }
                                 }}
                                 sx={{
                                   fontSize: 9.5,
@@ -1042,12 +1076,13 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                       </>
                                     )}
 
-                                  {/* Dismiss */}
+                                  {/* Dismiss - hidden while a decision is still pending */}
+                                  {!isPendingAction(n) && (
                                   <Button
                                     size="small"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      dismiss(n.notificationId);
+                                      dismiss(n);
                                     }}
                                     sx={{
                                       fontSize: 9.5,
@@ -1064,6 +1099,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                   >
                                     Dismiss
                                   </Button>
+                                  )}
 
                                   {/* Collapse */}
                                   <Button

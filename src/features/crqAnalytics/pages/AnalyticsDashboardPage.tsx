@@ -86,7 +86,13 @@ export default function AnalyticsDashboardPage() {
                 height="auto"
               >
                 {(activePanel === "total" || activePanel === "open") && (
-                  <WorkflowStageBreakdown stages={data.workflowStages} mode={activePanel} onStageClick={drillToStage} />
+                  <WorkflowStageBreakdown
+                    stages={data.workflowStages}
+                    mode={activePanel}
+                    kpiTotal={activePanel === "total" ? data.kpi.totalCrq : data.kpi.openCrq}
+                    onStageClick={drillToStage}
+                    onViewAll={activePanel === "total" ? () => goToTable({ title: "All CRQs", tableType: "CRQ_LIST" }) : undefined}
+                  />
                 )}
                 {activePanel === "rejected" && (
                   <RejectionReasonsPanel reasons={data.rejectionReasons} isLoading={isFetching} onReasonClick={drillToReason} />
