@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAppDispatch } from "../../../app/hooks";
-import { authStorage, TOKEN_KEY } from "../../../app/store/auth.storage";
+import { authStorage, USER_KEY } from "../../../app/store/auth.storage";
 import {
   currentInAppPath,
   postLoginRedirect,
@@ -10,14 +10,22 @@ import {
   normalizeRBAC,
   normalizeModuleHierarchy,
 } from "../utils/rbacNormalizer";
-import { finishHydration, logout, setToken, setUser } from "../slices/auth.slice";
-import type { AuthUser } from "../types/auth.types";
+import { finishHydration, logout, setUser } from "../slices/auth.slice";
+import type { AuthUser, StoredUser } from "../types/auth.types";
 import { useGlobalLoading } from "../../../components/loading/LoadingProvider";
+
+const parseStoredUser = (raw: string | null): StoredUser | null => {
+  try {
+    return raw ? (JSON.parse(raw) as StoredUser) : null;
+  } catch {
+    return null;
+  }
+};
 
 const AuthHydrator = () => {
   const dispatch = useAppDispatch();
   const [fetchUser] = useLazyGetLoggedUserQuery();
-  // Drives the app's Global Loader for the real bootstrap window (token
+  // Drives the app's Global Loader for the real bootstrap window (session
   // validation on first paint / refresh) instead of the old blanket
   // "any RTK Query request in flight" counter — this is the only place a
   // full-screen loader should ever appear outside of an explicit page load.
@@ -25,9 +33,17 @@ const AuthHydrator = () => {
   useGlobalLoading(hydrating, "auth-hydration");
 
   useEffect(() => {
-    const validateAndHydrate = async (token: string) => {
-      dispatch(setToken(token));
+    // Builds before the memory-only token kept it in localStorage; make sure
+    // an upgraded browser doesn't keep a readable copy lying around.
+    authStorage.clearLegacyToken();
 
+    // The bearer token is memory-only, so after a reload there is none to
+    // send. getloggeduserdetails is authenticated instead by the httpOnly
+    // `jwt` cookie (service/api.ts sends credentials: "include", and the
+    // backend's JwtAuthenticationFilter falls back to that cookie when no
+    // Authorization header is present). Success means the server-side
+    // session is still live; any failure means the user must sign in.
+    const hydrateFromSession = async () => {
       // Paint the last-known user immediately so the UI doesn't blank out
       // while the validation call below is in flight; it gets overwritten
       // with the server's response (or discarded on failure) either way.
@@ -50,7 +66,6 @@ const AuthHydrator = () => {
         };
 
         dispatch(setUser(user));
-        authStorage.setToken(token);
         authStorage.setUser({
           olmId: user.olmId,
           employeeName: user.employeeName,
@@ -60,8 +75,8 @@ const AuthHydrator = () => {
           moduleHierarchy: user.moduleHierarchy,
         });
       } catch {
-        // Backend rejected the token (expired / invalid / revoked) — only
-        // now is it correct to treat the user as logged out.
+        // Backend rejected the session (cookie expired / invalid / revoked) —
+        // only now is it correct to treat the user as logged out.
         authStorage.clear();
         dispatch(logout());
       } finally {
@@ -70,9 +85,10 @@ const AuthHydrator = () => {
       }
     };
 
-    const token = authStorage.getToken();
-    if (token) {
-      void validateAndHydrate(token);
+    // A cached profile is the marker that this browser had a session; without
+    // one there's nothing to resume, so skip the round trip.
+    if (authStorage.getUser()) {
+      void hydrateFromSession();
     } else {
       // Cold start with no session at all: whatever URL is in the address bar
       // was typed or bookmarked by the person about to sign in, so it's theirs
@@ -90,11 +106,12 @@ const AuthHydrator = () => {
     }
 
     // Cross-tab sync: this fires in every OTHER tab whenever localStorage
-    // changes here (never in the tab that made the write), so there's no
-    // race to lose — a brand-new tab reads localStorage synchronously on
-    // its very first render via authStorage.getToken() above.
+    // changes here (never in the tab that made the write). The profile key is
+    // the session marker now that the token isn't stored; the jwt cookie
+    // itself is shared by every tab, so a tab only has to re-check with the
+    // server to pick up a sign-in made elsewhere.
     const handleStorage = (event: StorageEvent) => {
-      if (event.key !== TOKEN_KEY) return;
+      if (event.key !== USER_KEY) return;
 
       if (!event.newValue) {
         // Another tab signed out. Its localStorage removals are what woke us,
@@ -105,8 +122,13 @@ const AuthHydrator = () => {
         return;
       }
 
-      if (event.newValue !== event.oldValue) {
-        void validateAndHydrate(event.newValue);
+      // Every tab rewrites the profile when it hydrates, so only react to a
+      // genuinely new session — a sign-in from logged-out, or a different
+      // user — not to the same profile being saved again.
+      const previous = parseStoredUser(event.oldValue);
+      const next = parseStoredUser(event.newValue);
+      if (!previous || previous.userId !== next?.userId) {
+        void hydrateFromSession();
       }
     };
 
@@ -116,12 +138,11 @@ const AuthHydrator = () => {
     // in-memory snapshot (event.persisted) instead of re-running main.tsx —
     // e.g. pressing Back right after logout — re-validate against the
     // backend instead of trusting whatever was painted before the snapshot,
-    // so a revoked/expired token can't leave a stale authenticated UI up.
+    // so a revoked/expired session can't leave a stale authenticated UI up.
     const handlePageShow = (event: PageTransitionEvent) => {
       if (!event.persisted) return;
-      const currentToken = authStorage.getToken();
-      if (currentToken) {
-        void validateAndHydrate(currentToken);
+      if (authStorage.getUser()) {
+        void hydrateFromSession();
       } else {
         dispatch(logout());
       }

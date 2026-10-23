@@ -1,10 +1,6 @@
 
-import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import { pdf } from "@react-pdf/renderer";
-// import { EmployeeExportDoc } from "../components/export/EmployeeExportDoc";
 import React from "react";
-import { EmployeeExportDoc } from "../components/export/EmployeeExportDoc";
 
 export type ExportFormat = "excel" | "pdf" | "csv";
 
@@ -62,6 +58,8 @@ async function exportExcel(
   keys: string[],
   headers: string[]
 ) {
+  // Loaded on demand so the ~1MB exceljs chunk only downloads on export.
+  const { default: ExcelJS } = await import("exceljs");
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Employees");
 
@@ -141,6 +139,12 @@ async function exportPdf(
   headers: string[],
   orientation: "landscape" | "portrait"
 ) {
+  // @react-pdf/renderer is ~1.5MB; load it, and the document component that
+  // imports it, only when a PDF export is actually requested.
+  const [{ pdf }, { EmployeeExportDoc }] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import("../components/export/EmployeeExportDoc"),
+  ]);
   const doc = React.createElement(EmployeeExportDoc, {
     rows,
     keys,

@@ -4,6 +4,7 @@ import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurned
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import { toast } from "react-toastify";
 import { MopVersionStrip, formatStamp } from "./MopVersionStrip";
 import {
@@ -11,6 +12,7 @@ import {
   useStartMopReviewMutation,
 } from "../../../../api/mopValidateApiSlice";
 import { MopReviewWorkspaceDialog } from "./MopReviewWorkspaceDialog";
+import { MopCorrectedVersionDialog } from "./MopCorrectedVersionDialog";
 import { Lbl, ToneChip, outlineBtnSx, solidBtnSx } from "./mopUi";
 
 interface MopValidatePanelProps {
@@ -54,6 +56,7 @@ export const MopValidatePanel: React.FC<MopValidatePanelProps> = ({ crqNo, readO
   // design pairs a document viewer with a 420px rail, which cannot breathe
   // inside what is already the right half of the stage dialog.
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const handleStart = async () => {
     if (!crqNo) return;
@@ -78,7 +81,10 @@ export const MopValidatePanel: React.FC<MopValidatePanelProps> = ({ crqNo, readO
   }
 
   const hasVersion = Boolean(data?.versionId);
-  const canStart = hasVersion && !data?.reviewOpen && !readOnly;
+  // A rejected version is decided; the next step is a corrected version, not
+  // another review of the same file.
+  const isRejected = data?.versionStatus === "rejected";
+  const canStart = hasVersion && !data?.reviewOpen && !readOnly && !isRejected;
 
   return (
     <Box
@@ -139,6 +145,7 @@ export const MopValidatePanel: React.FC<MopValidatePanelProps> = ({ crqNo, readO
           isStarting={isStarting}
           onStart={handleStart}
           onOpenWorkspace={() => setWorkspaceOpen(true)}
+          onUploadCorrected={() => setUploadOpen(true)}
         />
       )}
 
@@ -149,9 +156,20 @@ export const MopValidatePanel: React.FC<MopValidatePanelProps> = ({ crqNo, readO
         <MopReviewWorkspaceDialog
           crqNo={crqNo}
           open={workspaceOpen}
+          readOnly={readOnly}
           onClose={() => setWorkspaceOpen(false)}
         />
       )}
+
+      <MopCorrectedVersionDialog
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        crqNo={crqNo}
+        rejectedVersionNo={data?.versionNo ?? null}
+        rejectionReason={data?.decisionNote ?? null}
+        rejectedBy={data?.decidedBy ?? null}
+        colors={colors}
+      />
     </Box>
   );
 };
@@ -197,7 +215,10 @@ const ReviewBody: React.FC<{
   isStarting: boolean;
   onStart: () => void;
   onOpenWorkspace: () => void;
-}> = ({ data, colors, canStart, readOnly, isStarting, onStart, onOpenWorkspace }) => (
+  onUploadCorrected: () => void;
+}> = ({ data, colors, canStart, readOnly, isStarting, onStart, onOpenWorkspace, onUploadCorrected }) => {
+  const isRejected = data.versionStatus === "rejected";
+  return (
   <Box
     sx={{
       flex: 1,
@@ -217,7 +238,11 @@ const ReviewBody: React.FC<{
       />
       <Box sx={{ minWidth: 0, flex: "1 1 200px" }}>
         <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary }}>
-          {data.reviewOpen ? "Review in progress" : "Review not started"}
+          {data.reviewOpen
+            ? "Review in progress"
+            : isRejected
+              ? `v${data.versionNo} rejected`
+              : "Review not started"}
         </Typography>
         <Typography sx={{ fontSize: 12, color: colors.textSecondary }}>
           {data.reviewOpen
@@ -226,13 +251,27 @@ const ReviewBody: React.FC<{
               `${data.reviewOwnedByMe ? "You" : data.reviewerId ?? "Another reviewer"} opened this version${
                 data.reviewStartedAt ? ` on ${formatStamp(data.reviewStartedAt)}` : ""
               }.`
-            : "Opening the review assigns this MOP to you and moves it to In review."}
+            : isRejected
+              ? `Upload a corrected version (v${(data.versionNo ?? 0) + 1}) to send it back for review.`
+              : "Opening the review assigns this MOP to you and moves it to In review."}
         </Typography>
       </Box>
 
       {data.reviewOpen && data.reviewOwnedByMe && <ToneChip label="Yours" tone={colors.accent} />}
 
-      {!data.reviewOpen && (
+      {isRejected && (
+        <Button
+          size="small"
+          onClick={onUploadCorrected}
+          disabled={readOnly}
+          startIcon={<UploadFileOutlinedIcon sx={{ fontSize: "17px !important" }} />}
+          sx={outlineBtnSx(colors, colors.accent)}
+        >
+          Upload corrected version
+        </Button>
+      )}
+
+      {!data.reviewOpen && !isRejected && (
         <Button
           size="small"
           onClick={onStart}
@@ -267,7 +306,9 @@ const ReviewBody: React.FC<{
 
     {readOnly && !data.reviewOpen && (
       <Alert severity="info" sx={{ fontSize: 12, py: 0.25 }}>
-        This stage is closed, so the review cannot be opened from here.
+        {isRejected
+          ? "This stage is closed, so a corrected version cannot be uploaded from here."
+          : "This stage is closed, so the review cannot be opened from here."}
       </Alert>
     )}
 
@@ -289,7 +330,8 @@ const ReviewBody: React.FC<{
 
     <Box sx={{ flex: 1 }} />
   </Box>
-);
+  );
+};
 
 const Field: React.FC<{ label: string; value: string; colors: any }> = ({
   label,

@@ -126,6 +126,9 @@ const CabManagerMainPageTab: React.FC<CabManagerMainPageTabProps> = ({
         backgroundColor: tk.accentDim,
         maxWidth: "100%",
         minHeight: SHELL_MIN_HEIGHT,
+        // Exactly one screen tall: header inset + tab strip + content box below
+        // must not add up past the viewport, or the shell shows a scrollbar.
+        height: "100vh",
         display: "flex",
         flexDirection: "column",
         pl: 8,
@@ -214,8 +217,17 @@ const CabManagerMainPageTab: React.FC<CabManagerMainPageTabProps> = ({
 
       {/* ================= CONTENT ================= */}
 
-      <Box sx={{ p: 0, flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <CommonContainer>
+      <Box sx={{ p: 0, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        {/* Fill the space left under the tab strip instead of CommonContainer's
+            own viewport-based height, which overshot the screen by ~50px
+            (e.g. at 125% display scaling). Taller pages scroll inside it. */}
+        <CommonContainer
+          sx={{
+            flex: 1,
+            height: { xs: "auto", sm: "auto", md: "auto", lg: "auto", xl: "auto" },
+            minHeight: 0,
+          }}
+        >
         <Suspense fallback={<RouteFallback />}>
           <AnimatedOutlet />
         </Suspense>

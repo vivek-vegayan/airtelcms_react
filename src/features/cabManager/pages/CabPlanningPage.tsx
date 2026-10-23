@@ -3,22 +3,28 @@ import {
   Button,
   Chip,
   IconButton,
+  MenuItem,
   Paper,
   Skeleton,
   Stack,
+  TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs, { type Dayjs } from "dayjs";
 import {
   MaterialReactTable,
   type MRT_ColumnDef,
+  type MRT_ColumnFiltersState,
   type MRT_RowSelectionState,
 } from "material-react-table";
 import { useAppTable } from "../../../components/ui/AppTable";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import { useEffect, useMemo, useState } from "react";
-import { authStorage } from "../../../app/store/auth.storage";
+import { useAuth } from "../../auth/hooks/useAuth";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
@@ -26,18 +32,58 @@ import { useApiRefresh } from "../../../hooks/useApiRefresh";
 import { useGetCabPlanDatesQuery, useGetCabQueueQuery } from "../api/cabManagerApiSlice";
 import { PlanCabModal } from "../components/modals/PlanCabModal";
 import { CabQueueState } from "../components/shared/CabQueueState";
-import { ImpactChip } from "../components/shared/Chips";
+import { getStageLabel, ImpactChip, StageChip, StatusChip } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
-import type { CabQueueRow } from "../types/types";
+import { ExportExcelButton } from "../components/shared/ExportExcelButton";
+import { isWindowOverdue, parseExecutionWindow } from "../components/shared/executionWindow";
+import { exportRowsToExcel, type ExcelColumn } from "../../crqAnalytics/utils/excelExport";
+import { STAGES } from "../data/cabManager.mock";
+import type { CabQueueParams, CabQueueRow, CrqStage } from "../types/types";
+
+type StageFilter = NonNullable<CabQueueParams["stage"]>;
+
+const QUEUE_EXPORT_COLUMNS: ExcelColumn[] = [
+  { header: "CRQ No", key: "crqNo", width: 20 },
+  { header: "Stage", key: "currentStage", width: 22 },
+  { header: "Status", key: "currentStatus", width: 16 },
+  { header: "Impact", key: "impact", width: 10 },
+  { header: "Circle", key: "circle", width: 16 },
+  { header: "Domain", key: "domain", width: 16 },
+  { header: "Execution Window", key: "executionWindow", width: 28 },
+];
+
+type DateRangeFilterValue = [Dayjs | null | undefined, Dayjs | null | undefined] | undefined;
+
+/**
+ * Filter for the Execution Window column's date-range picker. Compares by
+ * calendar day: MRT's built-in betweenInclusive would treat the "To" date as
+ * midnight and drop windows later that same day. Rows with no window never
+ * match an active range.
+ */
+function executionWindowDateFilter(
+  row: { original: CabQueueRow },
+  _columnId: string,
+  value: DateRangeFilterValue,
+): boolean {
+  const [from, to] = value ?? [];
+  if (!from && !to) return true;
+  const w = parseExecutionWindow(row.original.executionWindow);
+  if (!w) return false;
+  if (from && w.day.isBefore(dayjs(from).startOf("day"))) return false;
+  if (to && w.day.isAfter(dayjs(to).startOf("day"))) return false;
+  return true;
+}
 
 export function CabPlanningPage() {
-  const roleCode = authStorage.getUser()?.roleCode ?? "TEAM_MEMBER";
+  const roleCode = useAuth().role ?? "TEAM_MEMBER";
   const { values, handleChange, resetAll } = useOrgHierarchyState("cabPlanning");
   const { options } = useOrgHierarchyFilters(values);
+  const [stage, setStage] = useState<StageFilter>("All");
+  const [columnFilters, setColumnFilters] = useState<MRT_ColumnFiltersState>([]);
 
   const shouldFetch = Boolean(values.domain) && values.subDomain != null;
   const queue = useGetCabQueueQuery(
-    { domainId: values.domain!, subDomainId: values.subDomain! },
+    { domainId: values.domain!, subDomainId: values.subDomain!, stage },
     { skip: !shouldFetch }
   );
   const dates = useGetCabPlanDatesQuery();
@@ -68,12 +114,17 @@ export function CabPlanningPage() {
     return domain && subDomain ? `${domain} › ${subDomain}` : undefined;
   }, [options.domain, options.subDomain, values.domain, values.subDomain]);
 
+  // Scope plus the stage filter, for the empty/error copy.
+  const queueScopeLabel =
+    scopeLabel && stage !== "All" ? `${scopeLabel} · ${getStageLabel(stage)}` : scopeLabel;
+
   // Row selection is keyed by CRQ number. Without this, CRQs ticked under one
-  // Sub Domain stayed selected after switching scope and would have been planned
-  // into a CAB session the user could no longer see.
+  // Sub Domain (or stage) stayed selected after switching scope and would have
+  // been planned into a CAB session the user could no longer see.
+  // Column filters hide rows too, so they clear the selection for the same reason.
   useEffect(() => {
     setRowSelection({});
-  }, [values.domain, values.subDomain]);
+  }, [values.domain, values.subDomain, stage, columnFilters]);
 
   // `queue.data` is RTK Query's "last successful result for ANY arg", so it keeps
   // serving the previous Sub Domain's CRQs while the new scope loads or fails.
@@ -94,6 +145,18 @@ export function CabPlanningPage() {
         ),
       },
       {
+        accessorKey: "currentStage",
+        header: "Stage",
+        size: 150,
+        Cell: ({ row }) => <StageChip stage={row.original.currentStage as CrqStage} />,
+      },
+      {
+        accessorKey: "currentStatus",
+        header: "Status",
+        size: 120,
+        Cell: ({ row }) => <StatusChip status={row.original.currentStatus} />,
+      },
+      {
         accessorKey: "impact",
         header: "Impact",
         size: 100,
@@ -102,14 +165,33 @@ export function CabPlanningPage() {
       { accessorKey: "circle", header: "Circle", size: 130 },
       { accessorKey: "domain", header: "Domain", size: 130 },
       {
-        accessorKey: "executionWindow",
+        // Sorts on the parsed start time — the raw "DD-MM-YYYY" text would sort
+        // by day-of-month. Rows without a window always go last.
+        id: "executionWindow",
+        accessorFn: (r) => parseExecutionWindow(r.executionWindow)?.start.valueOf(),
+        sortUndefined: "last",
         header: "Execution Window",
         size: 160,
-        Cell: ({ row }) => (
-          <Typography sx={{ fontFamily: "'Roboto Mono', monospace", fontSize: 12, color: "text.secondary" }}>
-            {row.original.executionWindow}
-          </Typography>
-        ),
+        enableColumnFilter: true,
+        filterVariant: "date-range",
+        filterFn: executionWindowDateFilter,
+        muiFilterDatePickerProps: { format: "DD-MM-YYYY" },
+        Cell: ({ row }) => {
+          const overdue = isWindowOverdue(parseExecutionWindow(row.original.executionWindow));
+          return (
+            <Tooltip title={overdue ? "Window has already passed" : ""}>
+              <Typography
+                sx={{
+                  fontFamily: "'Roboto Mono', monospace",
+                  fontSize: 12,
+                  color: overdue ? "error.main" : "text.secondary",
+                }}
+              >
+                {row.original.executionWindow ?? "—"}
+              </Typography>
+            </Tooltip>
+          );
+        },
       },
     ],
     []
@@ -119,9 +201,16 @@ export function CabPlanningPage() {
     columns,
     data: rows,
     getRowId: (row) => row.crqNo,
-    state: { isLoading: queue.isFetching, rowSelection },
+    state: { isLoading: queue.isFetching, rowSelection, columnFilters },
     onRowSelectionChange: setRowSelection,
+    onColumnFiltersChange: setColumnFilters,
     enableRowSelection: true,
+    // Only Execution Window is filterable; its filter opens from a funnel icon
+    // in the column header (the top toolbar is hidden on this table).
+    enableColumnFilters: true,
+    enableGlobalFilter: false,
+    defaultColumn: { enableColumnFilter: false },
+    columnFilterDisplayMode: "popover",
     appTable: {
       emptyTitle: "No CRQs match the current table filters",
       // Wrapped in the section's own bordered Paper.
@@ -131,6 +220,18 @@ export function CabPlanningPage() {
     enableTopToolbar: false,
     muiTableBodyRowProps: { hover: true, sx: { cursor: "pointer" } },
   });
+
+  // Every row in the table's current sort/filter order, not just this page.
+  const handleExport = () =>
+    exportRowsToExcel(
+      table.getPrePaginationRowModel().rows.map((r) => ({
+        ...r.original,
+        currentStage: getStageLabel(r.original.currentStage),
+      })),
+      QUEUE_EXPORT_COLUMNS,
+      "CAB Waiting Queue",
+      "CAB_Waiting_Queue",
+    );
 
   return (
     <Box>
@@ -173,12 +274,27 @@ export function CabPlanningPage() {
             )}
             {shouldFetch && !queue.isFetching && !queue.isError && (
               <Typography variant="caption" sx={{ color: "text.secondary", flexShrink: 0 }}>
+                {columnFilters.length > 0 ? `${table.getFilteredRowModel().rows.length} of ` : ""}
                 {rows.length} CRQ{rows.length === 1 ? "" : "s"}
               </Typography>
             )}
           </Stack>
 
           <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+            <TextField
+              select
+              size="small"
+              label="Stage"
+              value={stage}
+              onChange={(e) => setStage(e.target.value as StageFilter)}
+              disabled={!shouldFetch}
+              sx={{ minWidth: 180 }}
+            >
+              <MenuItem value="All">All stages</MenuItem>
+              {STAGES.map((s) => (
+                <MenuItem key={s} value={s}>{getStageLabel(s)}</MenuItem>
+              ))}
+            </TextField>
             {shouldFetch && (
               <Tooltip title="Refresh queue">
                 <span>
@@ -192,6 +308,10 @@ export function CabPlanningPage() {
                 </span>
               </Tooltip>
             )}
+            <ExportExcelButton
+              onExport={handleExport}
+              disabled={!shouldFetch || queue.isFetching || table.getFilteredRowModel().rows.length === 0}
+            />
             {selected.length > 0 && (
               <Button variant="contained" startIcon={<EventNoteIcon />} onClick={() => setOpenPlan(true)}>
                 Plan CAB · {selected.length} selected
@@ -205,19 +325,22 @@ export function CabPlanningPage() {
         ) : queue.isError ? (
           <CabQueueState
             kind="error"
-            scopeLabel={scopeLabel}
+            scopeLabel={queueScopeLabel}
             message={errMsg(queue.error)}
             onRetry={() => void queue.refetch()}
           />
         ) : isEmptyForScope ? (
           <CabQueueState
             kind="empty"
-            scopeLabel={scopeLabel}
+            scopeLabel={queueScopeLabel}
             onRetry={() => void queue.refetch()}
             onChangeScope={resetAll}
           />
         ) : (
-          <MaterialReactTable table={table} />
+          // MRT's date-range column filter renders MUI X date pickers.
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <MaterialReactTable table={table} />
+          </LocalizationProvider>
         )}
       </Paper>
 

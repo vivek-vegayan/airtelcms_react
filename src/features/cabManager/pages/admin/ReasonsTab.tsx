@@ -29,6 +29,13 @@ import {
   useUpdateCabRejectReasonMutation,
 } from "../../api/cabManagerApiSlice";
 import type { CabRejectReason } from "../../types/types";
+import { ExportExcelButton } from "../../components/shared/ExportExcelButton";
+import { exportRowsToExcel, type ExcelColumn } from "../../../crqAnalytics/utils/excelExport";
+
+const REASON_EXPORT_COLUMNS: ExcelColumn[] = [
+  { header: "ID", key: "reasonId", width: 10 },
+  { header: "Reason", key: "reasonText", width: 60 },
+];
 
 export function AdminReasonsTab() {
 
@@ -227,6 +234,12 @@ export function AdminReasonsTab() {
             >
               Add reason
             </Button>
+            <ExportExcelButton
+              onExport={() =>
+                exportRowsToExcel(data ?? [], REASON_EXPORT_COLUMNS, "Rejection Reasons", "CAB_Rejection_Reasons")
+              }
+              disabled={!data?.length}
+            />
           </Stack>
         </Stack>
 

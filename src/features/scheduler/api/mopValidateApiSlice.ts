@@ -40,6 +40,32 @@ export const mopValidateApiSlice = api.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, crqNo) => [{ type: "MopReview", id: crqNo }],
     }),
+
+    // POST /crqworkflow/mopvalidate/{crqNo}/versions (multipart) -
+    // sp_mop_version_add. Only accepted while the current version is
+    // rejected: archives that version's document, adds the next version as
+    // pending_validation and makes it current. The new file also replaces the
+    // CRQ's stored document, so MOP Create's preview is stale too.
+    uploadCorrectedMopVersion: builder.mutation<
+      MopValidateDetails,
+      { crqNo: string; file: File; note?: string }
+    >({
+      query: ({ crqNo, file, note }) => {
+        const body = new FormData();
+        body.append("file", file);
+        if (note) body.append("note", note);
+        return {
+          url: `/crqworkflow/mopvalidate/${crqNo}/versions`,
+          method: "POST",
+          body,
+        };
+      },
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "MopReview", id: arg.crqNo },
+        { type: "MopDocument", id: arg.crqNo },
+        { type: "MopDocument", id: `${arg.crqNo}-pdf` },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -47,4 +73,5 @@ export const mopValidateApiSlice = api.injectEndpoints({
 export const {
   useGetMopValidateDetailsQuery,
   useStartMopReviewMutation,
+  useUploadCorrectedMopVersionMutation,
 } = mopValidateApiSlice;

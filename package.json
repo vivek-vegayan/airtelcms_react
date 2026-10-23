@@ -14,16 +14,12 @@
     "@emotion/styled": "^11.14.1",
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/ibm-plex-sans": "^5.2.8",
-    "@fontsource/roboto": "^5.2.9",
     "@fontsource/space-grotesk": "^5.2.10",
     "@mui/icons-material": "^7.3.6",
     "@mui/material": "^7.3.9",
-    "@mui/styled-engine-sc": "^7.3.6",
-    "@mui/x-data-grid": "^8.27.1",
     "@mui/x-date-pickers": "^8.27.2",
     "@react-pdf/renderer": "^4.3.2",
     "@reduxjs/toolkit": "^2.11.2",
-    "axios": "^1.13.2",
     "chart.js": "^4.5.1",
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
@@ -38,9 +34,7 @@
     "react-pdf": "^10.3.0",
     "react-redux": "^9.2.0",
     "react-router": "^7.11.0",
-    "react-spinners": "^0.17.0",
-    "react-toastify": "^11.0.5",
-    "styled-components": "^6.2.0"
+    "react-toastify": "^11.0.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

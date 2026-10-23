@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { Box, Button, Tooltip } from "@mui/material";
 import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
 
-import { authStorage } from "../../../../app/store/auth.storage";
+import { useAuth } from "../../../auth/hooks/useAuth";
 import { usePermission } from "../../../../rbac/usePermission";
 import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
@@ -39,8 +39,8 @@ export const TeamManagementFilter = ({
   onRefresh,
   isRefreshing,
 }: Props) => {
-  const loggedUser  = authStorage.getUser();
-  const actorUserId = loggedUser?.userId;
+  const { user: loggedUser } = useAuth();
+  const actorUserId = loggedUser ? Number(loggedUser.userId) : undefined;
   const roleName    = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { can } = usePermission();
   const canCreateTeam = can("Team Management", "CREATE");

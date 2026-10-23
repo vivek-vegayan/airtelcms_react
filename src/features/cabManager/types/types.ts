@@ -95,13 +95,16 @@ export interface CircleDropdown {
 }
 
 // ── Filters used by All CRQs ─────────────────────────────────────────────────
+/** Status buckets understood by sp_get_cab_crqs (p_service_approval_status). */
+export type CrqServiceApprovalStatusFilter = "PENDING" | "COMPLETED" | "RESCHEDULE";
+
 export interface CrqFilters {
-  stage?: CrqStage | "All Stages";
   domain?: Domain | "All Domains";
   circle?: Circle | "All Circles";
   impact?: ImpactCode | "All Impact";
   serviceCode?: string;
   search?: string;
+  serviceApprovalStatus?: CrqServiceApprovalStatusFilter;
 }
 
 // ── Dashboard ───────────────────────────────────────────────────────────────
@@ -179,15 +182,20 @@ export interface CrqJourney {
 // ── CAB Planning ────────────────────────────────────────────────────────────
 export interface CabQueueRow {
   crqNo: string;
+  currentStage: CrqStage | string;
+  currentStatus: string;
   impact: ImpactCode;
   circle: string;
   domain: Domain;
-  executionWindow: string;
+  /** "DD-MM-YYYY HH:mm - HH:mm", or null when the CRQ has no window yet. */
+  executionWindow: string | null;
 }
 
 export interface CabQueueParams {
   domainId: number;
   subDomainId: number;
+  /** "All" (default) or a current_stage value. */
+  stage?: CrqStage | "All";
 }
 
 export interface CabPlanDate {
@@ -347,6 +355,14 @@ export interface ServiceApprovalRule {
   l1: string;
   l2: string;
   l3: string;
+  /** OLM ids — pre-fill the Edit dialog (the upsert takes OLM ids, not names). */
+  l1OlmId?: string | null;
+  l2OlmId?: string | null;
+  l3OlmId?: string | null;
+  /** TIME as "HH:mm:ss" — null when the tier has no escalation time. */
+  l1EscalationTime?: string | null;
+  l2EscalationTime?: string | null;
+  l3EscalationTime?: string | null;
   active: boolean;
 }
 
@@ -456,8 +472,12 @@ export interface AddServiceRulePayload {
   service: string;
   circle: string;
   l1: string;
-  l2: string;
-  l3: string;
+  l2?: string | null;
+  l3?: string | null;
+  /** "HH:mm" (from <input type="time">); null to leave unset. */
+  l1EscalationTime?: string | null;
+  l2EscalationTime?: string | null;
+  l3EscalationTime?: string | null;
   active: boolean;
 }
 

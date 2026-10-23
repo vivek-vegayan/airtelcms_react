@@ -1,5 +1,5 @@
 import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
-import { authStorage } from "../../../../app/store/auth.storage";
+import { useAuth } from "../../../auth/hooks/useAuth";
 import { useOrgHierarchyState } from "../../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import { useApiRefresh } from "../../../../hooks/useApiRefresh";
@@ -7,7 +7,7 @@ import { TaskConfig } from "./components/TaskConfig";
 import { useGetTaskConfigViewQuery } from "./api/taskConfigApi";
 
 export const TaskConfigMain = () => {
-  const loggedUser = authStorage.getUser();
+  const { user: loggedUser } = useAuth();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { values, handleChange } = useOrgHierarchyState("taskConfig");
   const { options } = useOrgHierarchyFilters(values);

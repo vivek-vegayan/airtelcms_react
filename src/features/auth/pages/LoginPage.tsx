@@ -356,7 +356,10 @@ const LoginPage: React.FC = () => {
     };
 
     dispatch(setUser(user));
-    authStorage.setToken(res.accessToken);
+    // The token stays in Redux only (see auth.storage.ts). Start the idle
+    // clock fresh so a timestamp left by an earlier session can't sign this
+    // one straight back out.
+    authStorage.setLastActivity();
     const storedUser = {
       olmId: user.olmId,
       employeeName: user.employeeName,
@@ -366,9 +369,9 @@ const LoginPage: React.FC = () => {
       moduleHierarchy: user.moduleHierarchy,
     };
     authStorage.setUser(storedUser);
-    // Writing to localStorage above already notifies any other open tab
-    // via the native `storage` event (see AuthHydrator), so no separate
-    // broadcast is needed here.
+    // Writing the profile to localStorage above already notifies any other
+    // open tab via the native `storage` event (see AuthHydrator), which then
+    // picks up this session through the shared jwt cookie.
     // Redux hasn't re-rendered with the new user yet, so the landing target
     // is computed directly from the just-fetched user object (via the same
     // pure predicates usePermission() uses) rather than the usePermission

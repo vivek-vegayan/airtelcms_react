@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { authStorage } from "../../../app/store/auth.storage";
+import { useAuth } from "../../auth/hooks/useAuth";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import { useGetCrqsBySubDomainQuery, useGetCrqDetailsQuery } from "../api/crqJourneyExplorer.api";
@@ -7,7 +7,7 @@ import type { CrqJourneySearchRow } from "../types/crqJourney.types";
 
 /** Drives /scheduler/crqjourney: sub-domain scoped CRQ search → info card + 7-stage timeline. */
 export const useCrqDetails = () => {
-  const loggedUser = authStorage.getUser();
+  const { user: loggedUser } = useAuth();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
 
   const { values, handleChange } = useOrgHierarchyState("crqDetails");

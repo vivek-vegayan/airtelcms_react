@@ -1,6 +1,13 @@
 import { memo } from "react";
 import { alpha, Box, TableCell, Tooltip } from "@mui/material";
-import { CELL_H, CELL_W, DOW_LONG, MONO, SHIFT_META } from "./goldenGrid.constants";
+import {
+  CELL_H,
+  CELL_W,
+  displayShiftCode,
+  DOW_LONG,
+  MONO,
+  SHIFT_META,
+} from "./goldenGrid.constants";
 import type { EditMode, GoldenGridTokens } from "./goldenGrid.types";
 import { getShiftColor } from "./goldenGrid.utils";
 
@@ -110,7 +117,7 @@ function GoldenGridShiftCell({
             onCellMouseEnter(employeeId, columnIndex);
           }}
         >
-          {code}
+          {displayShiftCode(code)}
         </Box>
       </Tooltip>
     </TableCell>

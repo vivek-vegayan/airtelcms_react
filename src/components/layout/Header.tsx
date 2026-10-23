@@ -38,11 +38,8 @@ import { useNavigate } from "react-router";
 import VegayanLogo from "../../assets/images/vegayan_logo.png";
 import AirtelLog from "../../assets/images/airtel3.png";
 import { toast } from "react-toastify";
-import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { useLogoutMutation } from "../../features/auth/api/auth.api";
-import { logout } from "../../features/auth/slices/auth.slice";
-import { authStorage } from "../../app/store/auth.storage";
-import { api } from "../../service/api";
+import { useAppSelector } from "../../app/hooks";
+import { useLogout } from "../../features/auth/hooks/useLogout";
 import ChangePasswordDialog from "../common/ChangePasswordDialog";
 import { DRAWER_WIDTH, COLLAPSED_WIDTH, MOBILE_HEADER_INSET } from "./layoutConstants";
 import GlobalSearchModal from "../../features/globalSearch/GlobalSearchModal";
@@ -73,7 +70,6 @@ const Header: React.FC<HeaderProps> = ({
   onMobileNavToggle,
 }) => {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
   const { toggleColorMode, primaryColor, setPrimaryColor } = useContext(ColorModeContext);
@@ -105,31 +101,17 @@ const Header: React.FC<HeaderProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [newPasswordError, setNewPasswordError] = useState<string | null>(null);
 
-  const [logoutApi] = useLogoutMutation();
+  const logoutUser = useLogout();
   if (!user) return null;
 
   const olmId = user.olmId;
   const roleCode = user.roleCode;
 
   const handleLogout = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      await logoutApi({ olmId: user.olmId }).unwrap();
-    } catch {
-      console.warn("Logout API failed, continuing local logout");
+      await logoutUser();
     } finally {
-      // Only clear the auth keys, not the whole storage — a blanket
-      // localStorage.clear() also wiped unrelated saved preferences
-      // (theme, brand colour, sidebar state) on every logout.
-      // Clearing these keys fires the native `storage` event in every
-      // other open tab, which AuthHydrator listens for to log them out too.
-      authStorage.clear();
-      dispatch(logout());
-      // Clear every cached query too — otherwise a re-login (same user or a
-      // different one on a shared machine) can briefly render this session's
-      // stale attendance/roster/profile data before a refetch catches up.
-      dispatch(api.util.resetApiState());
-      navigate("/login", { replace: true });
       setLoading(false);
     }
   };

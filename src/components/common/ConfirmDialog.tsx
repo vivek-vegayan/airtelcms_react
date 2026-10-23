@@ -12,6 +12,7 @@ export interface ConfirmDialogState {
   body: string;
   onConfirm: () => void;
   confirmLabel?: string;
+  cancelLabel?: string;
 }
 
 interface ConfirmDialogProps {
@@ -49,7 +50,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ state, onClose, c 
       </DialogContent>
       <DialogActions sx={{ px: 2.5, pb: 2, gap: 1 }}>
         <Box component="button" onClick={onClose} sx={{ ...btnSx, border: `1px solid ${c.border}`, bgcolor: "transparent", color: c.textSecondary }}>
-          Cancel
+          {state.cancelLabel ?? "Cancel"}
         </Box>
         <Box component="button" onClick={state.onConfirm} sx={{ ...btnSx, border: `1px solid ${c.danger}`, bgcolor: c.danger, color: "#fff" }}>
           {state.confirmLabel ?? "Confirm"}

@@ -8,11 +8,15 @@ import {
   MenuItem,
   Paper,
   Stack,
+  SvgIcon,
   TextField,
   Typography,
   useTheme,
 } from "@mui/material";
 import ClearRoundedIcon from "@mui/icons-material/ClearRounded";
+import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
+import HourglassTopRoundedIcon from "@mui/icons-material/HourglassTopRounded";
+import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { alpha } from "@mui/material/styles";
 import {
@@ -29,25 +33,46 @@ import {
 } from "../api/cabManagerApiSlice";
 import { AllCrqDetailDrawer } from "../components/shared/AllCrqDetailDrawer";
 // import { NewCrqModal } from "../components/modals/NewCrqModal";
-import { ImpactChip, StageChip, StatusChip, getStageLabel } from "../components/shared/Chips";
+import { ImpactChip, StatusChip, getStageLabel } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
-import { STAGES } from "../data/cabManager.mock";
+import { ExportExcelButton } from "../components/shared/ExportExcelButton";
+import { exportRowsToExcel, type ExcelColumn } from "../../crqAnalytics/utils/excelExport";
 import type {
-  Circle, Crq, CrqFilters, CrqStage, Domain, ImpactCode,
+  Circle, Crq, CrqFilters, CrqServiceApprovalStatusFilter, Domain, ImpactCode,
 } from "../types/types";
 
+const ALL_CRQS_EXPORT_COLUMNS: ExcelColumn[] = [
+  { header: "CRQ No", key: "crqNo", width: 20 },
+  { header: "Domain", key: "domainName", width: 16 },
+  { header: "Circle", key: "circleCode", width: 12 },
+  { header: "Stage", key: "currentStage", width: 22 },
+  { header: "Stage Status", key: "stageStatus", width: 18 },
+  { header: "Service", key: "serviceCode", width: 18 },
+  { header: "Impact", key: "changeImpact", width: 10 },
+  { header: "Approval Status", key: "serviceApprovalStatus", width: 18 },
+];
 
 
 
 const DOMAINS: Domain[] = ["IP Core", "Optics", "Packet", "Embedded", "Mobility"];
 
-const STAGE_FILTERS: { label: string; value: CrqStage | "All Stages" }[] = [
-  { label: "All Stages", value: "All Stages" },
-  ...STAGES.map((s) => ({ label: getStageLabel(s), value: s as CrqStage })),
+// Status buckets resolved by sp_get_cab_crqs:
+//   PENDING    -> PENDING
+//   COMPLETED  -> APPROVED + REJECTED
+//   RESCHEDULE -> RESCHEDULE / RESCHEDULED
+const STATUS_FILTERS: {
+  label: string;
+  value: CrqServiceApprovalStatusFilter;
+  icon: typeof SvgIcon;
+  tone: "warning" | "success" | "info";
+}[] = [
+  { label: "Pending", value: "PENDING", icon: HourglassTopRoundedIcon, tone: "warning" },
+  { label: "Completed", value: "COMPLETED", icon: TaskAltRoundedIcon, tone: "success" },
+  { label: "Reschedule", value: "RESCHEDULE", icon: EventRepeatRoundedIcon, tone: "info" },
 ];
 
 const DEFAULT_FILTERS: CrqFilters = {
-  stage: "All Stages",
+  serviceApprovalStatus: "PENDING",
   domain: "All Domains",
   circle: "All Circles",
   impact: "All Impact",
@@ -102,7 +127,7 @@ export function AllCrqsPage() {
     () => [
       {
         accessorKey: "crqNo",
-        header: "CRQ ID",
+        header: "CRQ No",
         size: 130,
         Cell: ({ row }) => (
           <Box>
@@ -174,7 +199,7 @@ export function AllCrqsPage() {
       },
       {
         accessorKey: "serviceApprovalStatus",
-        header: "Service Status",
+        header: "Approval Status",
         size: 170,
         Cell: ({ cell }) => (
           <StatusChip status={cell.getValue<string>()} />
@@ -221,60 +246,77 @@ export function AllCrqsPage() {
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 500, letterSpacing: "-0.3px" }}>All CRQs</Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-            Track every change request across domains, circles, and stages of the approval workflow.
+            Track every change request across domains, circles, and approval status.
           </Typography>
         </Box>
       </Stack>
 
       <Paper sx={{ border: "1px solid", borderColor: "divider", overflow: "hidden" }} elevation={0}>
         {/* Filter bar */}
-        <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider", display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
-          <Stack direction="row" spacing={0.5}>
-            {STAGE_FILTERS.map((s) => {
-              const active = (filters.stage ?? "All Stages") === s.value;
-              return (
-                <Chip
-                  key={s.value}
-                  label={s.label}
-                  size="small"
-                  onClick={() => setF("stage", s.value)}
-                  variant={active ? "filled" : "outlined"}
-                  color={active ? "primary" : "default"}
-                />
-              );
-            })}
-          </Stack>
-          <Box sx={{ width: 1, height: 20, bgcolor: "divider", mx: 0.5 }} />
-          <TextField select size="small" label="Domain" value={filters.domain ?? "All Domains"} onChange={(e) => setF("domain", e.target.value as Domain)} sx={{ minWidth: 140 }}>
+        <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider", display: "flex", flexWrap: "wrap", gap: 1.25, alignItems: "center" }}>
+          <TextField select size="small" label="Domain" value={filters.domain ?? "All Domains"} onChange={(e) => setF("domain", e.target.value as Domain)} sx={{ minWidth: 130 }}>
             <MenuItem value="All Domains">All Domains</MenuItem>
             {DOMAINS.map((d) => <MenuItem key={d} value={d}>{d}</MenuItem>)}
           </TextField>
-          <TextField select size="small" label="Circle" value={filters.circle ?? "All Circles"} onChange={(e) => setF("circle", e.target.value as Circle)} sx={{ minWidth: 130 }}>
+          <TextField select size="small" label="Circle" value={filters.circle ?? "All Circles"} onChange={(e) => setF("circle", e.target.value as Circle)} sx={{ minWidth: 115 }}>
             <MenuItem value="All Circles">All Circles</MenuItem>
             {(circles ?? []).map((c) => (
               <MenuItem key={c.circleCode} value={c.circleCode}>{c.circleCode}</MenuItem>
             ))}
           </TextField>
-          <TextField select size="small" label="Impact" value={filters.impact ?? "All Impact"} onChange={(e) => setF("impact", e.target.value as ImpactCode)} sx={{ minWidth: 120 }}>
+          <TextField select size="small" label="Impact" value={filters.impact ?? "All Impact"} onChange={(e) => setF("impact", e.target.value as ImpactCode)} sx={{ minWidth: 115 }}>
             <MenuItem value="All Impact">All Impact</MenuItem>
             <MenuItem value="SA">SA — Service Affecting</MenuItem>
             <MenuItem value="NSA">NSA — Non Service Affecting</MenuItem>
           </TextField>
-          <TextField select size="small" label="Service" value={filters.serviceCode ?? "All Services"} onChange={(e) => setF("serviceCode", e.target.value)} sx={{ minWidth: 160 }}>
+          <TextField select size="small" label="Service" value={filters.serviceCode ?? "All Services"} onChange={(e) => setF("serviceCode", e.target.value)} sx={{ minWidth: 140 }}>
             <MenuItem value="All Services">All Services</MenuItem>
             {(services ?? []).map((s) => (
               <MenuItem key={s.serviceCode} value={s.serviceCode}>{s.serviceCode}</MenuItem>
             ))}
           </TextField>
           <TextField
+            select
             size="small"
-            placeholder="Search by CRQ ID, hostname or approver…"
+            label="Approval Service Status"
+            value={filters.serviceApprovalStatus ?? "PENDING"}
+            onChange={(e) => setF("serviceApprovalStatus", e.target.value as CrqServiceApprovalStatusFilter)}
+            sx={{ minWidth: 175 }}
+            SelectProps={{
+              renderValue: (v) => {
+                const s = STATUS_FILTERS.find((o) => o.value === v) ?? STATUS_FILTERS[0];
+                const Icon = s.icon;
+                return (
+                  <Stack direction="row" alignItems="center" spacing={0.75}>
+                    <Icon sx={{ fontSize: 16, color: `${s.tone}.main` }} />
+                    <span>{s.label}</span>
+                  </Stack>
+                );
+              },
+            }}
+          >
+            {STATUS_FILTERS.map((s) => {
+              const Icon = s.icon;
+              return (
+                <MenuItem key={s.value} value={s.value}>
+                  <Icon sx={{ fontSize: 16, color: `${s.tone}.main`, mr: 1 }} />
+                  {s.label}
+                </MenuItem>
+              );
+            })}
+          </TextField>
+          <TextField
+            size="small"
+            placeholder="Search CRQ …"
             value={searchTerm}
             onChange={(e) => setF("search", e.target.value.trim() ? e.target.value : "All Search")}
             aria-label="Search CRQs"
             sx={{
-              minWidth: 260,
-              flex: 1,
+              // Small base width so the bar stays on the filter row at 125% scaling;
+              // it still grows into any spare space on wider screens.
+              flex: "1 1 140px",
+              minWidth: 140,
+              maxWidth: 280,
               "& .MuiOutlinedInput-root": {
                 borderRadius: 2,
                 backgroundColor: isDark ? alpha(theme.palette.common.white, 0.03) : theme.palette.grey[50],
@@ -311,9 +353,24 @@ export function AllCrqsPage() {
           {hasActiveFilters && (
             <Button size="small" onClick={() => setFilters(DEFAULT_FILTERS)}>Clear</Button>
           )}
-          <Typography variant="caption" sx={{ color: "text.secondary", ml: "auto" }}>
+          <Typography variant="caption" sx={{ color: "text.secondary", ml: "auto", whiteSpace: "nowrap", flexShrink: 0 }}>
             <Box component="span" sx={{ fontWeight: 500, color: "text.primary" }}>{data?.length ?? 0}</Box> of {data?.length ?? 0} CRQs
           </Typography>
+          {/* Exports the filtered result set (all pages), with stage labels as shown. */}
+          <ExportExcelButton
+            onExport={() =>
+              exportRowsToExcel(
+                table.getPrePaginationRowModel().rows.map((r) => ({
+                  ...r.original,
+                  currentStage: getStageLabel(r.original.currentStage),
+                })),
+                ALL_CRQS_EXPORT_COLUMNS,
+                "All CRQs",
+                "All_CRQs",
+              )
+            }
+            disabled={isFetching || !data?.length}
+          />
         </Box>
 
         {/* Errors */}

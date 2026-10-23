@@ -1,4 +1,3 @@
-import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
 export interface ExcelColumn {
@@ -19,6 +18,8 @@ export async function exportRowsToExcel<T extends object>(
   sheetName: string,
   fileNamePrefix: string,
 ) {
+  // Loaded on demand so the ~1MB exceljs chunk only downloads on export.
+  const { default: ExcelJS } = await import("exceljs");
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet(sheetName);
 

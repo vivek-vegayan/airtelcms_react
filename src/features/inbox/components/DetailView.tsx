@@ -19,7 +19,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { formatModuleName } from "../utils/formatModuleName";
 import { AppScrollView } from "../../../components/ui/AppScrollView";
 import { useNotificationAction } from "../hooks/useNotificationAction";
-import { authStorage } from "../../../app/store/auth.storage";
+import { useAuth } from "../../auth/hooks/useAuth";
 import { toast } from "react-toastify";
 import {
   decisionTypeLabel,
@@ -38,7 +38,7 @@ export const DetailView = ({
 }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const loggedUser = authStorage.getUser();
+  const { user: loggedUser } = useAuth();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { handleAction, isLoading } = useNotificationAction();
   const currentUserRole = roleName;

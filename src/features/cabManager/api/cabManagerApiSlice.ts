@@ -742,7 +742,14 @@ const filterCrqs = (rows: Crq[], f: CrqFilters): Crq[] => {
   return rows.filter((r) => {
     if (f.domain && f.domain !== "All Domains" && r.domainName !== f.domain) return false;
     if (f.circle && f.circle !== "All Circles" && r.circleCode !== f.circle) return false;
-    if (f.stage && f.stage !== "All Stages" && r.currentStage !== f.stage) return false;
+    if (f.serviceApprovalStatus) {
+      const s = (r.serviceApprovalStatus ?? "").toUpperCase();
+      const ok =
+        f.serviceApprovalStatus === "COMPLETED" ? s === "APPROVED" || s === "REJECTED"
+        : f.serviceApprovalStatus === "RESCHEDULE" ? s === "RESCHEDULE" || s === "RESCHEDULED"
+        : s === "PENDING";
+      if (!ok) return false;
+    }
     if (f.serviceCode && f.serviceCode !== "All Services" && r.serviceCode !== f.serviceCode) return false;
     if (f.impact && f.impact !== "All Impact" && r.changeImpact !== f.impact) return false;
     if (f.search && f.search !== "All Search") {
@@ -878,20 +885,23 @@ export const cabPortalApi = api.injectEndpoints({
 
     // ── CAB PLANNING ──────────────────────────────────────────────────────
     getCabQueue: builder.query<CabQueueRow[], CabQueueParams>({
-      queryFn: async ({ domainId, subDomainId }, _apiArg, _extraOptions, baseQuery) =>
+      queryFn: async ({ domainId, subDomainId, stage = "All" }, _apiArg, _extraOptions, baseQuery) =>
         emptyListOnNoRows(
           networkOrMock(
-            { url: "/cab/planning/queue", method: "GET", params: { domainId, subDomainId } },
+            { url: "/cab/planning/queue", method: "GET", params: { domainId, subDomainId, stage } },
             baseQuery,
-            async () => await mockDelay(buildCabQueue())
+            async () =>
+              await mockDelay(
+                buildCabQueue().filter((r) => stage === "All" || r.currentStage === stage)
+              )
           )
         ),
-      // Scoped per domain/sub-domain so switching scope can never serve another
-      // scope's cached rows, and so invalidating the queue refetches only what
-      // is actually mounted.
-      providesTags: (_r, _e, { domainId, subDomainId }) => [
+      // Scoped per domain/sub-domain/stage so switching scope can never serve
+      // another scope's cached rows, and so invalidating the queue refetches
+      // only what is actually mounted.
+      providesTags: (_r, _e, { domainId, subDomainId, stage = "All" }) => [
         "CabQueue",
-        { type: "CabQueue" as const, id: `${domainId}-${subDomainId}` },
+        { type: "CabQueue" as const, id: `${domainId}-${subDomainId}-${stage}` },
       ],
     }),
 
@@ -1536,6 +1546,7 @@ export const {
   useGetAssignMatrixQuery,
   useGetAssignRulesQuery,
   useGetServiceRulesQuery,
+  useLazyGetServiceRulesQuery,
   useGetRejectionReasonsQuery,
   useGetCabRejectReasonsQuery,
   useGetCabServicesQuery,

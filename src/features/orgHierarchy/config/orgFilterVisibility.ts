@@ -1,4 +1,4 @@
-import { authStorage } from "../../../app/store/auth.storage";
+import { store } from "../../../app/store";
 import { hasSubModuleIn } from "../../../rbac/permissionCore";
 import type { ModuleHierarchy } from "../../auth/types/auth.types";
 import type { OrgFilterKey } from "../types/orgHierarchy.types";
@@ -87,14 +87,16 @@ export const resolveOrgFilterVisibility = (
 /**
  * `resolveOrgFilterVisibility` for the currently signed-in user.
  *
- * Reads the stored login payload rather than Redux so that the filter bar,
- * the "Assign Team" cascade and the Scheduler's domain-scope resolution
- * (`features/scheduler/util/orgScope.ts`) all answer from one source and
- * cannot disagree about whether a Domain picker exists.
+ * Reads the signed-in user from the Redux store - the same source useAuth()
+ * gives every screen - so the filter bar, the "Assign Team" cascade and the
+ * Scheduler's domain-scope resolution (`features/scheduler/util/orgScope.ts`)
+ * all answer from one source and cannot disagree about whether a Domain
+ * picker exists. It's a plain function (orgScope calls it outside React), so
+ * it reads the store directly instead of through a hook.
  */
 export const getOrgFilterVisibility = (
   role?: string | null,
 ): OrgFilterKey[] => {
-  const user = authStorage.getUser();
+  const user = store.getState().auth.user;
   return resolveOrgFilterVisibility(role ?? user?.roleCode, user?.moduleHierarchy);
 };

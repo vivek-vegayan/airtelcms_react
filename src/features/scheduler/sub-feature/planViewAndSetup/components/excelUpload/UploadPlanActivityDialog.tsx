@@ -31,7 +31,6 @@ import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { type MRT_ColumnDef } from "material-react-table";
 import { AppTable } from "../../../../../../components/ui/AppTable";
-import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
 import {
@@ -140,6 +139,8 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
 
   const exportValidationReport = async () => {
     if (!parseResult) return;
+    // Loaded on demand so the ~1MB exceljs chunk only downloads on export.
+    const { default: ExcelJS } = await import("exceljs");
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Validation Errors");
     ws.addRow(["Row", "Activity Ref", "Column", "Value", "Error"]);
@@ -152,6 +153,7 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
 
   const exportUploadReport = async () => {
     if (!uploadSummary) return;
+    const { default: ExcelJS } = await import("exceljs");
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Upload Results");
     ws.addRow(["Row", "Activity Ref", "Activity Name", "Status", "Message", "Plan ID", "Activity ID"]);

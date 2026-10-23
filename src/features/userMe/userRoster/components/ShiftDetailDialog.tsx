@@ -18,7 +18,7 @@ import HourglassBottomRoundedIcon from "@mui/icons-material/HourglassBottomRound
 import LaptopMacRoundedIcon from "@mui/icons-material/LaptopMacRounded";
 import moment from "moment";
 import { useCalendarTokens } from "../constants/calendarTokens";
-import { getShiftVisual } from "../constants/shiftColors";
+import { displayShiftCode, getShiftVisual } from "../constants/shiftColors";
 import { extractShiftTimeLabel } from "../utils/rosterTransform";
 import type { CalendarEvent, RosterDayMeta } from "../types/roster.types";
 
@@ -177,7 +177,7 @@ const ShiftDetailDialogBase = ({ open, onClose, date, meta, event }: Props) => {
                   fontWeight: 800,
                 }}
               >
-                {meta.code}
+                {displayShiftCode(meta.code)}
               </Box>
               <Box minWidth={0}>
                 <Typography

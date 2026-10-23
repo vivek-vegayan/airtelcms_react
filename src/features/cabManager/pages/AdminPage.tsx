@@ -23,11 +23,16 @@ export function AdminPage() {
 
   return (
     <Box>
-    
       <Tabs
         value={tab}
         onChange={(_, v) => setTab(v as TabId)}
-        sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}
+        sx={{
+          mb: 1.5,
+          minHeight: 40,
+          borderBottom: 1,
+          borderColor: "divider",
+          "& .MuiTab-root": { minHeight: 40, py: 1 },
+        }}
       >
         {TABS.map((t) => <Tab key={t.id} label={t.label} value={t.id} />)}
       </Tabs>

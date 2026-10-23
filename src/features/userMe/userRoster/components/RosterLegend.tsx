@@ -1,7 +1,11 @@
 import { memo } from "react";
 import { Box, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import { useCalendarTokens } from "../constants/calendarTokens";
-import { LEGEND_CODES, getShiftVisual } from "../constants/shiftColors";
+import {
+  LEGEND_CODES,
+  displayShiftCode,
+  getShiftVisual,
+} from "../constants/shiftColors";
 
 /**
  * Two-part legend: the shift codes that appear inside cells, then the
@@ -77,7 +81,7 @@ const RosterLegendBase = () => {
                   lineHeight: 1,
                 }}
               >
-                {code}
+                {displayShiftCode(code)}
               </Box>
               <Typography
                 sx={{

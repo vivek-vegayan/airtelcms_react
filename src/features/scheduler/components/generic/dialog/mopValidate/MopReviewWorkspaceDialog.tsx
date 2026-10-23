@@ -46,10 +46,11 @@ import {
 } from "./mopUi";
 import type { PageFindingMarker } from "./MopPdfCanvas";
 import { MopExcelPreview } from "../mopCreate/MopExcelPreview";
-import { useGetMopCreatePdfQuery } from "../../../../api/mopDocumentApiSlice";
+import { MopCorrectedVersionDialog } from "./MopCorrectedVersionDialog";
 import {
   useAddMopFindingMutation,
   useGetMopReviewWorkspaceQuery,
+  useGetMopVersionDocumentQuery,
   useRejectMopVersionMutation,
   useSetMopFindingStateMutation,
   useValidateMopVersionMutation,
@@ -71,6 +72,8 @@ const MopPdfCanvas = React.lazy(() =>
 interface MopReviewWorkspaceDialogProps {
   crqNo: string;
   open: boolean;
+  /** The stage is closed - a corrected version cannot be uploaded from here. */
+  readOnly?: boolean;
   onClose: () => void;
 }
 
@@ -100,6 +103,7 @@ interface MopReviewWorkspaceDialogProps {
 export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> = ({
   crqNo,
   open,
+  readOnly = false,
   onClose,
 }) => {
   const theme = useTheme();
@@ -121,6 +125,7 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const { data, isLoading, isError, isFetching } = useGetMopReviewWorkspaceQuery(
     { crqNo, versionId },
@@ -136,13 +141,17 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
 
   // Fetched only once the workspace confirms bytes exist - otherwise the
   // endpoint 404s, which would read as a load failure rather than "not
-  // uploaded yet".
+  // uploaded yet". Per version, so an older version shows the file it was
+  // actually reviewed against.
   const {
     data: blob,
     isFetching: isFetchingDoc,
     isError: isDocError,
     refetch: refetchDoc,
-  } = useGetMopCreatePdfQuery(crqNo, { skip: !open || !data?.documentAttached });
+  } = useGetMopVersionDocumentQuery(
+    { crqNo, versionId: data?.versionId as number },
+    { skip: !open || !data?.documentAttached || !data?.versionId },
+  );
 
   const documentType = data?.documentType ?? null;
   const isExcel = documentType === "XLSX" || documentType === "XLS";
@@ -169,6 +178,7 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
     setApproveOpen(false);
     setRejectOpen(false);
     setRejectReason("");
+    setUploadOpen(false);
   }, [open, crqNo]);
 
   const goPage = useCallback(
@@ -551,6 +561,26 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
                   }
                 >
                   <strong>Read-only.</strong> You are viewing a superseded version.
+                </Alert>
+              )}
+
+              {!data.viewingOld && data.versionStatus === "rejected" && (
+                <Alert
+                  severity="error"
+                  sx={{ borderRadius: 0, fontSize: 12.5, py: 0.25, alignItems: "center", flex: "none" }}
+                  action={
+                    <Button
+                      size="small"
+                      onClick={() => setUploadOpen(true)}
+                      disabled={readOnly}
+                      sx={outlineBtnSx(colors, colors.danger)}
+                    >
+                      Upload corrected version
+                    </Button>
+                  }
+                >
+                  <strong>v{data.versionNo} rejected.</strong>{" "}
+                  {data.decisionNote ?? "Upload a corrected version to send it back for review."}
                 </Alert>
               )}
 
@@ -957,6 +987,20 @@ export const MopReviewWorkspaceDialog: React.FC<MopReviewWorkspaceDialogProps> =
           onCancel={() => setRejectOpen(false)}
         />
       </ActionDialog>
+
+      {/* ── Corrected version ─────────────────────────────────────── */}
+      <MopCorrectedVersionDialog
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        // Back to "current", so the workspace lands on the new version rather
+        // than staying pinned to the one it replaced.
+        onUploaded={() => setVersionId(null)}
+        crqNo={crqNo}
+        rejectedVersionNo={data?.versionNo ?? null}
+        rejectionReason={data?.decisionNote ?? null}
+        rejectedBy={data?.decidedBy ?? null}
+        colors={colors}
+      />
     </Dialog>
   );
 };

@@ -22,6 +22,7 @@ import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import { AnimatePresence, motion } from "framer-motion";
 import type {
   MopAuditEntry,
@@ -45,6 +46,7 @@ const auditVisual = (eventType: string, colors: any) => {
   if (eventType.includes("rejected")) return { icon: BlockRoundedIcon, tone: colors.danger };
   if (eventType.includes("finding")) return { icon: FlagRoundedIcon, tone: colors.warning };
   if (eventType.includes("review")) return { icon: VisibilityRoundedIcon, tone: colors.info };
+  if (eventType.includes("uploaded")) return { icon: UploadFileOutlinedIcon, tone: colors.accent };
   return { icon: DescriptionOutlinedIcon, tone: colors.textDim };
 };
 

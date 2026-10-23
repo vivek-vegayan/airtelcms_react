@@ -2,13 +2,13 @@ import { useMemo, useState } from "react";
 import dayjs, { type Dayjs } from "dayjs";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
-import { authStorage } from "../../../app/store/auth.storage";
+import { useAuth } from "../../auth/hooks/useAuth";
 import { resolveQuickRange, type QuickDateFilter } from "../utils/dateRange";
 import type { CRQAnalyticsFilterParams } from "../types/crqAnalytics.types";
 
 /** Org-hierarchy scope + circle + date range, combined into the filter params every analytics endpoint expects. */
 export function useAnalyticsFilters() {
-  const loggedUser = authStorage.getUser();
+  const { user: loggedUser } = useAuth();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
 
   const { values: orgValues, handleChange: onOrgFilterChange, resetAll: resetOrgFilters } = useOrgHierarchyState("crqAnalytics");

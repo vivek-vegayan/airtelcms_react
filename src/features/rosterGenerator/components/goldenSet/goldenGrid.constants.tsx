@@ -38,7 +38,6 @@ export const SHIFT_CODES: string[] = [
   "L",
   "W",
   "H",
-  "C",
 ];
 
 export const SHIFT_META: Record<string, { label: string }> = {
@@ -49,8 +48,11 @@ export const SHIFT_META: Record<string, { label: string }> = {
   L: { label: "Leave" },
   W: { label: "Week Off" },
   H: { label: "Holiday" },
-  C: { label: "Comp Off" },
 };
+
+/** On-screen label for a shift code — Week Off is stored as "W" but shown as "WO". */
+export const displayShiftCode = (code: string): string =>
+  code === "W" ? "WO" : code;
 
 export const LEVEL_META: Record<string, LevelMeta> = {
   L1: { bg: "#EFF6FF", text: "#1D4ED8", solid: "#3B82F6" },

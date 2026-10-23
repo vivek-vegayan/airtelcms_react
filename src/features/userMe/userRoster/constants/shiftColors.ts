@@ -27,8 +27,12 @@ export const LEGEND_CODES = [
   "W",
   "H",
   "L",
-  "C",
 ] as const;
+
+/** Short code shown to users — the palette keys Week Off as "W", but the
+ *  roster views spell it "WO". */
+export const displayShiftCode = (code: string): string =>
+  code === "W" ? "WO" : code;
 
 const toTriple = (code: string): ShiftColorTriple => {
   const style = getShiftStyle(code);
@@ -43,7 +47,8 @@ const toTriple = (code: string): ShiftColorTriple => {
 // Colors/labels come from the shared palette so a code looks identical here
 // and in the scheduler's roster views.
 export const shiftColorMap = new Map<string, ShiftColorTriple>(
-  LEGEND_CODES.map((code) => [code, toTriple(code)]),
+  // "C" isn't in the legend but can still appear in the roster.
+  [...LEGEND_CODES, "C"].map((code) => [code, toTriple(code)]),
 );
 
 const DEFAULT_SHIFT_COLORS: ShiftColorTriple = {

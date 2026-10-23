@@ -4,7 +4,7 @@ import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
 import type { MRT_PaginationState } from "material-react-table";
 
-import { authStorage } from "../../../../app/store/auth.storage";
+import { useAuth } from "../../../auth/hooks/useAuth";
 import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import { useOrgHierarchyState } from "../../../orgHierarchy/hooks/useOrgHierarchyState";
 import type { OrgFilterKey } from "../../../orgHierarchy/types/orgHierarchy.types";
@@ -39,7 +39,7 @@ export const CancelledCrqMain = () => {
   const theme = useTheme();
   const tk = useTabColorTokens(theme);
 
-  const loggedUser = authStorage.getUser();
+  const { user: loggedUser } = useAuth();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
 
   const { values, handleChange, resetAll } = useOrgHierarchyState("cancelledCrq");

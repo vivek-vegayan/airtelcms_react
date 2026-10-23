@@ -29,7 +29,7 @@ import { useStageWorkflow } from "../../hook/useStageWorkflow";
 import type { Crq } from "../../types/crqWorkflow.types";
 import type { StageKey } from "../../types/stageWorkflow.types";
 import type { RootState } from "../../../../app/store";
-import { authStorage } from "../../../../app/store/auth.storage";
+import { useAuth } from "../../../auth/hooks/useAuth";
 import { resolveDomainScope } from "../../util/orgScope";
 import {
   WORKFLOW_STAGES,
@@ -147,7 +147,7 @@ export const CrqDetailedView: React.FC = () => {
   // there is no domainId in the link and none to send. The role decides this
   // rather than the link's contents, so an old bookmark carrying a stale
   // domainId can't smuggle a scope such a user was never given.
-  const roleCode = useMemo(() => authStorage.getUser()?.roleCode, []);
+  const { role: roleCode } = useAuth();
   const domainId = resolveDomainScope(
     roleCode,
     Number(searchParams.get("domainId")) || 1,

@@ -5,11 +5,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { useNavigate } from "react-router";
 import { useTabColorTokens } from "../style/theme";
-import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { useLogoutMutation } from "../features/auth/api/auth.api";
-import { logout } from "../features/auth/slices/auth.slice";
-import { authStorage } from "../app/store/auth.storage";
-import { api } from "../service/api";
+import { useLogout } from "../features/auth/hooks/useLogout";
 import { usePermission } from "./usePermission";
 import { getFirstAccessiblePath } from "./routeAccess";
 
@@ -23,26 +19,11 @@ const AccessDenied: React.FC<AccessDeniedProps> = ({ reason }) => {
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const [logoutApi] = useLogoutMutation();
+  const handleLogout = useLogout();
   const { hasModule, hasSubModule } = usePermission();
-  const olmId = useAppSelector((s) => s.auth.user?.olmId);
 
   const workspacePath =
     reason === "forbidden" ? getFirstAccessiblePath(hasModule, hasSubModule) : null;
-
-  const handleLogout = async () => {
-    try {
-      await logoutApi({ olmId: olmId ?? "" }).unwrap();
-    } catch {
-      // continue local logout regardless of API outcome
-    } finally {
-      authStorage.clear();
-      dispatch(logout());
-      dispatch(api.util.resetApiState());
-      navigate("/login", { replace: true });
-    }
-  };
 
   return (
     <Box
