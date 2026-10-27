@@ -50,7 +50,8 @@ export interface Crq {
    */
   changeImpact?: ImpactCode;
   slaPercentage: number;
-  // Not returned by the current AllCRQs/MyCRQs list & detail endpoints —
+  /** Created_At from sp_get_cab_crqs / sp_get_my_crqs_rows (ISO LocalDateTime). */
+  createdAt?: string;  // Not returned by the current AllCRQs/MyCRQs list & detail endpoints —
   // kept optional for the mock-only Journey/Implementation pages.
   approverName?: string;
   assignStartTime?: string;

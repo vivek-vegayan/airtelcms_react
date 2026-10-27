@@ -10,14 +10,15 @@ export type ReassignStage =
   | "EXECUTION"
   | "CLOSURE";
 
-export type CabFlag = "PENDING" | "APPROVED" | "REJECTED";
+/** sent_to_cab — whether the CRQ has to go through CAB. */
+export type CabFlag = "YES" | "NO";
 
 /** CRQ_SP_REASSIGN_GRID — one row per CRQ, one column per stage owner. */
 export interface ReassignGridRow {
   crq_no: string;
   current_stage: string | null;
   current_status: string | null;
-  cab_approval_flag: CabFlag | null;
+  sent_to_cab: CabFlag | null;
   team_name: string | null;
   team_id: number | null;
   execution_slot_start: string | null;
@@ -178,11 +179,10 @@ export interface ReassignTimeRequest {
   batchId: string | null;
 }
 
+/** POST /crq/reassign/cab → CRQ_SP_REASSIGN_CAB (one CRQ, saved immediately). */
 export interface ReassignCabRequest {
-  crqNo?: string | null;
-  teamId?: number | null;
-  cabFlag: CabFlag;
-  batchId: string | null;
+  crqNo: string;
+  sentToCab: CabFlag;
 }
 
 export interface ReassignBatchRequest {

@@ -104,6 +104,13 @@ import { toast } from "react-toastify";
 import { useRescheduleCrqMutation } from "../../api/cabManagerApiSlice";
 import { todayIso } from "../shared/todayIso";
 
+/** "16:40" -> "04:40 PM" (what <input type="time"> gives -> what the procedure expects). */
+const to12h = (hhmm: string) => {
+  if (!hhmm) return "";
+  const [h, m] = hhmm.split(":").map(Number);
+  return `${String(h % 12 || 12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+};
+
 type RescheduleCrqModalProps = {
   open: boolean;
   serviceApprovalId: number | null;
@@ -137,8 +144,8 @@ export function RescheduleCrqModal({
   const isPastStart = newDate === minDate && !!startTime && startTime < nowHHmm;
   const windowInvalid = !startTime || !endTime || isSameTime || isPastStart;
 
-  // Same string format the backend has always received from the free-text field.
-  const newWindow = `${startTime} – ${endTime} IST`;
+  // sp_reschedule_cab_crq parses the window as "hh:mm AM-hh:mm PM" (e.g. "04:40 PM-08:40 PM").
+  const newWindow = `${to12h(startTime)}-${to12h(endTime)}`;
 
   const submit = async () => {
     if (
@@ -198,7 +205,7 @@ export function RescheduleCrqModal({
             <ReplayIcon />
           </Box>
 
-          Schedule CRQ
+          Reschedule CRQ
         </Box>
       </DialogTitle>
 
@@ -302,7 +309,7 @@ export function RescheduleCrqModal({
             isPastDate
           }
         >
-          {isLoading ? "Scheduling..." : "Confirm"}
+          {isLoading ? "Rescheduling..." : "Confirm"}
         </Button>
       </DialogActions>
     </Dialog>

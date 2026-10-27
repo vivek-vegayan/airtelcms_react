@@ -35,6 +35,7 @@ import { AllCrqDetailDrawer } from "../components/shared/AllCrqDetailDrawer";
 // import { NewCrqModal } from "../components/modals/NewCrqModal";
 import { ImpactChip, StatusChip, getStageLabel } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
+import { formatCreatedAt } from "../components/shared/formatCreatedAt";
 import { ExportExcelButton } from "../components/shared/ExportExcelButton";
 import { exportRowsToExcel, type ExcelColumn } from "../../crqAnalytics/utils/excelExport";
 import type {
@@ -50,8 +51,8 @@ const ALL_CRQS_EXPORT_COLUMNS: ExcelColumn[] = [
   { header: "Service", key: "serviceCode", width: 18 },
   { header: "Impact", key: "changeImpact", width: 10 },
   { header: "Approval Status", key: "serviceApprovalStatus", width: 18 },
+  { header: "Created At", key: "createdAt", width: 20 },
 ];
-
 
 
 const DOMAINS: Domain[] = ["IP Core", "Optics", "Packet", "Embedded", "Mobility"];
@@ -203,6 +204,16 @@ export function AllCrqsPage() {
         size: 170,
         Cell: ({ cell }) => (
           <StatusChip status={cell.getValue<string>()} />
+        ),
+      },
+      {
+        accessorKey: "createdAt",
+        header: "Created At",
+        size: 160,
+        Cell: ({ cell }) => (
+          <Typography variant="body2" sx={{ whiteSpace: "nowrap" }}>
+            {formatCreatedAt(cell.getValue<string | undefined>())}
+          </Typography>
         ),
       }
 
@@ -363,6 +374,7 @@ export function AllCrqsPage() {
                 table.getPrePaginationRowModel().rows.map((r) => ({
                   ...r.original,
                   currentStage: getStageLabel(r.original.currentStage),
+                  createdAt: formatCreatedAt(r.original.createdAt),
                 })),
                 ALL_CRQS_EXPORT_COLUMNS,
                 "All CRQs",

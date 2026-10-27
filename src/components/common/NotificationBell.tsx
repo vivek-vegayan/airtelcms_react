@@ -357,7 +357,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
       } else if (meta.subModule === "CAB_APPROVER") {
         await cabCrqAction({ notificationId: rejectTarget.notificationId, status: "REJECTED", reason: reasonText, comment: remark }).unwrap();
       } else if (meta.subModule === "RESCHEDULE") {
-        await cabRescheduleAction({ notificationId: rejectTarget.notificationId, status: "REJECTED", reason: reasonText, comment: remark }).unwrap();
+        await cabRescheduleAction({ notificationId: rejectTarget.notificationId, status: "REJECTED", comment: remark }).unwrap();
       }
       toast.success("Rejected successfully.");
       setExpanded(null);

@@ -70,7 +70,8 @@ export const crqReassignApi = api.injectEndpoints({
       invalidatesTags: [TAG],
     }),
 
-    reassignCab: builder.mutation<ReassignActionResponse, ReassignCabRequest>({
+    // Plain ApiResponse (success_message from the proc) - no draft batch.
+    reassignCab: builder.mutation<{ status: string; message: string }, ReassignCabRequest>({
       query: (body) => ({ url: `${BASE}/cab`, method: "POST", body }),
       invalidatesTags: [TAG],
     }),
