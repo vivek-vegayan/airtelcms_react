@@ -8,9 +8,16 @@ import {
 import SmartScrollContainer from "../../../../components/common/SmartScrollContainer";
 import SectionOverlayLoader from "../../../../components/loading/SectionOverlayLoader";
 
+/**
+ * Default scroll viewport height: grows with the window so tall screens show
+ * more rows, but never drops below the old fixed 450px. The 300px offset is
+ * the page chrome around the grid (tabs, filter bar, toolbar, legend).
+ */
+const DEFAULT_TABLE_HEIGHT = "max(440px, calc(100vh - 300px))";
+
 interface Props {
   /** Scroll viewport height passed to SmartScrollContainer. */
-  height: number;
+  height?: number | string;
   /** Semi-transparent spinner overlay (used while refetching). */
   loading?: boolean;
   /** Extra sx merged onto the <Table> (e.g. tableLayout overrides). */
@@ -24,7 +31,7 @@ interface Props {
  * sticky-header table with collapsed borders.
  */
 export const RosterTableFrame = ({
-  height,
+  height = DEFAULT_TABLE_HEIGHT,
   loading = false,
   tableSx,
   children,

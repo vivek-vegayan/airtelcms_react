@@ -3,6 +3,7 @@ import { useParams } from "react-router";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useOrgAutoSelect } from "../../orgHierarchy/hooks/useOrgAutoSelect";
 import {
   useGetCrqsBySubDomainQuery,
   useGetCrqJourneyStagesQuery,
@@ -22,15 +23,18 @@ import type { CrqJourneySearchRow } from "../types/crqJourney.types";
  * Drives /cabmanager/journey[/:id]: sub-domain scoped CRQ search → dynamic-length
  * journey flow. When a crqNo arrives in the URL (e.g. the All CRQs drawer's
  * "View full CRQ journey" link), it's auto-selected instead of making the user
- * re-pick org scope + CRQ from the dropdown.
+ * re-pick org scope + CRQ from the dropdown. A screen that embeds the page
+ * (CRQ Analytics) passes the crqNo directly instead, which takes the same path.
  */
-export const useCrqJourney = () => {
+export const useCrqJourney = (crqNoOverride?: string) => {
   const { user: loggedUser } = useAuth();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
-  const { id: crqNoFromRoute } = useParams<{ id: string }>();
+  const { id: routeId } = useParams<{ id: string }>();
+  const crqNoFromRoute = crqNoOverride ?? routeId;
 
   const { values, handleChange: handleOrgFilterChange } = useOrgHierarchyState("crqJourney");
   const { options } = useOrgHierarchyFilters(values);
+  useOrgAutoSelect(values, options, handleOrgFilterChange);
 
   const [selectedCrq, setSelectedCrq] = useState<CrqJourneySearchRow | null>(null);
   const [showLegend, setShowLegend] = useState(true);

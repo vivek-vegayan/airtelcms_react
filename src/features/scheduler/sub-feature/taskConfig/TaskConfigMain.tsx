@@ -2,6 +2,7 @@ import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFi
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { useOrgHierarchyState } from "../../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useOrgAutoSelect } from "../../../orgHierarchy/hooks/useOrgAutoSelect";
 import { useApiRefresh } from "../../../../hooks/useApiRefresh";
 import { TaskConfig } from "./components/TaskConfig";
 import { useGetTaskConfigViewQuery } from "./api/taskConfigApi";
@@ -11,6 +12,7 @@ export const TaskConfigMain = () => {
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { values, handleChange } = useOrgHierarchyState("taskConfig");
   const { options } = useOrgHierarchyFilters(values);
+  useOrgAutoSelect(values, options, handleChange);
   const shouldFetch = Boolean(values.domain) && values.subDomain != null;
   const { data, isLoading, isFetching, refetch } = useGetTaskConfigViewQuery(
     { domainId: values.domain!, subDomainId: values.subDomain! },

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CrqJourneyPage } from "../../crqJourney/pages/CrqJourneyPage";
 import { Box, Collapse, Skeleton } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CommonContainer from "../../../components/common/CommonContainer";
@@ -12,7 +13,6 @@ import { ChartCard } from "../components/ChartCard";
 import { BarChartCard } from "../components/BarChartCard";
 import { EngineerUtilizationPanel } from "../components/EngineerUtilizationPanel";
 import { CrqFullscreenTable } from "../components/CrqFullscreenTable";
-import { CrqJourneyDetail } from "../components/CrqJourneyDetail";
 import { EmptyOrErrorState } from "../components/EmptyOrErrorState";
 import { seriesColor } from "../utils/chartPalette";
 import type { AnalyticsNavState, TableViewConfig } from "../types/crqAnalytics.types";
@@ -36,12 +36,12 @@ export default function AnalyticsDashboardPage() {
   const drillToStage = (stage: string) => goToTable({ title: `CRQs in Stage: ${stage}`, tableType: "CRQ_LIST", stage });
   const drillToReason = (reason: string) => goToTable({ title: `Rejected CRQs — ${reason}`, tableType: "CRQ_LIST", rejectionReason: reason });
 
-  // Clicking a CRQ row opens the full-screen journey page; going back from it
-  // returns to whichever view (grid or drill-down table) launched it.
+  // Clicking a CRQ row shows the Scheduler's CRQ Journey in place. This page
+  // stays mounted, so Back returns to the same table and filters.
   if (selectedCrq) {
     return (
       <CommonContainer>
-        <CrqJourneyDetail crqNo={selectedCrq} onBack={() => setSelectedCrq(null)} />
+        <CrqJourneyPage crqNo={selectedCrq} onBack={() => setSelectedCrq(null)} />
       </CommonContainer>
     );
   }

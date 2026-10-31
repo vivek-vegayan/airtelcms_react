@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Box, useTheme, useMediaQuery, Paper, Drawer } from "@mui/material";
+import { alpha, Box, useTheme, useMediaQuery, Paper, Drawer } from "@mui/material";
 import AssignmentLateIcon from "@mui/icons-material/AssignmentLate";
 import AllInboxIcon from "@mui/icons-material/AllInbox";
 import {
@@ -198,7 +198,7 @@ export default function DynamicTaskInbox() {
         height: { xs: "calc(100vh - 56px)", md: "calc(100vh - 95px)" },
         minHeight: 500,
         p: { xs: 0, sm: 1.5, md: 2 },
-        bgcolor: theme.palette.mode === "dark" ? "#0f0f0f" : "#eef0f4",
+        bgcolor: "background.default",
       }}
     >
       <Paper
@@ -224,7 +224,7 @@ export default function DynamicTaskInbox() {
             width: 230,
             flexShrink: 0,
             borderRight: `1px solid ${theme.palette.divider}`,
-            bgcolor: theme.palette.mode === "dark" ? "#161616" : "#f8f9fb",
+            bgcolor: alpha(theme.palette.text.primary, theme.palette.mode === "dark" ? 0.02 : 0.015),
           }}
         >
           <SidebarMenu
@@ -261,7 +261,7 @@ export default function DynamicTaskInbox() {
             width: { xs: "100%", md: 380 },
             flexShrink: 0,
             borderRight: `1px solid ${theme.palette.divider}`,
-            bgcolor: theme.palette.mode === "dark" ? "#1a1a1a" : "#fff",
+            bgcolor: "background.paper",
           }}
         >
           <NotificationList

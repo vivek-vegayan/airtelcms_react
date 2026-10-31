@@ -17,7 +17,7 @@ import { BarChartCard } from "../components/BarChartCard";
 import { RunRateChart } from "../components/RunRateChart";
 import { AgingHeatmapGrid } from "../components/AgingHeatmapGrid";
 import { CrqFullscreenTable } from "../components/CrqFullscreenTable";
-import { CrqJourneyDetail } from "../components/CrqJourneyDetail";
+import { CrqJourneyPage } from "../../crqJourney/pages/CrqJourneyPage";
 import { seriesColor, categoryColor } from "../utils/chartPalette";
 
 const GROUP_BY_OPTIONS: { value: GroupBreakdownDimension; label: string }[] = [
@@ -43,12 +43,12 @@ export default function CrqAnalyticsPage() {
 
   const goToTable = (config: TableViewConfig) => setNav({ view: "table", tableConfig: config });
 
-  // Clicking a CRQ row opens the full-screen journey page; going back from it
-  // returns to the drill-down table that launched it.
+  // Clicking a CRQ row shows the Scheduler's CRQ Journey in place; going back
+  // from it returns to the drill-down table that launched it.
   if (selectedCrq) {
     return (
       <CommonContainer>
-        <CrqJourneyDetail crqNo={selectedCrq} onBack={() => setSelectedCrq(null)} />
+        <CrqJourneyPage crqNo={selectedCrq} onBack={() => setSelectedCrq(null)} />
       </CommonContainer>
     );
   }
@@ -61,6 +61,8 @@ export default function CrqAnalyticsPage() {
           filters={filters}
           onBack={() => setNav({ view: "grid" })}
           onRowClick={setSelectedCrq}
+          // Shorter than the Analytics Dashboard's View All table.
+          tableMaxHeight="max(260px, calc(100vh - 260px))"
         />
       </CommonContainer>
     );

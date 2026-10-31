@@ -17,6 +17,8 @@ interface Props {
   filters: CRQAnalyticsFilterParams;
   drill?: CrqListDrillFilter;
   onRowClick: (crqNo: string) => void;
+  /** Body height cap; defaults to filling the screen under the title bar. */
+  maxHeight?: string;
 }
 
 const statusColor = (status: string): "success" | "warning" | "error" | "default" => {
@@ -38,7 +40,7 @@ export const CRQ_LIST_EXCEL_COLUMNS: ExcelColumn[] = [
   { key: "approvalFlag", header: "Approval", width: 14 },
 ];
 
-export function CrqListTable({ filters, drill, onRowClick }: Props) {
+export function CrqListTable({ filters, drill, onRowClick, maxHeight = "max(320px, calc(100vh - 260px))" }: Props) {
   const [pagination, setPagination] = useState<MRT_PaginationState>({ pageIndex: 0, pageSize: 25 });
 
   const { data, isFetching, isError } = useGetCrqAnalyticsListQuery({
@@ -86,6 +88,8 @@ export function CrqListTable({ filters, drill, onRowClick }: Props) {
       </Box>
     ),
     initialState: { density: "compact" },
+    // Full-screen height by default; CrqFullscreenTable passes a page's own cap.
+    appTable: { maxHeight },
   });
 
   return <MaterialReactTable table={table} />;

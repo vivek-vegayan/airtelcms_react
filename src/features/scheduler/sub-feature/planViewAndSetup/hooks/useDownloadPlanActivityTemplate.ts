@@ -2,7 +2,6 @@ import { useDownloadStaticTemplate } from "../../../../../hooks/useDownloadStati
 
 const TEMPLATE_FILE_NAME = "Plan_Activity_Upload_Template.xlsx";
 
-/** Shared by the toolbar's standalone "Download Template" action and the
- *  Upload dialog's first step, so both download the exact same file. */
+/** Used by the Upload dialog's first step to download the import template. */
 export const useDownloadPlanActivityTemplate = () =>
   useDownloadStaticTemplate(TEMPLATE_FILE_NAME);

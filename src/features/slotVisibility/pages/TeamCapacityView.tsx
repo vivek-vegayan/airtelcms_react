@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useOrgAutoSelect } from "../../orgHierarchy/hooks/useOrgAutoSelect";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useTabColorTokens } from "../../../style/theme";
 import { getCardSx } from "../../dashboard/constants/dashboard.styles";
@@ -129,6 +130,7 @@ export default function TeamCapacityView({
   } = useOrgHierarchyState("teamCapacity");
 
   const { options: orgOptions } = useOrgHierarchyFilters(orgFilters);
+  useOrgAutoSelect(orgFilters, orgOptions, handleOrgFilterChange);
 
   /* =========================================================
      SELECTED TEAM

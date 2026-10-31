@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useOrgAutoSelect } from "../../orgHierarchy/hooks/useOrgAutoSelect";
 import { useGetCrqsBySubDomainQuery, useGetCrqDetailsQuery } from "../api/crqJourneyExplorer.api";
 import type { CrqJourneySearchRow } from "../types/crqJourney.types";
 
@@ -12,6 +13,7 @@ export const useCrqDetails = () => {
 
   const { values, handleChange } = useOrgHierarchyState("crqDetails");
   const { options } = useOrgHierarchyFilters(values);
+  useOrgAutoSelect(values, options, handleChange);
 
   const [selectedCrq, setSelectedCrq] = useState<CrqJourneySearchRow | null>(null);
 

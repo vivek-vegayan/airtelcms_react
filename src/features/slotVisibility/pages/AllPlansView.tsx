@@ -13,6 +13,7 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { useEffect, useState } from "react";
 
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useOrgAutoSelect } from "../../orgHierarchy/hooks/useOrgAutoSelect";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useTabColorTokens } from "../../../style/theme";
@@ -99,6 +100,7 @@ export default function AllPlansView() {
   } = useOrgHierarchyState("allPlans");
 
   const { options: orgOptions } = useOrgHierarchyFilters(orgFilters);
+  useOrgAutoSelect(orgFilters, orgOptions, handleOrgFilterChange);
 
   const [allPlansData, setAllPlansData] = useState<AllPlans[]>([]);
 

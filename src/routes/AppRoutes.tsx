@@ -444,14 +444,6 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         >
           <Route index element={<Navigate to="notifications" replace />} />
           <Route path="notifications" element={<TaskInbox />} />
-          <Route
-            path="action"
-            element={
-              <>
-                <>Notifications</>
-              </>
-            }
-          />
         </Route>
         <Route
           path="scheduler"

@@ -3,6 +3,7 @@ import { useActivity } from "./hooks/useActivity";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { useOrgHierarchyState } from "../../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useOrgAutoSelect } from "../../../orgHierarchy/hooks/useOrgAutoSelect";
 import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useApiRefresh, type ApiTag } from "../../../../hooks/useApiRefresh";
 import { PlanViewTable } from "./components/PlanViewTable";
@@ -21,6 +22,7 @@ export const PlanViewAndSetup = () => {
 
   const { values, handleChange } = useOrgHierarchyState("planViewAndSetup");
   const { options } = useOrgHierarchyFilters(values);
+  useOrgAutoSelect(values, options, handleChange);
   const { refresh, isRefreshing } = useApiRefresh({ tags: PLAN_TAGS });
 
   return (

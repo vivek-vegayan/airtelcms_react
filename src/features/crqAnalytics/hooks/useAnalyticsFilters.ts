@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dayjs, { type Dayjs } from "dayjs";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useGetOrgHierarchyByUserQuery } from "../../orgHierarchy/api/orgHierarchy.api";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { resolveQuickRange, type QuickDateFilter } from "../utils/dateRange";
+import { resolveDefaultOrgScope } from "../utils/defaultOrgScope";
 import type { CRQAnalyticsFilterParams } from "../types/crqAnalytics.types";
 
 /** Org-hierarchy scope + circle + date range, combined into the filter params every analytics endpoint expects. */
@@ -11,8 +13,28 @@ export function useAnalyticsFilters() {
   const { user: loggedUser } = useAuth();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
 
-  const { values: orgValues, handleChange: onOrgFilterChange, resetAll: resetOrgFilters } = useOrgHierarchyState("crqAnalytics");
-  const { options: orgOptions } = useOrgHierarchyFilters(orgValues);
+  const {
+    values: orgValues,
+    setValues: setOrgValues,
+    handleChange: onOrgFilterChange,
+    resetAll: resetOrgFilters,
+  } = useOrgHierarchyState("crqAnalytics");
+  const { options: hierarchyOptions } = useOrgHierarchyFilters(orgValues);
+  // The filter bar adds its own "All" Sub Domain entry, so the backend's
+  // catch-all row (id 0) is dropped here.
+  const orgOptions = useMemo(
+    () => ({ ...hierarchyOptions, subDomain: hierarchyOptions.subDomain.filter((o) => o.value !== 0) }),
+    [hierarchyOptions],
+  );
+
+  // Nothing selected yet (first open, or after reset) → open on the default
+  // scope, Sub Domain left on All. Same RTK Query cache as the pickers, no extra request.
+  const { data: hierarchy } = useGetOrgHierarchyByUserQuery();
+  useEffect(() => {
+    if (Object.keys(orgValues).length > 0) return;
+    const scope = resolveDefaultOrgScope(hierarchy?.data);
+    if (scope) setOrgValues(scope);
+  }, [hierarchy, orgValues, setOrgValues]);
 
   const [circle, setCircle] = useState<string>("All");
 
@@ -34,7 +56,8 @@ export function useAnalyticsFilters() {
     () => ({
       teamFunctionId: orgValues.teamFunction,
       domainId: orgValues.domain,
-      subDomainId: orgValues.subDomain,
+      // No Sub Domain is the bar's "All" entry, sent as the backend's ALL id 0.
+      subDomainId: orgValues.subDomain ?? 0,
       circleId: circle === "All" ? undefined : circle,
       startDate,
       endDate,

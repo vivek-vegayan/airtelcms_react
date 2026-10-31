@@ -13,10 +13,11 @@ import {
   useTheme,
 } from "@mui/material";
 import { type InboxItem } from "./TaskInbox";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { formatModuleName } from "../utils/formatModuleName";
+import { getModuleIcon } from "../utils/getModuleIcon";
+import { formatRelativeTime } from "../utils/formatRelativeTime";
 import { AppScrollView } from "../../../components/ui/AppScrollView";
 import { useNotificationAction } from "../hooks/useNotificationAction";
 import { useAuth } from "../../auth/hooks/useAuth";
@@ -149,9 +150,9 @@ export const DetailView = ({
       {/* Detail Header */}
       <Box
         sx={{
-          px: 2,
-          pt: 1.5,
-          pb: 1.5,
+          px: { xs: 2, md: 3 },
+          pt: 1.75,
+          pb: 2,
           borderBottom: `1px solid ${theme.palette.divider}`,
           bgcolor: "background.paper",
         }}
@@ -215,33 +216,52 @@ export const DetailView = ({
               }}
             />
           </Stack>
-          <IconButton size="small" sx={{ color: "text.secondary" }}>
-            <MoreHorizIcon fontSize="small" />
-          </IconButton>
         </Stack>
 
-        <Typography
-          sx={{
-            fontWeight: 700,
-            fontSize: "1rem",
-            lineHeight: 1.35,
-            color: "text.primary",
-            mb: 0.5,
-          }}
-        >
-          {activeItem.shortTitle}
-        </Typography>
-
-        <Typography sx={{ fontSize: "0.75rem", color: "text.disabled" }}>
-          Received{" "}
-          <Box component="span" sx={{ color: "text.secondary", fontWeight: 500 }}>
-            {activeItem.date}
-          </Box>{" "}
-          at{" "}
-          <Box component="span" sx={{ color: "text.secondary", fontWeight: 500 }}>
-            {activeItem.time}
+        <Stack direction="row" alignItems="flex-start" gap={1.75}>
+          <Box
+            sx={{
+              width: 44,
+              height: 44,
+              borderRadius: "11px",
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              bgcolor: alpha(theme.palette.primary.main, isDark ? 0.18 : 0.1),
+              color: "primary.main",
+              "& svg": { fontSize: 22 },
+            }}
+          >
+            {getModuleIcon(activeItem.displayModule)}
           </Box>
-        </Typography>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontWeight: 600,
+                fontSize: "1.125rem",
+                lineHeight: 1.35,
+                color: "text.primary",
+                mb: 0.5,
+              }}
+            >
+              {activeItem.shortTitle}
+            </Typography>
+
+            <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
+              Received{" "}
+              <Box component="span" sx={{ color: "text.primary", fontWeight: 500 }}>
+                {activeItem.date}
+              </Box>{" "}
+              at{" "}
+              <Box component="span" sx={{ color: "text.primary", fontWeight: 500 }}>
+                {activeItem.time}
+              </Box>
+              {" · "}
+              {formatRelativeTime(activeItem.originalData.createdAt)}
+            </Typography>
+          </Box>
+        </Stack>
       </Box>
 
       {/* Message body */}
@@ -249,8 +269,8 @@ export const DetailView = ({
         sx={{
           flex: 1,
           overflow: "auto",
-          p: { xs: 1.5, md: 2.5 },
-          bgcolor: isDark ? "#111" : "#f5f6f8",
+          p: { xs: 1.5, md: 3 },
+          bgcolor: "background.default",
         }}
       >
         <Paper
@@ -262,6 +282,18 @@ export const DetailView = ({
             bgcolor: "background.paper",
           }}
         >
+          <Typography
+            sx={{
+              fontSize: "0.6875rem",
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: "text.secondary",
+              mb: 1,
+            }}
+          >
+            Message
+          </Typography>
           <Typography
             sx={{
               fontSize: "0.875rem",
@@ -278,10 +310,10 @@ export const DetailView = ({
       {/* Action Footer */}
       <Box
         sx={{
-          px: 2,
-          py: 3,
+          px: { xs: 2, md: 3 },
+          py: 1.5,
           borderTop: `1px solid ${theme.palette.divider}`,
-          bgcolor: isDark ? "#161616" : "#fafafa",
+          bgcolor: "background.paper",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -289,8 +321,8 @@ export const DetailView = ({
         }}
       >
         <Typography
-          fontSize="0.75rem"
-          color="text.disabled"
+          fontSize="0.8125rem"
+          color="text.secondary"
           sx={{ flexShrink: 0 }}
         >
           {isActionable
@@ -310,7 +342,7 @@ export const DetailView = ({
                 disabled={isLoading}
                 onClick={() => setRejectDialogOpen(true)}
                 sx={{
-                  py: 0.6,
+                  py: 0.8,
                   px: 1.5,
                   fontWeight: 600,
                   fontSize: "0.75rem",
@@ -336,7 +368,7 @@ export const DetailView = ({
                 }
                 onClick={() => setApproveDialogOpen(true)}
                 sx={{
-                  py: 0.6,
+                  py: 0.8,
                   px: 1.5,
                   fontWeight: 600,
                   fontSize: "0.75rem",
@@ -359,7 +391,7 @@ export const DetailView = ({
               disabled={isLoading}
               onClick={onAcknowledge}
               sx={{
-                py: 0.6,
+                py: 0.8,
                 px: 1.75,
                 fontWeight: 600,
                 fontSize: "0.75rem",
@@ -380,7 +412,7 @@ export const DetailView = ({
             disabled={isLoading}
             onClick={onAcknowledge}
             sx={{
-              py: 0.6,
+              py: 0.8,
               px: 1.75,
               fontWeight: 600,
               fontSize: "0.75rem",

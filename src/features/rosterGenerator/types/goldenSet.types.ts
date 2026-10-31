@@ -54,8 +54,22 @@ export interface GoldenSetApiRow {
   w6D7: string;
 }
 
+/** Result set 2 of sp_get_golden_set — the calendar week each W1..W6 maps to. */
+export interface GoldenWeekDate {
+  /** "W1".."W6" */
+  goldenWeek: string;
+  /** "yyyy-MM-dd" */
+  startDate: string;
+  endDate: string;
+  isoYear: number;
+  isoWeek: number;
+  /** true for the golden week that feeds the week-7 preview */
+  isWeek7: boolean;
+}
+
 export interface GoldenSetApiResponse {
   data: GoldenSetApiRow[];
+  weeks?: GoldenWeekDate[];
 }
 
 export interface GoldenSetQueryParams {

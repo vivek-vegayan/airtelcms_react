@@ -39,7 +39,7 @@ const filterParams = (f: CRQAnalyticsFilterParams) => ({
 // server-side) but return no total count, so fetchAllViewAllPages keeps asking
 // for the next page until a short one comes back and hands the table (and its
 // Excel export) the combined set.
-const VIEW_ALL_PAGE_SIZE = 200;
+const VIEW_ALL_PAGE_SIZE = 5000;
 // Safety stop in case the backend ever ignores `page` and keeps returning a full batch.
 const VIEW_ALL_MAX_PAGES = 100;
 

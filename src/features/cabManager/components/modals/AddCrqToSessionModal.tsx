@@ -17,6 +17,7 @@ import { toast } from "react-toastify";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useOrgAutoSelect } from "../../../orgHierarchy/hooks/useOrgAutoSelect";
 import { useOrgHierarchyState } from "../../../orgHierarchy/hooks/useOrgHierarchyState";
 import {
   useAddCrqsToCabSessionMutation,
@@ -47,6 +48,7 @@ export function AddCrqToSessionModal({
   const roleCode = useAuth().role ?? "TEAM_MEMBER";
   const { values, handleChange, resetAll } = useOrgHierarchyState();
   const { options } = useOrgHierarchyFilters(values);
+  useOrgAutoSelect(values, options, handleChange);
   const [picked, setPicked] = useState<string[]>([]);
 
   const shouldFetch = Boolean(values.domain) && values.subDomain != null;

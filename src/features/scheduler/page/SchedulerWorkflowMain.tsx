@@ -3,6 +3,7 @@ import { Box, useTheme } from "@mui/material";
 import { useAuth } from "../../auth/hooks/useAuth";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useOrgAutoSelect } from "../../orgHierarchy/hooks/useOrgAutoSelect";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useApiRefresh, type ApiTag } from "../../../hooks/useApiRefresh";
 import { AppStepper } from "../../../components/ui/AppStepper/AppStepper";
@@ -73,6 +74,7 @@ export const PlanAndInventoryMain = () => {
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { values, setValues, handleChange } = useOrgHierarchyState("schedulerWorkflow");
   const { options } = useOrgHierarchyFilters(values);
+  useOrgAutoSelect(values, options, handleChange);
   // A TEAM_MEMBER is never shown a Domain picker (ORG_FILTER_VISIBILITY), so
   // there is no domain to send for them - null, not a defaulted-to-1 guess.
   // Every stage below then queries with the param omitted, which is what the

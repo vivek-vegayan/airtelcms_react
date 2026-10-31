@@ -30,7 +30,7 @@ export default function GoldenGridScreen({
   const subDomainId =
     typeof subTeamId === "string" ? parseInt(subTeamId, 10) : (subTeamId ?? 0);
 
-  const { allEmps, allRoles, isLoading, error, refetch, updateDailyGoldenSet, isSaving } =
+  const { allEmps, allRoles, weekDates, isLoading, error, refetch, updateDailyGoldenSet, isSaving } =
     useGoldenGridData(subDomainId, domainId);
 
   const editing_ = useGoldenGridEditing(allEmps, updateDailyGoldenSet);
@@ -311,6 +311,7 @@ export default function GoldenGridScreen({
       <GoldenGridTable
         allEmpsCount={allEmps.length}
         filtered={filtered}
+        weekDates={weekDates}
         dayTotals={dayTotals}
         getShifts={getShifts}
         localGrid={localGrid}

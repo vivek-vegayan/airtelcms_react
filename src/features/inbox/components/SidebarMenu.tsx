@@ -90,7 +90,7 @@ export const SidebarMenu = ({
                     ? alpha(theme.palette.warning.main, 0.15)
                     : alpha(theme.palette.text.primary, 0.08),
                 color: isActive
-                  ? "#fff"
+                  ? "primary.contrastText"
                   : isHighlight
                     ? "warning.dark"
                     : "text.secondary",

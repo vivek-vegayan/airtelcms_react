@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Alert, Box, Button } from "@mui/material";
+import { Alert, Box, Button, IconButton, Typography, useTheme } from "@mui/material";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import { useCrqJourney } from "../hooks/useCrqJourney";
 import { CrqSelector } from "../components/CrqSelector";
 import { CrqInfoStrip } from "../components/CrqInfoStrip";
@@ -14,7 +15,15 @@ import {
 import { StageAssignmentPanel } from "../components/StageAssignmentPanel";
 import { SpocFeDetailsModal } from "../../cabManager/components/modals/SpocFeDetailsModal";
 
-export const CrqJourneyPage: React.FC = () => {
+interface CrqJourneyPageProps {
+  /** Open this CRQ directly instead of reading it from the route. */
+  crqNo?: string;
+  /** Embedded use (CRQ Analytics): swaps the org filters + CRQ picker for a back bar. */
+  onBack?: () => void;
+}
+
+export const CrqJourneyPage: React.FC<CrqJourneyPageProps> = ({ crqNo, onBack }) => {
+  const theme = useTheme();
   const {
     roleName,
     values,
@@ -39,7 +48,7 @@ export const CrqJourneyPage: React.FC = () => {
     isLoadingDetails,
     refetch,
     isRefreshing,
-  } = useCrqJourney();
+  } = useCrqJourney(crqNo);
 
   // The service panel sits under the flow canvas, and the canvas fits itself
   // into the viewport height left below its own top edge — so the panel's open
@@ -56,17 +65,34 @@ export const CrqJourneyPage: React.FC = () => {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1, pb: 1 }}>
-      {/* ── Org scope + CRQ selector ── */}
-      <CrqSelector
-        role={roleName}
-        values={values}
-        options={options}
-        onFilterChange={handleChange}
-        crqOptions={crqOptions}
-        isLoadingCrqs={isLoadingCrqs}
-        value={selectedCrq}
-        onChange={handleSelectCrq}
-      />
+      {onBack ? (
+        /* ── Embedded: back bar instead of the org scope + CRQ selector ── */
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <IconButton onClick={onBack} size="small" aria-label="Back">
+            <ArrowBackRoundedIcon fontSize="small" />
+          </IconButton>
+          <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.text.primary }}>
+            CRQ Journey
+            {crqNo && (
+              <Box component="span" sx={{ ml: 1, fontWeight: 500, color: "text.secondary" }}>
+                {crqNo}
+              </Box>
+            )}
+          </Typography>
+        </Box>
+      ) : (
+        /* ── Org scope + CRQ selector ── */
+        <CrqSelector
+          role={roleName}
+          values={values}
+          options={options}
+          onFilterChange={handleChange}
+          crqOptions={crqOptions}
+          isLoadingCrqs={isLoadingCrqs}
+          value={selectedCrq}
+          onChange={handleSelectCrq}
+        />
+      )}
 
       {/* ── Loading ── */}
       {isLoading && <CrqFlowSkeleton />}

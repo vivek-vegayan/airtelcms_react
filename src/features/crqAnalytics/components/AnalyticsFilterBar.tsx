@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react";
 import { Box, MenuItem, TextField, ToggleButton, ToggleButtonGroup, useTheme } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -47,6 +48,18 @@ export function AnalyticsFilterBar({
   // Same source as the All CRQs circle filter: GET /cab/admin/circledropdown.
   const { data: circles } = useGetCircleDropdownQuery();
 
+  // Sub Domain gets an "All" entry (0) meaning "no sub domain": unset shows as
+  // All, and picking All clears it, so every sub domain under the Domain is covered.
+  const barOptions = useMemo(
+    () => ({ ...orgOptions, subDomain: [{ label: "All", value: 0 }, ...orgOptions.subDomain] }),
+    [orgOptions],
+  );
+  const barValues = useMemo(() => ({ ...orgValues, subDomain: orgValues.subDomain ?? 0 }), [orgValues]);
+  const handleOrgChange = useCallback<typeof onOrgFilterChange>(
+    (key, value) => onOrgFilterChange(key, key === "subDomain" && value === 0 ? undefined : value),
+    [onOrgFilterChange],
+  );
+
   return (
     <Box
       sx={{
@@ -66,9 +79,9 @@ export function AnalyticsFilterBar({
     >
       <OrgHierarchyFilters
         role={roleName}
-        values={orgValues}
-        options={orgOptions}
-        onChange={onOrgFilterChange}
+        values={barValues}
+        options={barOptions}
+        onChange={handleOrgChange}
         onRefresh={refresh}
         isRefreshing={isRefreshing}
         refreshTooltip="Refresh analytics"

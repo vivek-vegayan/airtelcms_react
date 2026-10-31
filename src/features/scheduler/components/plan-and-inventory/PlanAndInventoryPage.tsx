@@ -32,6 +32,8 @@ import type { Plan } from "../../types/crqWorkflow.types";
 import { deepSearch } from "../../util/stringUtils";
 import { taskNumbersOf } from "../../constants/stageConfig";
 import { filterPlansByChangeImpact, type ChangeImpactFilter } from "../../util/changeImpact";
+import { filterPlansByMyCurrentStage } from "../../util/myCrqs";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import ChangeImpactSelect from "../generic/ChangeImpactSelect";
 import {
   searchFieldSx,
@@ -201,6 +203,8 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
   const [globalSearchInput, setGlobalSearchInput] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
   const [changeImpact, setChangeImpact] = useState<ChangeImpactFilter>("");
+  // "My CRQs": only CRQs whose current stage is assigned to the logged-in user's OLM id.
+  const [myCrqsOnly, setMyCrqsOnly] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [previewPdfOpen, setPreviewPdfOpen] = useState(false);
   const selectedCrq = useMemo(
@@ -377,8 +381,12 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
         })
         .filter(Boolean);
     }
-    return filterPlansByChangeImpact(plans, changeImpact);
-  }, [plansOriginal, globalSearch, changeImpact]);
+    return filterPlansByMyCurrentStage(
+      filterPlansByChangeImpact(plans, changeImpact),
+      myCrqsOnly,
+      currentUserOlmId,
+    );
+  }, [plansOriginal, globalSearch, changeImpact, myCrqsOnly, currentUserOlmId]);
 
   const columns = useMemo<MRT_ColumnDef<any>[]>(
     () => [
@@ -444,6 +452,36 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
       sx={stageToolbarRowSx}
     >
       <ChangeImpactSelect value={changeImpact} onChange={setChangeImpact} colors={colors} />
+      <Tooltip
+        title={
+          currentUserOlmId
+            ? `Show only CRQs whose current stage is assigned to you (${currentUserOlmId})`
+            : "Your OLM ID is not available"
+        }
+      >
+        <span>
+          <Chip
+            icon={<PersonOutlineRoundedIcon sx={{ fontSize: 16 }} />}
+            label="My CRQs"
+            clickable
+            disabled={!currentUserOlmId}
+            onClick={() => setMyCrqsOnly((v) => !v)}
+            aria-pressed={myCrqsOnly}
+            sx={{
+              height: 34,
+              borderRadius: "9px",
+              fontSize: 12.5,
+              fontWeight: 600,
+              flexShrink: 0,
+              bgcolor: myCrqsOnly ? colors.accentDim : colors.trackOff,
+              color: myCrqsOnly ? colors.accent : colors.textSecondary,
+              border: `1px solid ${myCrqsOnly ? colors.accent : colors.border}`,
+              "& .MuiChip-icon": { color: "inherit" },
+              "&:hover": { bgcolor: colors.accentDim, color: colors.accent },
+            }}
+          />
+        </span>
+      </Tooltip>
       <TextField
         size="small"
         placeholder="Search plans, CRQs, tasks…"

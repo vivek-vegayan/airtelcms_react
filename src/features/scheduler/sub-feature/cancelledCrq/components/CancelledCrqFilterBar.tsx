@@ -1,7 +1,7 @@
 import { Box, Button, InputAdornment, TextField, useTheme } from "@mui/material";
 import { useMemo } from "react";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import FilterAltOffRoundedIcon from "@mui/icons-material/FilterAltOffRounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import OrgFilterSelect from "../../../../orgHierarchy/components/OrgFilterSelect";
 import { getOrgFilterVisibility } from "../../../../orgHierarchy/config/orgFilterVisibility";
 import type {
@@ -32,8 +32,8 @@ interface Props {
   onChange: (key: OrgFilterKey, value?: number) => void;
   search: string;
   onSearchChange: (value: string) => void;
-  onClear: () => void;
-  hasActiveFilters: boolean;
+  onRefresh: () => void;
+  refreshing: boolean;
 }
 
 /**
@@ -73,8 +73,8 @@ export const CancelledCrqFilterBar = ({
   onChange,
   search,
   onSearchChange,
-  onClear,
-  hasActiveFilters,
+  onRefresh,
+  refreshing,
 }: Props) => {
   const theme = useTheme();
   const tk = useTabColorTokens(theme);
@@ -95,13 +95,15 @@ export const CancelledCrqFilterBar = ({
     <Box
       sx={{
         display: "flex",
-        flexWrap: "wrap",
-        gap: 1.5,
+        // One line from md up (incl. 125% scaling); wrap only on narrow screens.
+        flexWrap: { xs: "wrap", md: "nowrap" },
+        gap: 1.25,
         alignItems: "center",
-        p: 1.5,
-        borderRadius: tk.radiusL,
-        bgcolor: tk.surface,
-        border: `1px solid ${tk.border}`,
+        // Sits in the table's top toolbar (no frame of its own); grows to fill
+        // the row up to the table's column/fullscreen icons.
+        flex: "1 1 auto",
+        minWidth: 0,
+        pt: 0.75,
       }}
     >
       {visible.map((key) => (
@@ -113,6 +115,9 @@ export const CancelledCrqFilterBar = ({
           value={values[key] ?? 0}
           options={withAll(key)}
           onChange={(v) => onChange(key, v)}
+          // Small base width so the pickers shrink instead of pushing Refresh
+          // to a second line; they grow back on wider screens.
+          sx={{ flex: "1 1 130px", minWidth: 120, maxWidth: 180 }}
         />
       ))}
 
@@ -122,8 +127,8 @@ export const CancelledCrqFilterBar = ({
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
         sx={{
-          minWidth: 260,
-          flex: "1 1 240px",
+          minWidth: 160,
+          flex: "1 1 200px",
           "& .MuiInputBase-root": { height: 32 },
           "& .MuiInputBase-input": { padding: "4px 8px", fontSize: "0.8rem" },
         }}
@@ -141,12 +146,12 @@ export const CancelledCrqFilterBar = ({
       <Button
         size="small"
         variant="text"
-        disabled={!hasActiveFilters}
-        onClick={onClear}
-        startIcon={<FilterAltOffRoundedIcon sx={{ fontSize: 16 }} />}
-        sx={{ textTransform: "none", fontSize: "0.78rem", height: 32 }}
+        disabled={refreshing}
+        onClick={onRefresh}
+        startIcon={<RefreshRoundedIcon sx={{ fontSize: 16 }} />}
+        sx={{ textTransform: "none", fontSize: "0.78rem", height: 32, flexShrink: 0 }}
       >
-        Clear
+        Refresh
       </Button>
     </Box>
   );

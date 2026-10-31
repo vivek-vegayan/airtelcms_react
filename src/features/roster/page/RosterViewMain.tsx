@@ -9,6 +9,7 @@ import { WeeklyRosterMain } from "../weekly/WeeklyRosterMain";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useOrgAutoSelect } from "../../orgHierarchy/hooks/useOrgAutoSelect";
 import { useApiRefresh, type ApiTag } from "../../../hooks/useApiRefresh";
 import {
   RosterViewSwitch,
@@ -34,6 +35,7 @@ export const RosterViewMain = () => {
 
   const { values, handleChange } = useOrgHierarchyState("rosterView");
   const { options } = useOrgHierarchyFilters(values);
+  useOrgAutoSelect(values, options, handleChange);
   const { refresh, isRefreshing } = useApiRefresh({ tags: ROSTER_TAGS });
 
   const domainId = values.domain;
