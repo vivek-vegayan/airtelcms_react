@@ -264,8 +264,7 @@ export function CrqJourneyDetail({ crqNo, onBack }: Props) {
         </Box>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          {d?.lastUpdated && <Typography sx={{ fontSize: 10.5, color: muted }}>Last updated: {d.lastUpdated}</Typography>}
-          <Tooltip title="Refresh">
+          {d?.lastUpdated && <Typography sx={{ fontSize: 10.5, color: muted }}>Last updated: {d.lastUpdated}</Typography>}          <Tooltip title="Refresh">
             <span>
               <IconButton size="small" onClick={() => refetch()} disabled={isFetching}>
                 <RefreshRoundedIcon sx={{ fontSize: 17 }} />

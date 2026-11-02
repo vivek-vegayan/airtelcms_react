@@ -1,7 +1,7 @@
 import { resolveShiftKeyFromDisplay } from "../constant/shiftPalette";
 
 export interface RosterUserFilters {
-  /** All terms must match somewhere in the user record (AND logic). */
+  /** A user is kept if any term matches one of SEARCH_FIELDS (OR logic). */
   searchTerms: string[];
   /** Job levels to keep; empty = all. */
   filterLevel: string[];
@@ -10,6 +10,9 @@ export interface RosterUserFilters {
   /** The visible date columns (YYYY-MM-DD) used for the shift filter. */
   dates: string[];
 }
+
+/** Fields the employee search matches against. */
+const SEARCH_FIELDS = ["employeeName", "olmid", "mobileNo", "officeLocation"] as const;
 
 /**
  * Shared user filtering for the Weekly and Monthly roster views.
@@ -20,9 +23,14 @@ export function filterRosterUsers<
 >(users: T[], { searchTerms, filterLevel, filterShift, dates }: RosterUserFilters): T[] {
   return users.filter((user) => {
     if (searchTerms.length > 0) {
-      const haystack = JSON.stringify(user).toLowerCase();
-      if (!searchTerms.every((t) => haystack.includes(t.toLowerCase())))
-        return false;
+      const values = SEARCH_FIELDS.map((f) =>
+        String((user as Record<string, unknown>)[f] ?? "").toLowerCase(),
+      );
+      const matches = searchTerms.some((t) => {
+        const term = t.toLowerCase();
+        return values.some((v) => v.includes(term));
+      });
+      if (!matches) return false;
     }
     if (filterLevel.length && !filterLevel.includes(user.jobLevel))
       return false;

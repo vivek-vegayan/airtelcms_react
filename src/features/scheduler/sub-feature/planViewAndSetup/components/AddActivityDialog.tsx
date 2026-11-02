@@ -53,9 +53,9 @@ const INITIAL_PHASE_FULL = {
 const PHASES = [
   { key: "crqReview",      label: "CRQ Review",       variant: "slim" },
   { key: "impactAnalysis",  label: "Impact Analysis",  variant: "slim" },
-  { key: "scheduling",      label: "Scheduling",       variant: "slim" },
   { key: "mopCreate",       label: "MOP Create",       variant: "slim" },
   { key: "mopValidate",     label: "MOP Validate",     variant: "slim" },
+  { key: "scheduling",      label: "Scheduling",       variant: "slim" },
   { key: "crqExecution",    label: "CRQ Execution",    variant: "full" },
 ] as const;
 

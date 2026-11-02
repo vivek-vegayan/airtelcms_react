@@ -25,13 +25,15 @@ interface Props {
   filters: CRQAnalyticsFilterParams;
   onBack: () => void;
   onRowClick: (crqNo: string) => void;
+  /** Height cap for the table body; each page picks how tall its View All table is. */
+  tableMaxHeight?: string;
 }
 
 /** Full-screen destination for every "View All" button / chart drill-down
  * click — routes tableType to whichever backend query actually backs it.
  * skip: true keeps the unused queries from firing (rules of hooks require
  * calling all of them regardless of which tableType is active). */
-export function CrqFullscreenTable({ config, filters, onBack, onRowClick }: Props) {
+export function CrqFullscreenTable({ config, filters, onBack, onRowClick, tableMaxHeight }: Props) {
   const theme = useTheme();
 
   const circleRegion = useGetCrqViewAllCircleRegionQuery(
@@ -104,21 +106,22 @@ export function CrqFullscreenTable({ config, filters, onBack, onRowClick }: Prop
   const renderBody = () => {
     switch (config.tableType) {
       case "CIRCLE_REGION":
-        return <GenericViewAllTable response={circleRegion.data} isLoading={circleRegion.isFetching} isError={circleRegion.isError} />;
+        return <GenericViewAllTable response={circleRegion.data} isLoading={circleRegion.isFetching} isError={circleRegion.isError} maxHeight={tableMaxHeight} onRowClick={onRowClick} />;
       case "OPEN_CRQ_DOMAIN":
-        return <GenericViewAllTable response={openDomain.data} isLoading={openDomain.isFetching} isError={openDomain.isError} />;
+        return <GenericViewAllTable response={openDomain.data} isLoading={openDomain.isFetching} isError={openDomain.isError} maxHeight={tableMaxHeight} onRowClick={onRowClick} />;
       case "AGING_HEATMAP":
-        return <GenericViewAllTable response={agingHeatmap.data} isLoading={agingHeatmap.isFetching} isError={agingHeatmap.isError} />;
+        return <GenericViewAllTable response={agingHeatmap.data} isLoading={agingHeatmap.isFetching} isError={agingHeatmap.isError} maxHeight={tableMaxHeight} onRowClick={onRowClick} />;
       case "OPEN_VS_CLOSED":
-        return <GenericViewAllTable response={openVsClosed.data} isLoading={openVsClosed.isFetching} isError={openVsClosed.isError} />;
+        return <GenericViewAllTable response={openVsClosed.data} isLoading={openVsClosed.isFetching} isError={openVsClosed.isError} maxHeight={tableMaxHeight} onRowClick={onRowClick} />;
       case "RUN_RATE":
-        return <GenericViewAllTable response={runRate.data} isLoading={runRate.isFetching} isError={runRate.isError} />;
+        return <GenericViewAllTable response={runRate.data} isLoading={runRate.isFetching} isError={runRate.isError} maxHeight={tableMaxHeight} onRowClick={onRowClick} />;
       case "CRQ_LIST":
         return (
           <CrqListTable
             filters={filters}
             drill={{ status: config.status, stage: config.stage, rejectionReason: config.rejectionReason }}
             onRowClick={onRowClick}
+            maxHeight={tableMaxHeight}
           />
         );
     }

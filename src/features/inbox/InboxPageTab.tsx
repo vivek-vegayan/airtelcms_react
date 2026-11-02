@@ -1,6 +1,6 @@
 import { Box, Tabs, Tab, useTheme } from "@mui/material";
-import React, { type JSX, Suspense, useEffect, useMemo } from "react";
-import { useLocation, Link } from "react-router";
+import React, { type JSX, Suspense, useEffect } from "react";
+import { Link } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../app/hooks";
 import { RouteFallback } from "../../components/loading/PageLoader";
@@ -18,32 +18,17 @@ const InboxPageTab: React.FC<InboxPageTabProps> = ({
   setDynamicHeaderText,
   setDynamicHeaderIcon,
 }) => {
-  const location = useLocation();
   const theme = useTheme();
   const user = useAppSelector((s) => s.auth.user);
 
   if (!user) return null;
 
-  /* ================= ACTIVE TAB ================= */
-
-  const activeTab = useMemo(() => {
-    const path = location.pathname;
-
-    if (path.includes("/inbox/action")) return "action";
-    return "notifications";
-  }, [location.pathname]);
-
   /* ================= HEADER CONTROL ================= */
 
   useEffect(() => {
-    if (activeTab === "action") {
-      setDynamicHeaderText("Action Required");
-    } else {
-      setDynamicHeaderText("Notifications");
-    }
-
+    setDynamicHeaderText("Notifications");
     setDynamicHeaderIcon(HEADER_ICON);
-  }, [activeTab, setDynamicHeaderText, setDynamicHeaderIcon]);
+  }, [setDynamicHeaderText, setDynamicHeaderIcon]);
 
   /* ================= UI ================= */
 
@@ -94,7 +79,7 @@ const InboxPageTab: React.FC<InboxPageTabProps> = ({
         }}
       >
         <Tabs
-          value={activeTab}
+          value="notifications"
           variant="scrollable"
           scrollButtons="auto"
           sx={{
@@ -130,13 +115,6 @@ const InboxPageTab: React.FC<InboxPageTabProps> = ({
             value="notifications"
             component={Link}
             to="notifications"
-          />
-
-          <Tab
-            label="Action"
-            value="action"
-            component={Link}
-            to="action"
           />
         </Tabs>
       </Box>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Badge,
@@ -13,6 +13,7 @@ import {
   Fade,
   CircularProgress,
   useTheme,
+  alpha,
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
@@ -159,6 +160,17 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
   // Brand accent — was a hardcoded indigo; now follows the header's
   // brand-color picker (theme.palette.primary.main) like the rest of the app.
   const ACCENT = theme.palette.primary.main;
+  // Dropdown surface tokens — read from the theme so the panel follows dark mode.
+  const isDark = theme.palette.mode === "dark";
+  const PAPER = theme.palette.background.paper;
+  const DIVIDER = theme.palette.divider;
+  const TEXT = theme.palette.text.primary;
+  const TEXT2 = theme.palette.text.secondary;
+  const TINT = alpha(ACCENT, isDark ? 0.06 : 0.03);
+  const TINT_STRONG = alpha(ACCENT, isDark ? 0.1 : 0.05);
+  const SUBTLE = alpha(theme.palette.text.primary, isDark ? 0.08 : 0.05);
+  const ACCENT_SOFT = alpha(ACCENT, isDark ? 0.18 : 0.08);
+  const ACCENT_SOFT_HOVER = alpha(ACCENT, isDark ? 0.26 : 0.14);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<TabType>("All");
   const [localReadIds, setLocalReadIds] = useState<Record<number, boolean>>({});
@@ -248,20 +260,49 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
-  const markRead = (id: number) => {
-    setLocalReadIds((p) => ({ ...p, [id]: true }));
-    acknowledgeNotification({ notificationId: id }).catch(() => {});
+  // An actionable notification still awaiting a decision must stay in the
+  // list until it is approved/rejected (requestStatus leaves PENDING), so it
+  // is never acknowledged or dismissed just by being opened or "read".
+  const isPendingAction = (n: NotificationItem) =>
+    coerceBoolean(n.isActionable) && n.requestStatus === "PENDING";
+
+  // Opening a notification only marks it read locally; the acknowledge call
+  // (which drops it from the unread list) is deferred until the panel
+  // closes, so the item doesn't vanish while the user is still reading it.
+  const pendingAckIds = useRef<Set<number>>(new Set());
+
+  const flushPendingAcks = () => {
+    pendingAckIds.current.forEach((id) => {
+      acknowledgeNotification({ notificationId: id }).catch(() => {});
+    });
+    pendingAckIds.current.clear();
   };
 
-  const dismiss = (id: number) => {
-    setDismissed((p) => ({ ...p, [id]: true }));
-    markRead(id);
+  useEffect(() => {
+    if (!open) flushPendingAcks();
+  }, [open]);
+
+  useEffect(() => () => flushPendingAcks(), []);
+
+  const markRead = (n: NotificationItem) => {
+    setLocalReadIds((p) => ({ ...p, [n.notificationId]: true }));
+    if (isPendingAction(n)) return;
+    pendingAckIds.current.add(n.notificationId);
+  };
+
+  const dismiss = (n: NotificationItem) => {
+    if (isPendingAction(n)) return;
+    setDismissed((p) => ({ ...p, [n.notificationId]: true }));
+    setLocalReadIds((p) => ({ ...p, [n.notificationId]: true }));
+    pendingAckIds.current.delete(n.notificationId);
+    acknowledgeNotification({ notificationId: n.notificationId }).catch(() => {});
   };
 
   const markAll = () => {
     const patch: Record<number, boolean> = {};
     active.forEach((n) => {
       patch[n.notificationId] = true;
+      if (isPendingAction(n)) return;
       acknowledgeNotification({ notificationId: n.notificationId }).catch(
         () => {},
       );
@@ -328,7 +369,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
       } else if (meta.subModule === "CAB_APPROVER") {
         await cabCrqAction({ notificationId: rejectTarget.notificationId, status: "REJECTED", reason: reasonText, comment: remark }).unwrap();
       } else if (meta.subModule === "RESCHEDULE") {
-        await cabRescheduleAction({ notificationId: rejectTarget.notificationId, status: "REJECTED", reason: reasonText, comment: remark }).unwrap();
+        await cabRescheduleAction({ notificationId: rejectTarget.notificationId, status: "REJECTED", comment: remark }).unwrap();
       }
       toast.success("Rejected successfully.");
       setExpanded(null);
@@ -450,11 +491,11 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
               right: -4,
               width: 360,
               maxWidth: "calc(100vw - 32px)",
-              background: "#fff",
+              background: PAPER,
               borderRadius: "18px",
               boxShadow:
                 "0 24px 60px rgba(0,0,0,0.22), 0 4px 16px rgba(0,0,0,0.08)",
-              border: "1.5px solid #e8edf6",
+              border: `1.5px solid ${DIVIDER}`,
               overflow: "hidden",
               zIndex: 1400,
               display: open ? "block" : "none",
@@ -465,8 +506,8 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                 right: 16,
                 width: 16,
                 height: 16,
-                background: "#fff",
-                border: "1.5px solid #e8edf6",
+                background: PAPER,
+                border: `1.5px solid ${DIVIDER}`,
                 borderBottom: "none",
                 borderRight: "none",
                 transform: "rotate(45deg)",
@@ -483,8 +524,8 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                background: "linear-gradient(135deg, #fafbff 0%, #f0f3ff 100%)",
-                borderBottom: "1.5px solid #eef1f8",
+                background: TINT_STRONG,
+                borderBottom: `1.5px solid ${DIVIDER}`,
               }}
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -507,14 +548,14 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                     sx={{
                       fontSize: 13,
                       fontWeight: 800,
-                      color: "#1e1b4b",
+                      color: TEXT,
                       lineHeight: 1.2,
                     }}
                   >
                     Notifications
                   </Typography>
                   <Typography
-                    sx={{ fontSize: 10, color: "#94a3b8", fontWeight: 500 }}
+                    sx={{ fontSize: 10, color: TEXT2, fontWeight: 500 }}
                   >
                     {isLoading
                       ? "Loading…"
@@ -537,12 +578,12 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                       width: 28,
                       height: 28,
                       borderRadius: "8px",
-                      background: "#f1f5f9",
+                      background: SUBTLE,
                       cursor: "pointer",
-                      "&:hover": { background: "#e0e7ff" },
+                      "&:hover": { background: ACCENT_SOFT_HOVER },
                     }}
                   >
-                    <RefreshIcon sx={{ fontSize: 14, color: "#94a3b8" }} />
+                    <RefreshIcon sx={{ fontSize: 14, color: TEXT2 }} />
                   </Box>
                 </Tooltip>
 
@@ -557,23 +598,23 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                       px: "10px",
                       py: "5px",
                       borderRadius: "8px",
-                      background: unreadCount > 0 ? "#eef2ff" : "#f1f5f9",
+                      background: unreadCount > 0 ? ACCENT_SOFT : SUBTLE,
                       cursor: "pointer",
                       transition: "all .15s",
-                      "&:hover": { background: "#e0e7ff" },
+                      "&:hover": { background: ACCENT_SOFT_HOVER },
                     }}
                   >
                     <DoneAllIcon
                       sx={{
                         fontSize: 13,
-                        color: unreadCount > 0 ? ACCENT : "#94a3b8",
+                        color: unreadCount > 0 ? ACCENT : TEXT2,
                       }}
                     />
                     <Typography
                       sx={{
                         fontSize: 10,
                         fontWeight: 700,
-                        color: unreadCount > 0 ? ACCENT : "#94a3b8",
+                        color: unreadCount > 0 ? ACCENT : TEXT2,
                       }}
                     >
                       All read
@@ -591,7 +632,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                 px: "10px",
                 pt: "8px",
                 pb: "0",
-                borderBottom: "1.5px solid #f1f5f9",
+                borderBottom: `1.5px solid ${DIVIDER}`,
               }}
             >
               {(["All", "Unread", "Action"] as TabType[]).map((t) => {
@@ -627,7 +668,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                       sx={{
                         fontSize: 11,
                         fontWeight: tab === t ? 800 : 500,
-                        color: tab === t ? ACCENT : "#94a3b8",
+                        color: tab === t ? ACCENT : TEXT2,
                         transition: "color .15s",
                       }}
                     >
@@ -640,7 +681,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                           height: 16,
                           borderRadius: "8px",
                           px: "4px",
-                          background: tab === t ? ACCENT : "#f1f5f9",
+                          background: tab === t ? ACCENT : SUBTLE,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -650,7 +691,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                           sx={{
                             fontSize: 9,
                             fontWeight: 800,
-                            color: tab === t ? "#fff" : "#94a3b8",
+                            color: tab === t ? "#fff" : TEXT2,
                           }}
                         >
                           {count}
@@ -669,7 +710,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                 overflowY: "auto",
                 "&::-webkit-scrollbar": { width: "3px" },
                 "&::-webkit-scrollbar-thumb": {
-                  background: "#e2e8f0",
+                  background: DIVIDER,
                   borderRadius: "4px",
                 },
               }}
@@ -690,7 +731,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                     sx={{ fontSize: 28, color: "#f59e0b", mb: 1 }}
                   />
                   <Typography
-                    sx={{ color: "#1e1b4b", fontSize: 12, fontWeight: 700 }}
+                    sx={{ color: TEXT, fontSize: 12, fontWeight: 700 }}
                   >
                     Failed to load notifications
                   </Typography>
@@ -722,7 +763,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                         sx={{
                           fontSize: 9,
                           fontWeight: 800,
-                          color: "#94a3b8",
+                          color: TEXT2,
                           letterSpacing: "1px",
                           textTransform: "uppercase",
                           px: "16px",
@@ -747,7 +788,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                             <Box
                               onClick={() => {
                                 toggleExpand(n.notificationId);
-                                markRead(n.notificationId);
+                                markRead(n);
                               }}
                               sx={{
                                 display: "flex",
@@ -757,14 +798,14 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                 py: "10px",
                                 cursor: "pointer",
                                 background: isExpanded
-                                  ? "#f5f7ff"
+                                  ? TINT_STRONG
                                   : isRead
                                     ? "transparent"
-                                    : "#fafbff",
-                                borderBottom: "1px solid #f8fafc",
+                                    : TINT,
+                                borderBottom: `1px solid ${DIVIDER}`,
                                 position: "relative",
                                 transition: "background .15s",
-                                "&:hover": { background: "#f5f7ff" },
+                                "&:hover": { background: TINT_STRONG },
                               }}
                             >
                               {/* Unread left bar */}
@@ -808,7 +849,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                       height: 9,
                                       borderRadius: "50%",
                                       background: ACCENT,
-                                      border: "2px solid #fff",
+                                      border: `2px solid ${PAPER}`,
                                     }}
                                   />
                                 )}
@@ -821,7 +862,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                   sx={{
                                     fontSize: 12,
                                     fontWeight: isRead ? 600 : 800,
-                                    color: "#1e1b4b",
+                                    color: TEXT,
                                     lineHeight: 1.3,
                                   }}
                                 >
@@ -833,7 +874,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                   <Typography
                                     sx={{
                                       fontSize: 10.5,
-                                      color: "#64748b",
+                                      color: TEXT2,
                                       mt: "2px",
                                       lineHeight: 1.4,
                                       whiteSpace: isExpanded
@@ -892,15 +933,15 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                           px: "6px",
                                           py: "1px",
                                           borderRadius: "5px",
-                                          background: "#fffbeb",
-                                          border: "1px solid #fde68a",
+                                          background: alpha(theme.palette.warning.main, isDark ? 0.16 : 0.1),
+                                          border: `1px solid ${alpha(theme.palette.warning.main, 0.4)}`,
                                         }}
                                       >
                                         <Typography
                                           sx={{
                                             fontSize: 9,
                                             fontWeight: 700,
-                                            color: "#d97706",
+                                            color: (isDark ? theme.palette.warning.light : theme.palette.warning.dark),
                                           }}
                                         >
                                           Pending Action
@@ -909,12 +950,12 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                     )}
 
                                   <FiberManualRecordIcon
-                                    sx={{ fontSize: 5, color: "#cbd5e1" }}
+                                    sx={{ fontSize: 5, color: theme.palette.text.disabled }}
                                   />
                                   <Typography
                                     sx={{
                                       fontSize: 9.5,
-                                      color: "#94a3b8",
+                                      color: TEXT2,
                                       fontWeight: 600,
                                     }}
                                   >
@@ -929,7 +970,12 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                 size="small"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  dismiss(n.notificationId);
+                                  if (isPendingAction(n)) {
+                                    if (!isExpanded) toggleExpand(n.notificationId);
+                                    markRead(n);
+                                  } else {
+                                    dismiss(n);
+                                  }
                                 }}
                                 sx={{
                                   fontSize: 9.5,
@@ -967,7 +1013,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                 <Typography
                                   sx={{
                                     fontSize: 10.5,
-                                    color: "#475569",
+                                    color: TEXT2,
                                     lineHeight: 1.7,
                                     whiteSpace: "pre-line",
                                   }}
@@ -1042,18 +1088,19 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                       </>
                                     )}
 
-                                  {/* Dismiss */}
+                                  {/* Dismiss - hidden while a decision is still pending */}
+                                  {!isPendingAction(n) && (
                                   <Button
                                     size="small"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      dismiss(n.notificationId);
+                                      dismiss(n);
                                     }}
                                     sx={{
                                       fontSize: 9.5,
                                       fontWeight: 700,
                                       color: s.color,
-                                      background: "#fff",
+                                      background: PAPER,
                                       border: `1px solid ${s.border}`,
                                       borderRadius: "7px",
                                       py: "4px",
@@ -1064,6 +1111,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                   >
                                     Dismiss
                                   </Button>
+                                  )}
 
                                   {/* Collapse */}
                                   <Button
@@ -1075,7 +1123,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                     sx={{
                                       fontSize: 9.5,
                                       fontWeight: 600,
-                                      color: "#94a3b8",
+                                      color: TEXT2,
                                       borderRadius: "7px",
                                       py: "4px",
                                       px: "10px",
@@ -1103,7 +1151,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                       width: 52,
                       height: 52,
                       borderRadius: "16px",
-                      background: "#eef2ff",
+                      background: ACCENT_SOFT,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -1112,11 +1160,11 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                     }}
                   >
                     <CheckCircleOutlineIcon
-                      sx={{ fontSize: 28, color: "#a5b4fc" }}
+                      sx={{ fontSize: 28, color: alpha(ACCENT, 0.55) }}
                     />
                   </Box>
                   <Typography
-                    sx={{ color: "#1e1b4b", fontSize: 12, fontWeight: 700 }}
+                    sx={{ color: TEXT, fontSize: 12, fontWeight: 700 }}
                   >
                     {tab === "Unread"
                       ? "No unread notifications"
@@ -1125,7 +1173,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                         : "All caught up!"}
                   </Typography>
                   <Typography
-                    sx={{ color: "#94a3b8", fontSize: 10.5, mt: "3px" }}
+                    sx={{ color: TEXT2, fontSize: 10.5, mt: "3px" }}
                   >
                     Check back later for updates
                   </Typography>
@@ -1136,8 +1184,8 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
             {/* ── Footer ── */}
             <Box
               sx={{
-                borderTop: "1.5px solid #f1f5f9",
-                background: "#fafbff",
+                borderTop: `1.5px solid ${DIVIDER}`,
+                background: TINT,
                 px: "14px",
                 py: "10px",
                 display: "flex",
@@ -1155,13 +1203,13 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                   fontSize: 11,
                   fontWeight: 700,
                   color: ACCENT,
-                  background: "#eef2ff",
+                  background: ACCENT_SOFT,
                   borderRadius: "9px",
                   textTransform: "none",
                   px: "20px",
                   py: "6px",
                   width: "100%",
-                  "&:hover": { background: "#e0e7ff" },
+                  "&:hover": { background: ACCENT_SOFT_HOVER },
                 }}
               >
                 View all notifications

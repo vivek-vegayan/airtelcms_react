@@ -19,7 +19,7 @@ import { errMsg } from "../../cabManager/components/shared/errMsg";
 import { orDash } from "../../scheduler/sub-feature/cancelledCrq/cancelledCrqFormat";
 import { useGetReassignCandidatesQuery, useReassignMemberMutation } from "../api/crqReassignApi";
 import type { ReassignGridRow, ReassignStage } from "../types/crqReassign.types";
-import { isPairedStage, LEVEL_OPTIONS, mopCounterpart, STAGE_NAMES } from "../utils/crqReassign.utils";
+import { cabFlagLabel, isPairedStage, LEVEL_OPTIONS, mopCounterpart, STAGE_NAMES } from "../utils/crqReassign.utils";
 import { useReassignTokens } from "../hooks/useReassignTokens";
 import type { Note } from "./reassignUi";
 
@@ -87,7 +87,7 @@ export const StageOwnerDrawer = ({ sel, batchId, onBatch, setNote, onClose }: Pr
                 <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>
                   {sel.row.crq_no}
                 </Typography>
-                <Chip size="small" label={`CAB ${orDash(sel.row.cab_approval_flag)}`} variant="outlined" />
+                <Chip size="small" label={`Send to CAB: ${cabFlagLabel(sel.row.sent_to_cab)}`} variant="outlined" />
               </Stack>
               <IconButton onClick={onClose} size="small">
                 <CloseIcon />

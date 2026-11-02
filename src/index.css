@@ -27,33 +27,8 @@ body,
 
 }
 
-
-
-
-::-webkit-scrollbar {
-  width: 5px;
-  border-radius: 10px;
-  height: 10px;
-}
-
-/* Track */
-::-webkit-scrollbar-track {
-  background: #e0e0e0;
-  border-radius: 10px;
-
-}
-
-/* Handle */
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 10px;
-
-}
-
-/* Handle on hover */
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
+/* Scrollbar styling lives in the theme (MuiCssBaseline in style/theme.ts)
+   so it follows light/dark mode. */
 
 .custom-header {
   background-color: #c30000; /* Your custom header color */

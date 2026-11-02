@@ -3,6 +3,7 @@ import { lazy, Suspense, useState } from "react";
 import { useAuth } from "../../auth/hooks/useAuth";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useOrgAutoSelect } from "../../orgHierarchy/hooks/useOrgAutoSelect";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useApiRefresh, type ApiTag } from "../../../hooks/useApiRefresh";
 import { useTabColorTokens } from "../../../style/theme";
@@ -39,6 +40,7 @@ export const RosterGenerationMain = () => {
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { values, handleChange } = useOrgHierarchyState("rosterGeneration");
   const { options } = useOrgHierarchyFilters(values);
+  useOrgAutoSelect(values, options, handleChange);
   const theme = useTheme();
   const tk = useTabColorTokens(theme);
   const [activeTab, setActiveTab] = useState(0);

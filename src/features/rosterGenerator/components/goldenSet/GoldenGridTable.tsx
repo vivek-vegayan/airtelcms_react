@@ -28,6 +28,8 @@ import {
   Z_INDEX,
 } from "./goldenGrid.constants";
 import type { EditMode, GoldenSetEmployee } from "./goldenGrid.types";
+import type { GoldenWeekDate } from "../../types/goldenSet.types";
+import { weekRangeLabel } from "../../util/Futureweek.utils";
 import { workingCount } from "./goldenGrid.utils";
 import { useGoldenGridTokens } from "./useGoldenGridTokens";
 import ShiftLegend from "./ShiftLegend";
@@ -41,6 +43,8 @@ const MIN_GRID_HEIGHT = 320;
 interface GoldenGridTableProps {
   allEmpsCount: number;
   filtered: GoldenSetEmployee[];
+  /** W1..W6 calendar dates, index = week; null entries render label-only. */
+  weekDates: (GoldenWeekDate | null)[];
   dayTotals: Record<string, number>[];
   getShifts: (emp: GoldenSetEmployee) => string[];
   localGrid: Record<number, string[]>;
@@ -62,6 +66,7 @@ interface GoldenGridTableProps {
 export default function GoldenGridTable({
   allEmpsCount,
   filtered,
+  weekDates,
   dayTotals,
   getShifts,
   localGrid,
@@ -403,7 +408,7 @@ export default function GoldenGridTable({
                             : undefined,
                       }}
                     >
-                      Week {w + 1} 
+                      Week {w + 1}
                       {editing && editMode === "week" && (
                         <Typography
                           component="span"
@@ -412,18 +417,61 @@ export default function GoldenGridTable({
                           (right-click)
                         </Typography>
                       )}
+                      {weekDates[w] && (
+                        // One line under "Week N": date range · ISO chip · week-7 chip
+                        <Stack
+                          direction="row"
+                          spacing={0.5}
+                          alignItems="center"
+                          justifyContent="center"
+                          sx={{ mt: 0.25, textTransform: "none", letterSpacing: 0 }}
+                        >
+                          <Typography sx={{ fontSize: 10.5, fontWeight: 500, color: tk.textSecondary }}>
+                            {weekRangeLabel(weekDates[w]!.startDate, weekDates[w]!.endDate)}
+                          </Typography>
+                          <Chip
+                            size="small"
+                            label={`ISO ${weekDates[w]!.isoYear} · Week ${String(weekDates[w]!.isoWeek).padStart(2, "0")}`}
+                            sx={{
+                              height: 16,
+                              fontSize: 9.5,
+                              fontWeight: 500,
+                              "& .MuiChip-label": { px: 0.75 },
+                              bgcolor: alpha(theme.palette.info.main, 0.15),
+                              color: tk.isDark ? theme.palette.info.light : theme.palette.info.dark,
+                            }}
+                          />
+                          {weekDates[w]!.isWeek7 && (
+                            <Chip
+                              size="small"
+                              label="Feeds week 7"
+                              sx={{
+                                height: 16,
+                                fontSize: 9.5,
+                                fontWeight: 500,
+                                "& .MuiChip-label": { px: 0.75 },
+                                bgcolor: alpha(theme.palette.success.main, 0.18),
+                                color: tk.isDark ? theme.palette.success.light : theme.palette.success.dark,
+                              }}
+                            />
+                          )}
+                        </Stack>
+                      )}
                     </TableCell>
                   );
                 })}
 
-                {(["Work", "N", "OFF"] as const).map((h, i) => (
+                {(["Work", "N", "Non-Work"] as const).map((h, i) => (
                   <TableCell
                     key={h}
                     rowSpan={2}
+                    title={h === "Non-Work" ? "Week Off + Holiday + C" : undefined}
                     sx={{
                       ...weekHeadSx,
-                      width: 48,
-                      minWidth: 48,
+                      // "Non-Work" is wider so it stays on one line.
+                      width: h === "Non-Work" ? 64 : 48,
+                      minWidth: h === "Non-Work" ? 64 : 48,
+                      whiteSpace: "nowrap",
                       borderLeft: i === 0 ? `2.5px solid ${alpha(tk.textPrimary, 0.12)}` : undefined,
                     }}
                   >

@@ -28,6 +28,7 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useOrgAutoSelect } from "../../orgHierarchy/hooks/useOrgAutoSelect";
 import { useApiRefresh } from "../../../hooks/useApiRefresh";
 import { useGetCabPlanDatesQuery, useGetCabQueueQuery } from "../api/cabManagerApiSlice";
 import { PlanCabModal } from "../components/modals/PlanCabModal";
@@ -78,6 +79,7 @@ export function CabPlanningPage() {
   const roleCode = useAuth().role ?? "TEAM_MEMBER";
   const { values, handleChange, resetAll } = useOrgHierarchyState("cabPlanning");
   const { options } = useOrgHierarchyFilters(values);
+  useOrgAutoSelect(values, options, handleChange);
   const [stage, setStage] = useState<StageFilter>("All");
   const [columnFilters, setColumnFilters] = useState<MRT_ColumnFiltersState>([]);
 

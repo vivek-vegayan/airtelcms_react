@@ -54,7 +54,8 @@ export const inboxApiSlice = api.injectEndpoints({
   endpoints: (builder) => ({
     getUnreadNotifications: builder.query<
       NotificationItem[],
-      { readFlag: number }
+      // readFlag false/0 -> unread only; true/1 -> every notification
+      { readFlag: number | boolean }
     >({
       queryFn: async ({ readFlag }, _api, _extraOptions, baseQuery) => {
         const result = await baseQuery(
@@ -144,21 +145,21 @@ export const inboxApiSlice = api.injectEndpoints({
       invalidatesTags: [...notificationActionTags, "CabCrq", "CabQueue", "CabDashboard"],
     }),
 
-    // CAB reschedule requests (Requested_Start/End proposed by sp_reschedule_cab_crq).
-    // Blank reason/comment are left off the query string rather than sent as "":
-    // the reject procedure files the remark as COALESCE(comment, reason, 'Rejected'),
-    // and an empty string is not null, so sending one stored a blank remark where
-    // the default belonged.
+    // CAB reschedule requests (Requested_Start/End proposed by sp_reschedule_cab_crq),
+    // decided by sp_decide_crq_cab_reschedule_req.
+    // A blank comment is left off the query string rather than sent as "": the
+    // procedure files the remark as COALESCE(comment, 'Approved'/'Rejected'), and an
+    // empty string is not null, so sending one stored a blank remark where the
+    // default belonged.
     cabRescheduleNotificationAction: builder.mutation<
       any,
-      { notificationId: number; status: string; reason?: string; comment?: string }
+      { notificationId: number; status: string; comment?: string }
     >({
-      query: ({ notificationId, status, reason, comment }) => {
+      query: ({ notificationId, status, comment }) => {
         const params = new URLSearchParams({
           notificationId: String(notificationId),
           status,
         });
-        if (reason?.trim()) params.set("reason", reason.trim());
         if (comment?.trim()) params.set("comment", comment.trim());
 
         return {

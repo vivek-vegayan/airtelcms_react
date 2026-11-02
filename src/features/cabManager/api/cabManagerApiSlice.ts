@@ -1412,6 +1412,7 @@ getImplementation: builder.query<ImplementationDetail, void>({
       invalidatesTags: (_r, _e, b) => [
         { type: "CabCrq", id: b.serviceApprovalId },
         { type: "CabCrq", id: "LIST" },
+        { type: "CabCrq", id: "MINE" },
         "CrqReview",
       ],
     }),

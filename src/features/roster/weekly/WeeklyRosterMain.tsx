@@ -396,7 +396,7 @@ export const WeeklyRosterMain = ({
   return (
     <Box
       bgcolor={isDark ? theme.palette.background.default : "#F9FAFB"}
-      height="80vh"
+      minHeight="80vh"
       position="relative"
     >
       {/* Toolbar */}
@@ -456,7 +456,7 @@ export const WeeklyRosterMain = ({
       )}
 
       {/* Table */}
-      <RosterTableFrame height={450} loading={isFetching}>
+      <RosterTableFrame loading={isFetching}>
         {/* ── Head ─────────────────────────────────────────────── */}
         <TableHead>
           <TableRow>

@@ -58,6 +58,8 @@ import { buildDayColumns, colDistribution, shiftSummary } from "../../util/Futur
 const EMP_COL_WIDTH  = { xs: 152, sm: 188, md: 216, lg: 232 };
 const DAY_COL_WIDTH  = 62;
 const STAT_COL_WIDTH = 54;
+// Wider so the "Non-Work" header stays on one line.
+const NON_WORK_COL_WIDTH = 68;
 const TOTAL_DAY_COLS = 7;
 const FIXED_COLS_WIDTH = TOTAL_DAY_COLS * DAY_COL_WIDTH + 3 * STAT_COL_WIDTH;
 const TABLE_MIN_WIDTH = {
@@ -354,7 +356,7 @@ const DayHeaderCell = memo(function DayHeaderCell({
   const baseSx = isWeekend
     ? weekendHeaderCellSx(isDark)
     : stickyHeaderCellSx(isDark);
-  const workingCodes: ShiftCode[] = ["A", "B", "G", "LG", "N", "H"];
+  const workingCodes: ShiftCode[] = ["A", "B", "G", "LG", "N"];
   const isClickable = editing && editMode === "column";
 
   return (
@@ -1311,7 +1313,7 @@ export function FutureWeekGrid({
         employees.filter((e) => {
           const k = makeCellKey(e.futureId, d);
           const code = pendingCells[k] ?? (e.shifts[d] as ShiftCode);
-          return code !== "WO" && code !== "OFF";
+          return code !== "WO" && code !== "OFF" && code !== "L" && code !== "H";
         }).length,
       ),
     [employees, pendingCells],
@@ -1412,13 +1414,16 @@ export function FutureWeekGrid({
                 />
               ))}
 
-              {(["Work", "N", "Off"] as const).map((label, i) => (
+              {(["Work", "N", "Non-Work"] as const).map((label, i) => (
                 <TableCell
                   key={label}
                   align="center"
+                  title={label === "Non-Work" ? "Week Off + Leave + Holiday + OFF" : undefined}
                   sx={[
                     stickyHeaderCellSx(isDark),
-                    { width: STAT_COL_WIDTH, minWidth: STAT_COL_WIDTH },
+                    label === "Non-Work"
+                      ? { width: NON_WORK_COL_WIDTH, minWidth: NON_WORK_COL_WIDTH, whiteSpace: "nowrap" }
+                      : { width: STAT_COL_WIDTH, minWidth: STAT_COL_WIDTH },
                     i === 0
                       ? {
                           borderLeft: `2px solid ${

@@ -189,7 +189,6 @@ export const MonthlyRosterMain = ({
 
       {/* Table */}
       <RosterTableFrame
-        height={450}
         loading={isFetching}
         tableSx={
           detailedView

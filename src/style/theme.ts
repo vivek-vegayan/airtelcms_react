@@ -251,17 +251,21 @@ export const themeSettings = (
         styleOverrides: {
           body: {
             backgroundColor: bgDefault,
-            "&::-webkit-scrollbar": { width: 6, height: 6 },
-            "&::-webkit-scrollbar-track": {
-              background: "transparent",
-            },
-            "&::-webkit-scrollbar-thumb": {
-              backgroundColor: isDark ? "#1E2D40" : "#CBD5E1",
-              borderRadius: 6,
-            },
-            "&::-webkit-scrollbar-thumb:hover": {
-              backgroundColor: isDark ? "#2A3E57" : "#94A3B8",
-            },
+          },
+          // One theme-aware scrollbar for every scroll area (replaces the
+          // always-grey rule that used to live in index.css). Components can
+          // still override it locally. (No standard scrollbar-color here:
+          // in Chrome it would disable every component's ::-webkit-scrollbar.)
+          "*::-webkit-scrollbar": { width: 6, height: 6 },
+          "*::-webkit-scrollbar-track": {
+            background: "transparent",
+          },
+          "*::-webkit-scrollbar-thumb": {
+            backgroundColor: isDark ? "#1E2D40" : "#CBD5E1",
+            borderRadius: 6,
+          },
+          "*::-webkit-scrollbar-thumb:hover": {
+            backgroundColor: isDark ? "#2A3E57" : "#94A3B8",
           },
         },
       },

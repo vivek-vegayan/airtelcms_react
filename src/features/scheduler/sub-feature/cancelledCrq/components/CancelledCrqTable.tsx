@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Box, Chip, Tooltip, Typography, useTheme } from "@mui/material";
 import {
   MaterialReactTable,
@@ -7,6 +7,7 @@ import {
 } from "material-react-table";
 import { useTabColorTokens } from "../../../../../style/theme";
 import { useAppTable } from "../../../../../components/ui/AppTable";
+import { stageToolbarContainerSx } from "../../../components/generic/stageToolbarSx";
 import type { CancelledCrq } from "../../../types/cancelledCrq.types";
 import { formatDateTime, orDash, stageLabel } from "../cancelledCrqFormat";
 import CancelledCrqDetail from "./CancelledCrqDetail";
@@ -18,6 +19,8 @@ interface Props {
   onPaginationChange: (updater: any) => void;
   isFetching: boolean;
   isError: boolean;
+  /** Rendered in the table's own top toolbar, beside the column/fullscreen icons. */
+  toolbar?: ReactNode;
 }
 
 /**
@@ -39,6 +42,7 @@ export const CancelledCrqTable = ({
   onPaginationChange,
   isFetching,
   isError,
+  toolbar,
 }: Props) => {
   const theme = useTheme();
   const tk = useTabColorTokens(theme);
@@ -207,6 +211,9 @@ export const CancelledCrqTable = ({
         ? "The registry could not be fetched. Try again in a moment."
         : "Nothing in the selected scope has been cancelled.",
       isError,
+      // Taller than the shared default (100vh - 356px): this page has no title
+      // or separate filter row and only xs stat tiles above the table.
+      maxHeight: "max(240px, calc(100vh - 280px))",
     },
 
     // Server-side paging; search and org filtering are handled by the page's
@@ -237,7 +244,12 @@ export const CancelledCrqTable = ({
     renderDetailPanel: ({ row }) => <CancelledCrqDetail crq={row.original} />,
 
     muiDetailPanelProps: { sx: { p: 0, bgcolor: "transparent" } },
-  });
+
+    // Filters share the toolbar row with the show/hide-columns and fullscreen
+    // icons (same as GenericStagePage), so that row is not left mostly empty
+    // and the filters stay reachable in fullscreen too.
+    renderTopToolbarCustomActions: () => toolbar,
+    muiTopToolbarProps: { sx: stageToolbarContainerSx },  });
 
   return <MaterialReactTable table={table} />;
 };

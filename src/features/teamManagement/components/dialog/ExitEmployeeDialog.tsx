@@ -12,6 +12,7 @@ import {
   Divider,
   IconButton,
   Avatar,
+  alpha,
 } from "@mui/material";
 
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -184,13 +185,13 @@ export const ExitEmployeeDialog = ({
           py: 2,
 
           "&::-webkit-scrollbar": { width: "6px" },
-          "&::-webkit-scrollbar-track": { background: "#F1F5F9" },
+          "&::-webkit-scrollbar-track": { bgcolor: "action.hover" },
           "&::-webkit-scrollbar-thumb": {
-            background: "#CBD5E1",
+            bgcolor: "text.disabled",
             borderRadius: "10px",
           },
           "&::-webkit-scrollbar-thumb:hover": {
-            background: "#94A3B8",
+            bgcolor: "text.secondary",
           },
         }}
       >
@@ -206,12 +207,16 @@ export const ExitEmployeeDialog = ({
               display: "flex",
               alignItems: "center",
               gap: 1,
-              backgroundColor: "#FEF2F2",
-              border: "1px solid #FECACA",
+              bgcolor: (t) => alpha(t.palette.error.main, t.palette.mode === "dark" ? 0.14 : 0.08),
+              border: "1px solid",
+              borderColor: (t) => alpha(t.palette.error.main, 0.35),
             }}
           >
-            <WarningAmberRoundedIcon sx={{ color: "#DC2626" }} />
-            <Typography fontSize={13} color="#991B1B">
+            <WarningAmberRoundedIcon sx={{ color: "error.main" }} />
+            <Typography
+              fontSize={13}
+              sx={{ color: (t) => (t.palette.mode === "dark" ? t.palette.error.light : t.palette.error.dark) }}
+            >
               This action will deactivate employee system access permanently
             </Typography>
           </Box>
@@ -222,11 +227,12 @@ export const ExitEmployeeDialog = ({
             sx={{
               p: 2,
               borderRadius: 3,
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #E2E8F0",
+              bgcolor: "background.paper",
+              border: "1px solid",
+              borderColor: "divider",
             }}
           >
-            <Typography fontSize={12} fontWeight={600} mb={2} color="#64748B">
+            <Typography fontSize={12} fontWeight={600} mb={2} color="text.secondary">
               EXIT INFORMATION
             </Typography>
 
@@ -286,11 +292,12 @@ export const ExitEmployeeDialog = ({
             sx={{
               p: 2,
               borderRadius: 3,
-              backgroundColor: "#FFFFFF",
-              border: "1px dashed #E2E8F0",
+              bgcolor: "background.paper",
+              border: "1px dashed",
+              borderColor: "divider",
             }}
           >
-            <Typography fontSize={12} fontWeight={600} mb={2} color="#64748B">
+            <Typography fontSize={12} fontWeight={600} mb={2} color="text.secondary">
               REPLACEMENT (OPTIONAL)
             </Typography>
 
@@ -333,8 +340,8 @@ export const ExitEmployeeDialog = ({
           variant="outlined"
           sx={{
             textTransform: "none",
-            borderColor: "#CBD5E1",
-            color: "#334155",
+            borderColor: "divider",
+            color: "text.primary",
           }}
         >
           Cancel

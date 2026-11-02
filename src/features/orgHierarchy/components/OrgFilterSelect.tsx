@@ -1,4 +1,5 @@
 import { MenuItem, TextField } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material";
 import { memo } from "react";
 import type { OrgFilterOption } from "../types/orgHierarchy.types";
 
@@ -8,6 +9,8 @@ interface Props {
   options: OrgFilterOption[];
   onChange: (value?: number) => void;
   disabled?: boolean;
+  /** Merged over the default styles, e.g. to let a dense bar shrink the width. */
+  sx?: SxProps<Theme>;
 }
 
 const OrgFilterSelect = ({
@@ -16,6 +19,7 @@ const OrgFilterSelect = ({
   options,
   onChange,
   disabled = false,
+  sx,
 }: Props) => {
   return (
     <TextField
@@ -28,23 +32,26 @@ const OrgFilterSelect = ({
         const v = e.target.value;
         onChange(v === "" ? undefined : Number(v));
       }}
-      sx={{
-        minWidth: 180,
-        "& .MuiInputBase-root": {
-          height: 32,
+      sx={[
+        {
+          minWidth: 180,
+          "& .MuiInputBase-root": {
+            height: 32,
+          },
+          "& .MuiInputBase-input": {
+            padding: "4px 8px",
+            fontSize: "0.8rem",
+          },
+          "& .MuiInputLabel-root": {
+            fontSize: "0.8rem",
+            transform: "translate(8px, 7px) scale(1)",
+          },
+          "& .MuiInputLabel-shrink": {
+            transform: "translate(12px, -6px) scale(0.75)",
+          },
         },
-        "& .MuiInputBase-input": {
-          padding: "4px 8px",
-          fontSize: "0.8rem",
-        },
-        "& .MuiInputLabel-root": {
-          fontSize: "0.8rem",
-          transform: "translate(8px, 7px) scale(1)",
-        },
-        "& .MuiInputLabel-shrink": {
-          transform: "translate(12px, -6px) scale(0.75)",
-        },
-      }}
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
     >
       {options.map((opt) => (
         <MenuItem

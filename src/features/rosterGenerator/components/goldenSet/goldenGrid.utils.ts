@@ -25,7 +25,11 @@ export function transformApiRowToEmployee(
       // on GoldenSetApiRow.
       const key = `w${week}D${day}` as keyof GoldenSetApiRow;
       const shiftCode = row[key];
-      shifts.push(typeof shiftCode === "string" ? shiftCode : "");
+      // The DB sends Leave as either "L" or "Leave"; keep one code so it
+      // always shows (and saves back) as "L".
+      shifts.push(
+        typeof shiftCode === "string" ? (shiftCode === "Leave" ? "L" : shiftCode) : "",
+      );
     }
   }
   return {
@@ -73,17 +77,18 @@ export function initials(name: string): string {
 
 export function summarise(shifts: string[]): ShiftSummary {
   const work = shifts.filter(
-    (s) => !["W", "H", "C", "L", "Leave"].includes(s),
+    (s) => !["W", "WO", "H", "C", "L", "Leave"].includes(s),
   ).length;
   const night = shifts.filter((s) => s === "N").length;
-  const off = shifts.filter((s) => ["W", "H", "C"].includes(s)).length;
+  // Week Off arrives as either "W" or "WO".
+  const off = shifts.filter((s) => ["W", "WO", "H", "C"].includes(s)).length;
   const loadPct = Math.round((work / TOTAL_COLS) * 100);
   return { work, night, off, loadPct };
 }
 
 export function workingCount(counts: Record<string, number>): number {
   return Object.entries(counts)
-    .filter(([k]) => !["W", "H", "C", "L", "Leave"].includes(k))
+    .filter(([k]) => !["W", "WO", "H", "C", "L", "Leave"].includes(k))
     .reduce((a, [, v]) => a + v, 0);
 }
 

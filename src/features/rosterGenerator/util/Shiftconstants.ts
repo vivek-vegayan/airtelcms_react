@@ -18,18 +18,21 @@ export const DAY_KEYS = [
 
 // ─── Shift display order ──────────────────────────────────────────────────────
 
+// Pickable/visible shifts. "OFF" is deliberately not offered; its colour and
+// API mapping stay below so any existing "OFF" cell still renders.
 export const SHIFT_DISPLAY_ORDER: ShiftCode[] = [
-  "A", "B", "G", "LG", "N", "H", "WO", "OFF",
+  "A", "B", "G", "LG", "N", "H", "L", "WO",
 ];
 
 // ─── Mapping: raw API value → normalised ShiftCode ───────────────────────────
 
+// The DB sends Leave as either "L" or "Leave"; both show as L.
 export const API_TO_SHIFT: Record<string, ShiftCode> = {
-  A: "A", B: "B", G: "G", LG: "LG", N: "N", H: "H", WO: "WO", OFF: "OFF",
+  A: "A", B: "B", G: "G", LG: "LG", N: "N", H: "H", L: "L", Leave: "L", WO: "WO", OFF: "OFF",
 };
 
 export const SHIFT_TO_API: Record<ShiftCode, string> = {
-  A: "A", B: "B", G: "G", LG: "LG", N: "N", H: "H", WO: "WO", OFF: "OFF",
+  A: "A", B: "B", G: "G", LG: "LG", N: "N", H: "H", L: "L", WO: "WO", OFF: "OFF",
 };
 
 // ─── Shift colour tokens ──────────────────────────────────────────────────────
@@ -87,6 +90,13 @@ export const SHIFT_COLORS: Record<ShiftCode, ShiftTokens> = {
     bgLight: "#FFF7ED", bgDark: "#431407",
     fgLight: "#C2410C", fgDark: "#FDBA74",
     borderLight: "#FDBA74", borderDark: "#EA580C",
+  },
+  L: {
+    label: "Leave",
+    solid: "#BE123C",
+    bgLight: "#FFF1F2", bgDark: "#4C0519",
+    fgLight: "#BE123C", fgDark: "#FDA4AF",
+    borderLight: "#FDA4AF", borderDark: "#E11D48",
   },
   WO: {
     label: "Week Off",

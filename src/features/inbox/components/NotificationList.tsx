@@ -15,7 +15,10 @@ import {
 import type { InboxItem } from "./TaskInbox";
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
+import { InboxEmptyState } from "./InboxEmptyState";
 import { AppScrollView } from "../../../components/ui/AppScrollView";
+import { getModuleIcon } from "../utils/getModuleIcon";
+import { formatRelativeTime, getDateGroup } from "../utils/formatRelativeTime";
 
 export const NotificationList = ({
   filterTab,
@@ -57,7 +60,12 @@ export const NotificationList = ({
           <MenuIcon fontSize="small" />
         </IconButton>
 
-        <Typography variant="body2">{activeMenuName}</Typography>
+        <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, whiteSpace: "nowrap" }}>
+          {activeMenuName}
+          <Box component="span" sx={{ ml: 0.75, fontWeight: 500, color: "text.secondary" }}>
+            {filteredData.length}
+          </Box>
+        </Typography>
 
         <Tabs
           value={filterTab}
@@ -141,34 +149,53 @@ export const NotificationList = ({
         }}
       >
         {filteredData.length === 0 && !isLoading && (
-          <Stack
-            alignItems="center"
-            justifyContent="center"
-            sx={{ mt: 6, px: 2, gap: 0.75 }}
-          >
-            <Typography
-              fontSize="0.8125rem"
-              color="text.disabled"
-              textAlign="center"
-            >
-              No items in <strong>{activeMenuName}</strong>
-            </Typography>
-          </Stack>
+          <InboxEmptyState
+            subtitle={
+              activeMenuName === "Action Required"
+                ? "No pending requests right now. New approvals will appear here."
+                : `No notifications in ${activeMenuName} right now.`
+            }
+          />
         )}
 
-        {filteredData.map((item: InboxItem) => {
+        {filteredData.map((item: InboxItem, index: number) => {
           const isSelected = item.id === selectedItemId;
           const previewText =
             item.message.replace(/\n/g, " ").substring(0, 72) + "…";
+          // Section header whenever the date group changes; list order is untouched.
+          const group = getDateGroup(item.originalData.createdAt);
+          const showGroup =
+            index === 0 ||
+            getDateGroup(filteredData[index - 1].originalData.createdAt) !== group;
+          const needsAction = item.isActionable && !item.isDone;
 
           return (
+            <Box key={item.id}>
+            {showGroup && (
+              <Typography
+                sx={{
+                  px: 2,
+                  pt: index === 0 ? 1.25 : 2,
+                  pb: 0.75,
+                  fontSize: "0.6875rem",
+                  fontWeight: 600,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  color: "text.secondary",
+                }}
+              >
+                {group}
+              </Typography>
+            )}
             <Box
-              key={item.id}
               onClick={() => setSelectedItemId(item.id)}
               sx={{
-                px: 1.5,
-                py: 1.25,
+                px: 1.75,
+                py: 1.5,
                 cursor: "pointer",
+                display: "flex",
+                gap: 1.5,
+                alignItems: "flex-start",
                 borderBottom: `1px solid ${theme.palette.divider}`,
 
                 // ── Left accent bar ──
@@ -184,10 +211,16 @@ export const NotificationList = ({
                 // ── Background ──
                 bgcolor: isSelected
                   ? alpha(theme.palette.primary.main, isDark ? 0.1 : 0.05)
-                  : "transparent",
+                  : item.isDone
+                    ? alpha(theme.palette.text.primary, isDark ? 0.03 : 0.02)
+                    : "transparent",
+
+                // ── Done (completed / already read) items are greyed out ──
+                opacity: item.isDone && !isSelected ? 0.6 : 1,
+                filter: item.isDone && !isSelected ? "grayscale(1)" : "none",
 
                 transition:
-                  "background-color 0.15s ease, border-color 0.15s ease",
+                  "background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease",
 
                 // ── Hover ──
                 "&:hover": {
@@ -199,15 +232,42 @@ export const NotificationList = ({
                 },
               }}
             >
+              {/* Module icon tile */}
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "9px",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  bgcolor: alpha(
+                    needsAction ? theme.palette.warning.main : theme.palette.primary.main,
+                    isDark ? 0.18 : 0.1,
+                  ),
+                  color: needsAction
+                    ? isDark
+                      ? "warning.light"
+                      : "warning.dark"
+                    : "primary.main",
+                  "& svg": { fontSize: 18 },
+                }}
+              >
+                {getModuleIcon(item.displayModule)}
+              </Box>
+
+              <Box sx={{ flex: 1, minWidth: 0 }}>
               {/* Title row */}
               <Stack
                 direction="row"
                 justifyContent="space-between"
-                alignItems="flex-start"
+                alignItems="baseline"
                 mb={0.375}
                 gap={1}
               >
                 <Typography
+                  noWrap
                   sx={{
                     fontSize: "0.8125rem",
                     fontWeight: item.isUnread ? 700 : 500,
@@ -215,57 +275,25 @@ export const NotificationList = ({
                     color: isSelected ? "primary.main" : "text.primary",
                     lineHeight: 1.35,
                     flex: 1,
+                    minWidth: 0,
                     transition: "color 0.15s ease",
                   }}
                 >
                   {item.shortTitle}
                 </Typography>
 
-                {/* Unread dot — swaps to a filled check circle when selected */}
-                {isSelected ? (
-                  <Box
-                    sx={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: "50%",
-                      bgcolor: "primary.main",
-                      flexShrink: 0,
-                      mt: 0.125,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <svg
-                      width="9"
-                      height="9"
-                      viewBox="0 0 9 9"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M1.5 4.5L3.5 6.5L7.5 2.5"
-                        stroke="white"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </Box>
-                ) : (
-                  item.isUnread && (
-                    <Box
-                      sx={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: "50%",
-                        bgcolor: "primary.main",
-                        flexShrink: 0,
-                        mt: 0.5,
-                      }}
-                    />
-                  )
-                )}
+                <Typography
+                  title={`${item.date} · ${item.time}`}
+                  sx={{
+                    fontSize: "0.6875rem",
+                    color: item.isUnread ? "primary.main" : "text.secondary",
+                    fontWeight: item.isUnread ? 600 : 500,
+                    flexShrink: 0,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {formatRelativeTime(item.originalData.createdAt)}
+                </Typography>
               </Stack>
 
               {/* Preview */}
@@ -274,7 +302,7 @@ export const NotificationList = ({
                   fontSize: "0.75rem",
                   // Slightly brighter when selected so it reads clearly
                   color: isSelected ? "text.primary" : "text.secondary",
-                  lineHeight: 1.4,
+                  lineHeight: 1.45,
                   mb: 0.875,
                   display: "-webkit-box",
                   WebkitLineClamp: 2,
@@ -292,39 +320,50 @@ export const NotificationList = ({
                 justifyContent="space-between"
                 alignItems="center"
               >
-                <Typography
-                  sx={{
-                    fontSize: "0.7rem",
-                    color: "text.disabled",
-                    fontWeight: 500,
-                  }}
-                >
-                  {item.date} · {item.time}
-                </Typography>
                 <Chip
-                  label={item.isActionable ? "Action Required" : item.status}
+                  label={
+                    item.isActionable && !item.isDone
+                      ? "Action Required"
+                      : item.status
+                  }
                   size="small"
                   sx={{
-                    height: 18,
-                    fontSize: "0.6rem",
-                    fontWeight: 700,
-                    letterSpacing: "0.04em",
-                    textTransform: "uppercase",
-                    borderRadius: "4px",
-                    bgcolor: item.isActionable
-                      ? alpha(theme.palette.warning.main, isDark ? 0.18 : 0.1)
-                      : alpha(theme.palette.success.main, isDark ? 0.18 : 0.1),
-                    color: item.isActionable
-                      ? isDark
-                        ? "warning.light"
-                        : "warning.dark"
-                      : isDark
-                        ? "success.light"
-                        : "success.dark",
+                    height: 20,
+                    fontSize: "0.6875rem",
+                    fontWeight: 600,
+                    borderRadius: "5px",
+                    bgcolor: item.isDone
+                      ? alpha(theme.palette.text.primary, isDark ? 0.12 : 0.07)
+                      : item.isActionable
+                        ? alpha(theme.palette.warning.main, isDark ? 0.18 : 0.1)
+                        : alpha(theme.palette.success.main, isDark ? 0.18 : 0.1),
+                    color: item.isDone
+                      ? "text.secondary"
+                      : item.isActionable
+                        ? isDark
+                          ? "warning.light"
+                          : "warning.dark"
+                        : isDark
+                          ? "success.light"
+                          : "success.dark",
                     "& .MuiChip-label": { px: 0.75 },
                   }}
                 />
+                {item.isUnread && (
+                  <Box
+                    aria-label="Unread"
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      bgcolor: "primary.main",
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
               </Stack>
+              </Box>
+            </Box>
             </Box>
           );
         })}

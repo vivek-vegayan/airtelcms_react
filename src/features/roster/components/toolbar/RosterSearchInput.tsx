@@ -1,4 +1,4 @@
-import { Box, Chip, useTheme } from "@mui/material";
+import { alpha, Box, Chip, useTheme } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import { type KeyboardEvent } from "react";
@@ -63,7 +63,7 @@ export const RosterSearchInput = ({
         border: `1px solid ${
           hasSearch ? theme.palette.primary.main : theme.palette.divider
         }`,
-        bgcolor: isDark ? "background.default" : "#fff",
+        bgcolor: isDark ? "background.default" : "background.paper",
         cursor: "text",
         transition: "border-color .15s",
       }}
@@ -84,10 +84,10 @@ export const RosterSearchInput = ({
             height: 20,
             fontSize: "0.65rem",
             fontWeight: 600,
-            bgcolor: isDark ? "primary.dark" : "#EEF5FF",
+            bgcolor: alpha(theme.palette.primary.main, isDark ? 0.2 : 0.08),
             color: "primary.main",
             border: "1px solid",
-            borderColor: isDark ? "primary.main" : "#C3D9FE",
+            borderColor: alpha(theme.palette.primary.main, isDark ? 0.5 : 0.3),
             "& .MuiChip-deleteIcon": {
               color: "primary.main",
               "&:hover": { color: "error.main" },

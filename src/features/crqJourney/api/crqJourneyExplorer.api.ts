@@ -30,9 +30,10 @@ export const crqJourneyExplorerApi = api.injectEndpoints({
     }),
 
     /**
-     * One call, four result sets: the journey stage rows, every CAB service with
+     * One call, five result sets: the journey stage rows, every CAB service with
      * its decision and its L1/L2/L3 approval ladder, the per-service SPOC
-     * contacts, and the CRQ's domain scope.
+     * contacts, the CRQ's domain scope, and the per-stage engineer assignment
+     * with start / end times (added 2026-10-23).
      *
      * The proc has been re-authored live four times and the payload has grown
      * each time — a bare stage array until 2026-08-24, three sets until

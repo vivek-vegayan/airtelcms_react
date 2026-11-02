@@ -1,5 +1,6 @@
 import type {
   OrgFilterKey,
+  OrgFilterOption,
   OrgFilterValues,
 } from "../types/orgHierarchy.types";
 
@@ -48,4 +49,23 @@ export const applyOrgFilterChange = (
   });
 
   return next;
+};
+
+/**
+ * The next level to pre-select because the user's access leaves it exactly
+ * one option, or undefined when there is nothing to fill.
+ *
+ * `levels` is the top-down list of pickers the user can see. Only the first
+ * fillable level is returned: picking it re-filters the options below, so the
+ * caller fills one level per pass and asks again.
+ */
+export const findSingleOptionLevel = (
+  levels: OrgFilterKey[],
+  values: OrgFilterValues,
+  options: Record<OrgFilterKey, OrgFilterOption[]>,
+): { key: OrgFilterKey; value: number } | undefined => {
+  const key = levels.find(
+    (k) => values[k] === undefined && options[k].length === 1,
+  );
+  return key ? { key, value: options[key][0].value } : undefined;
 };

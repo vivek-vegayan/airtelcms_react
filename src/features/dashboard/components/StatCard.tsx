@@ -19,11 +19,16 @@ const ICONS = {
 interface StatCardProps {
   config: StatCardConfig;
   colors: Colors;
-  /** "small": a compact tile for dense page headers. Default keeps the dashboard size. */
-  size?: "default" | "small";
+  /**
+   * "small": a compact tile for dense page headers. "xs": a single row — icon,
+   * label over sub line, count on the right — for pages where a table below
+   * is the focus. Default keeps the dashboard size.
+   */
+  size?: "default" | "small" | "xs";
 }
 
 export function StatCard({ config, colors, size = "default" }: StatCardProps) {
+  const xs = size === "xs";
   const small = size === "small";
   const tones = getToneStyles(colors);
   const tone = tones[config.tone];
@@ -33,7 +38,7 @@ export function StatCard({ config, colors, size = "default" }: StatCardProps) {
   return (
     <Card
       sx={{
-        borderRadius: small ? "10px" : "14px",
+        borderRadius: small || xs ? "10px" : "14px",
         border: `1.5px solid ${colors.border}`,
         boxShadow: colors.isDark ? "0 2px 12px rgba(0,0,0,.35)" : "0 2px 12px rgba(60,60,140,.055)",
         overflow: "hidden",
@@ -41,7 +46,7 @@ export function StatCard({ config, colors, size = "default" }: StatCardProps) {
         cursor: "default",
         background: `linear-gradient(155deg, ${tone.light} 0%, ${colors.surface} 52%)`,
         height: "100%",
-        minHeight: small ? 0 : { xs: 104, sm: 116 },
+        minHeight: small || xs ? 0 : { xs: 104, sm: 116 },
         display: "flex",
         flexDirection: "column",
         transition: "box-shadow .22s, border-color .22s, transform .22s",
@@ -70,6 +75,77 @@ export function StatCard({ config, colors, size = "default" }: StatCardProps) {
         }}
       />
 
+      {xs ? (
+        <Box sx={{ p: "7px 10px", flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+          <Box
+            className="sc-icon"
+            sx={{
+              width: 26,
+              height: 26,
+              borderRadius: "7px",
+              background: tone.light,
+              border: `1px solid ${tone.border}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: tone.color,
+              flexShrink: 0,
+              transition: "transform .25s",
+            }}
+          >
+            <Icon sx={{ fontSize: 14 }} />
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontSize: 9.5,
+                fontWeight: 700,
+                color: colors.textSecondary,
+                letterSpacing: ".5px",
+                textTransform: "uppercase",
+                lineHeight: 1.3,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {config.label}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: 9.5,
+                fontWeight: 600,
+                color: tone.color,
+                lineHeight: 1.3,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {config.sub}
+            </Typography>
+          </Box>
+          {/* Count on the right; a long text value is cut with an ellipsis
+              (full text in the title tooltip) so the row never grows. */}
+          <Typography
+            title={typeof config.display === "string" ? config.display : undefined}
+            sx={{
+              flexShrink: 0,
+              maxWidth: "55%",
+              fontSize: typeof config.display === "number" ? 18 : 13,
+              fontWeight: 900,
+              color: colors.textPrimary,
+              lineHeight: 1.1,
+              letterSpacing: "-0.5px",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {typeof config.display === "number" ? <AnimatedNumber value={config.display} /> : config.display}
+          </Typography>
+        </Box>
+      ) : (
       <Box
         sx={{
           p: small ? "8px 12px" : { xs: "11px 12px 10px", sm: "14px 16px 12px" },
@@ -173,6 +249,7 @@ export function StatCard({ config, colors, size = "default" }: StatCardProps) {
           </Box>
         )}
       </Box>
+      )}
     </Card>
   );
 }

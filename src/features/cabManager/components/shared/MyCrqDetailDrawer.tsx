@@ -9,6 +9,9 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import ReplayIcon from "@mui/icons-material/Replay";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
@@ -16,6 +19,9 @@ import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useGetMyCrqByIdQuery } from "../../api/cabManagerApiSlice";
+import { ApproveCrqModal } from "../modals/ApproveCrqModal";
+import { RejectCrqModal } from "../modals/RejectCrqModal";
+import { RescheduleCrqModal } from "../modals/RescheduleCrqModal";
 import { ConflictCrqModal } from "../modals/ConflictCrqModal";
 import { SpocFeDetailsModal } from "../modals/SpocFeDetailsModal";
 import { StageChip, StatusChip } from "./Chips";
@@ -38,6 +44,12 @@ export function MyCrqDetailDrawer({ crq, onClose }: { crq: Crq | null; onClose: 
 
   const [spocFeOpen, setSpocFeOpen] = useState(false);
   const [conflictOpen, setConflictOpen] = useState(false);
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+
+  const serviceApprovalId = crq?.serviceApprovalId ?? null;
+  const crqNo = crq?.crqNo ?? null;
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: 480 } }}>
@@ -98,30 +110,57 @@ export function MyCrqDetailDrawer({ crq, onClose }: { crq: Crq | null; onClose: 
               ))}
             </Box>
 
+            {/* SPOC / Field Engineer are read-only here, viewed through
+                sp_get_SPOC_FE_details rather than changed from this drawer. */}
+            <Stack direction="row" spacing={1} sx={{ mb: 2.5 }}>
+              <Button fullWidth variant="outlined" startIcon={<VisibilityOutlinedIcon />} onClick={() => setSpocFeOpen(true)}>
+                SPOC &amp; FE
+              </Button>
+              <Button fullWidth variant="outlined" color="warning" startIcon={<ReportProblemOutlinedIcon />} onClick={() => setConflictOpen(true)}>
+                Conflict
+              </Button>
+            </Stack>
+
+            {/* Same actions and APIs as the All CRQs drawer. */}
             <Divider sx={{ mb: 2 }} />
-            <Typography variant="caption" sx={{ color: "text.secondary", letterSpacing: 0.5, textTransform: "uppercase", display: "block", mb: 1 }}>
-              Assignment
-            </Typography>
-            <Stack spacing={1.5} sx={{ mb: 3 }}>
-              {/* Re-assignment was removed here: SPOC / Field Engineer are now
-                  read-only, viewed through sp_get_SPOC_FE_details rather than
-                  changed from this drawer. */}
-              <Stack direction="row" alignItems="center" justifyContent="space-between">
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>SPOC &amp; Field Engineer</Typography>
-                <Button size="small" variant="outlined" startIcon={<VisibilityOutlinedIcon />} onClick={() => setSpocFeOpen(true)}>
-                  View
-                </Button>
-              </Stack>
-              <Stack direction="row" alignItems="center" justifyContent="space-between">
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>Conflict check</Typography>
-                <Button size="small" variant="outlined" color="warning" startIcon={<ReportProblemOutlinedIcon />} onClick={() => setConflictOpen(true)}>
-                  Conflict
-                </Button>
-              </Stack>
+            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+              <Button fullWidth variant="contained" color="success" startIcon={<CheckCircleOutlineIcon />} onClick={() => setApproveOpen(true)}>
+                Approve
+              </Button>
+              <Button fullWidth variant="outlined" color="error" startIcon={<CancelOutlinedIcon />} onClick={() => setRejectOpen(true)}>
+                Reject
+              </Button>
+              <Button fullWidth variant="outlined" startIcon={<ReplayIcon />} onClick={() => setScheduleOpen(true)}>
+                Reschedule
+              </Button>
             </Stack>
           </>
         )}
       </Box>
+
+      <ApproveCrqModal
+        open={approveOpen}
+        serviceApprovalId={serviceApprovalId}
+        crqNo={crqNo}
+        onClose={() => setApproveOpen(false)}
+        onSuccess={() => { setApproveOpen(false); onClose(); }}
+      />
+
+      <RejectCrqModal
+        open={rejectOpen}
+        serviceApprovalId={serviceApprovalId}
+        crqNo={crqNo}
+        onClose={() => setRejectOpen(false)}
+        onSuccess={() => { setRejectOpen(false); onClose(); }}
+      />
+
+      <RescheduleCrqModal
+        open={scheduleOpen}
+        serviceApprovalId={serviceApprovalId}
+        crqNo={crqNo}
+        onClose={() => setScheduleOpen(false)}
+        onSuccess={() => { setScheduleOpen(false); onClose(); }}
+      />
 
       <SpocFeDetailsModal
         open={spocFeOpen}

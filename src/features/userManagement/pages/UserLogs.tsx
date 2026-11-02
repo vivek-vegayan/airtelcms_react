@@ -41,6 +41,7 @@ import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFilte
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useOrgAutoSelect } from "../../orgHierarchy/hooks/useOrgAutoSelect";
 import { useApiRefresh } from "../../../hooks/useApiRefresh";
 import {
   useLazyGetLoginDetailsQuery,
@@ -220,6 +221,7 @@ export const UserLogs: React.FC = () => {
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { values, handleChange } = useOrgHierarchyState("userLogs");
   const { options } = useOrgHierarchyFilters(values);
+  useOrgAutoSelect(values, options, handleChange);
   const subDomainId = values?.subDomain;
 
   const [startDate, setStartDate] = useState(threeDaysAgo);

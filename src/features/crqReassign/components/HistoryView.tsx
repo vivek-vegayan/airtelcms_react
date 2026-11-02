@@ -109,7 +109,7 @@ export const HistoryView = ({ batchId }: Props) => {
       },
       {
         id: "cab",
-        header: "CAB",
+        header: "Send to CAB",
         size: 110,
         accessorFn: (r) => r.new_cab_flag,
         Cell: ({ row }) =>

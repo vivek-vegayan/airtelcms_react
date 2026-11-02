@@ -71,7 +71,7 @@ interface RosterFilterDrawerProps {
 // ── Local Constants ───────────────────────────────────────────────────────────
 const TOTAL_COLS = 42;
 const ALL_LEVELS = ["L1", "L2", "L3", "L4"];
-const SHIFT_CODES = ["G", "N", "A", "B", "L", "W", "H"];
+const SHIFT_CODES = ["G", "N", "A", "B", "W"];
 const MONO = "'Roboto Mono', 'Fira Mono', monospace";
 
 const SHIFT_META: Record<string, { label: string }> = {

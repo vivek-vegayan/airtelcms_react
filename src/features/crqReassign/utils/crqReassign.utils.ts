@@ -37,7 +37,13 @@ export const mopCounterpart = (stage: ReassignStage | null | undefined): { stage
       ? { stage: "MOP_CREATION", key: "mop_create_owner" }
       : null;
 
-export const CAB_FLAGS: CabFlag[] = ["PENDING", "APPROVED", "REJECTED"];
+export const CAB_FLAGS: CabFlag[] = ["YES", "NO"];
+
+/** UI wording for sent_to_cab — the column reads as the "Send to CAB" decision. */
+export const CAB_FLAG_LABEL: Record<CabFlag, string> = { YES: "Yes", NO: "No" };
+export const CAB_FLAG_ACTION: Record<CabFlag, string> = { YES: "Yes — send to CAB", NO: "No — skip CAB" };
+export const cabFlagLabel = (flag: string | null | undefined) =>
+  flag ? CAB_FLAG_LABEL[flag as CabFlag] ?? flag : "—";
 
 /** Filter values the procs accept ("all" is sent as NULL). */
 export const LEVEL_OPTIONS = ["all", "L1", "L2", "L3", "L4"];

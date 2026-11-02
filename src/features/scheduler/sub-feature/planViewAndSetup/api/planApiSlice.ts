@@ -339,6 +339,7 @@ export const planApi = api.injectEndpoints({
 
 export const {
   useGetPlanViewQuery,
+  useLazyGetPlanViewQuery,
   useGetActivityPhaseViewQuery,
   useGetShiftDropdownsQuery,
   useGetLayerDropdownQuery,

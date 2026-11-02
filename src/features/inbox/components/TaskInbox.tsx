@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Box, useTheme, useMediaQuery, Paper, Drawer } from "@mui/material";
+import { alpha, Box, useTheme, useMediaQuery, Paper, Drawer } from "@mui/material";
 import AssignmentLateIcon from "@mui/icons-material/AssignmentLate";
 import AllInboxIcon from "@mui/icons-material/AllInbox";
 import {
@@ -24,8 +24,11 @@ export interface InboxItem {
   date: string;
   isUnread: boolean;
   isActionable: boolean;
+  // Nothing left to do: an actionable item already decided, or an
+  // informational one already read. Rendered greyed out in the list.
+  isDone: boolean;
   priorityTag: string;
-  status: "Pending" | "Read" | "Completed";
+  status: "Pending" | "Read" | "Completed" | "Closed" | "New";
   message: string;
 }
 
@@ -42,13 +45,15 @@ export default function DynamicTaskInbox() {
   // Kept live the same way the bell's badge is: poll while the tab is in the
   // foreground, and refetch the moment it regains focus or the connection comes
   // back. Approving or rejecting also invalidates NotificationList, so an
-  // actioned item leaves the list straight away rather than waiting for a tick.
+  // actioned item updates straight away rather than waiting for a tick.
+  // The "All" tab asks for every notification (readFlag=true) so read and
+  // completed ones stay visible (greyed out); "Unread" asks for unread only.
   const {
     data: notifications,
     isLoading,
     isFetching,
   } = useGetUnreadNotificationsQuery(
-    { readFlag: 0 },
+    { readFlag: filterTab === 0 },
     {
       pollingInterval: 60000,
       skipPollingIfUnfocused: true,
@@ -78,8 +83,10 @@ export default function DynamicTaskInbox() {
         "SYSTEM_ALERTS";
       const isUnread = isNotificationUnread(notification.readFlag);
       const isActionable = coerceBoolean(notification.isActionable);
+      const isPending = notification.requestStatus === "PENDING";
+      const isDone = isActionable ? !isPending : !isUnread;
       return {
-        id: `${notification.createdAt}-${index}`,
+        id: String(notification.notificationId ?? `${notification.createdAt}-${index}`),
         originalData: notification,
         parsedPayload,
         displayModule: rawModule.toUpperCase(),
@@ -94,13 +101,17 @@ export default function DynamicTaskInbox() {
         date: createdDate.toLocaleDateString(),
         isUnread,
         isActionable,
+        isDone,
         priorityTag: isActionable ? "Action Required" : "Update",
-        status:
-          notification.requestStatus === "PENDING"
+        status: isActionable
+          ? isPending
             ? "Pending"
-            : notification.requestStatus === "COMPLETED"
-              ? "Completed"
-              : "Read",
+            : notification.requestStatus === "CLOSED"
+              ? "Closed"
+              : "Completed"
+          : isUnread
+            ? "New"
+            : "Read",
         message: parsedPayload.body || "No details provided.",
       };
     });
@@ -108,7 +119,7 @@ export default function DynamicTaskInbox() {
 
   const { primaryMenus, moduleMenus } = useMemo(() => {
     const actionableUnread = inboxData.filter(
-      (i) => i.isActionable && i.isUnread,
+      (i) => i.isActionable && !i.isDone,
     ).length;
     const totalUnread = inboxData.filter((i) => i.isUnread).length;
     const primary = [
@@ -187,7 +198,7 @@ export default function DynamicTaskInbox() {
         height: { xs: "calc(100vh - 56px)", md: "calc(100vh - 95px)" },
         minHeight: 500,
         p: { xs: 0, sm: 1.5, md: 2 },
-        bgcolor: theme.palette.mode === "dark" ? "#0f0f0f" : "#eef0f4",
+        bgcolor: "background.default",
       }}
     >
       <Paper
@@ -213,7 +224,7 @@ export default function DynamicTaskInbox() {
             width: 230,
             flexShrink: 0,
             borderRight: `1px solid ${theme.palette.divider}`,
-            bgcolor: theme.palette.mode === "dark" ? "#161616" : "#f8f9fb",
+            bgcolor: alpha(theme.palette.text.primary, theme.palette.mode === "dark" ? 0.02 : 0.015),
           }}
         >
           <SidebarMenu
@@ -250,7 +261,7 @@ export default function DynamicTaskInbox() {
             width: { xs: "100%", md: 380 },
             flexShrink: 0,
             borderRight: `1px solid ${theme.palette.divider}`,
-            bgcolor: theme.palette.mode === "dark" ? "#1a1a1a" : "#fff",
+            bgcolor: "background.paper",
           }}
         >
           <NotificationList

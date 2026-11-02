@@ -21,11 +21,18 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import DownloadIcon from "@mui/icons-material/Download";
 
 import { useActivity } from "../hooks/useActivity";
-import { useGetPlanViewQuery, type PlanViewRow } from "../api/planApiSlice";
-import { useDownloadPlanActivityTemplate } from "../hooks/useDownloadPlanActivityTemplate";
+import {
+  useGetPlanViewQuery,
+  useLazyGetPlanViewQuery,
+  type PlanViewRow,
+} from "../api/planApiSlice";
+import { ExportExcelButton } from "../../../../cabManager/components/shared/ExportExcelButton";
+import {
+  exportRowsToExcel,
+  type ExcelColumn,
+} from "../../../../crqAnalytics/utils/excelExport";
 import { PlanEditDialog, type FilterOption } from "./PlanEditDialog";
 import { PlanAddDialog } from "./PlanAddDialog";
 import { UploadPlanActivityDialog } from "./excelUpload/UploadPlanActivityDialog";
@@ -44,6 +51,15 @@ interface Props {
 const DEFAULT_PAGE_SIZE = 50;
 const PLAN_PAGE_SIZES = [10, 25, 50, 100, 200, 300, 500];
 
+const PLAN_EXPORT_COLUMNS: ExcelColumn[] = [
+  { header: "Plan Type", key: "planType", width: 30 },
+  { header: "Network Domain", key: "networkDomain", width: 20 },
+  { header: "Layer", key: "layer", width: 14 },
+  { header: "Vendor / OEM", key: "planVendor", width: 20 },
+  { header: "Impact", key: "changeImpact", width: 12 },
+  { header: "Status", key: "status", width: 12 },
+];
+
 // ── Badges ─────────────────────────────────────────────────────────────────
 
 const badge: React.CSSProperties = {
@@ -57,18 +73,28 @@ const badge: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const STATUS_COLOR: Record<string, { fg: string; bg: string; dot: string }> = {
-  Active: { fg: "#065f46", bg: "#d1fae5", dot: "#10b981" },
-  Inactive: { fg: "#374151", bg: "#f3f4f6", dot: "#9ca3af" },
-  Draft: { fg: "#1e40af", bg: "#dbeafe", dot: "#3b82f6" },
+// Status → theme palette slot, so badges follow dark mode.
+const STATUS_TONE: Record<string, "success" | "info"> = {
+  Active: "success",
+  Draft: "info",
 };
 
 const StatusBadge: React.FC<{ value: string }> = ({ value }) => {
-  const c = STATUS_COLOR[value] ?? {
-    fg: "#374151",
-    bg: "#f3f4f6",
-    dot: "#9ca3af",
-  };
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+  const tone = STATUS_TONE[value];
+  const c = tone
+    ? {
+        fg: isDark ? theme.palette[tone].light : theme.palette[tone].dark,
+        bg: alpha(theme.palette[tone].main, isDark ? 0.18 : 0.12),
+        dot: theme.palette[tone].main,
+      }
+    : {
+        // Inactive and unknown statuses: neutral
+        fg: theme.palette.text.secondary,
+        bg: alpha(theme.palette.text.primary, isDark ? 0.1 : 0.06),
+        dot: theme.palette.text.disabled,
+      };
   return (
     <span style={{ ...badge, color: c.fg, backgroundColor: c.bg, gap: 5 }}>
       <span
@@ -100,7 +126,7 @@ export const PlanViewTable: React.FC<Props> = ({
   const { handleOpenPlanDialog } = useActivity();
   const [addPlanDialogOpen, setAddPlanDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const { download: downloadTemplate, isDownloading: isDownloadingTemplate } = useDownloadPlanActivityTemplate();
+  const [fetchAllPlans] = useLazyGetPlanViewQuery();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
 
@@ -167,12 +193,18 @@ export const PlanViewTable: React.FC<Props> = ({
   const handleCloseUploadDialog = () => setUploadDialogOpen(false);
   const handleUploadSuccess = () => refetch();
 
-  const handleDownloadTemplate = async () => {
-    try {
-      await downloadTemplate();
-    } catch {
-      // download error surfaced via RTK Query state elsewhere
-    }
+  // The grid is server-paged, so export fetches every plan for the current
+  // filters in one request instead of only the rows on screen.
+  const handleExportExcel = async () => {
+    const all = await fetchAllPlans({
+      verticalId,
+      functionId,
+      domainId,
+      subDomainId,
+      page: 0,
+      size: data?.totalElements ?? 0,
+    }).unwrap();
+    await exportRowsToExcel(all.content, PLAN_EXPORT_COLUMNS, "Plans", "Plan_View");
   };
 
 
@@ -310,24 +342,9 @@ export const PlanViewTable: React.FC<Props> = ({
 
     renderToolbarInternalActions: () => (
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-        <Tooltip title="Refresh">
-          <span>
-            <IconButton
-              size="small"
-              onClick={refetch}
-              disabled={isFetching}
-              sx={{ p: "5px" }}
-            >
-              <RefreshIcon sx={{ fontSize: 17 }} />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<DownloadIcon sx={{ fontSize: 14 }} />}
-          onClick={handleDownloadTemplate}
-          disabled={isDownloadingTemplate}
+        <ExportExcelButton
+          onExport={handleExportExcel}
+          disabled={isFetching || !data?.totalElements}
           sx={{
             fontSize: 12,
             py: 0.5,
@@ -335,10 +352,9 @@ export const PlanViewTable: React.FC<Props> = ({
             borderRadius: 1.5,
             textTransform: "none",
             fontWeight: 600,
+            "& .MuiButton-startIcon svg": { fontSize: 14 },
           }}
-        >
-          {isDownloadingTemplate ? "Downloading…" : "Download Template"}
-        </Button>
+        />
         <Button
           variant="outlined"
           size="small"
@@ -377,10 +393,12 @@ export const PlanViewTable: React.FC<Props> = ({
 
     // Body is as tall as its rows, so the pagination bar sits right under the last
     // row (5 rows → short table). It is capped at the space this page has left
-    // under the filters (header 45 + tabs 48 + filters ~76 + toolbar 46 + footer 52
-    // + paddings ≈ 305px), so a big page fills the screen and scrolls inside.
+    // under the header, tabs, filters, toolbar and pagination footer (reserve
+    // tightened from 305px to 250px so the body reaches nearer the bottom), so a
+    // big page fills the screen and scrolls inside. The 320px floor keeps it
+    // usable on short screens.
     muiTableContainerProps: {
-      sx: { maxHeight: "calc(100vh - 305px)" },
+      sx: { maxHeight: "max(320px, calc(100vh - 250px))" },
     },
     // Sizes at or above the total are dropped and the total is added as the
     // last option (383 rows -> 10, 25, 50, 100, 200, 300, 383).

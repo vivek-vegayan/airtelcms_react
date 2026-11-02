@@ -47,7 +47,7 @@ export interface ShiftSummary {
 export function shiftSummary(shifts: ShiftCode[]): ShiftSummary {
   let work = 0, night = 0, off = 0;
   for (const s of shifts) {
-    if (s === "OFF" || s === "WO") off++;
+    if (s === "OFF" || s === "WO" || s === "L" || s === "H") off++;
     else {
       work++;
       if (s === "N") night++;

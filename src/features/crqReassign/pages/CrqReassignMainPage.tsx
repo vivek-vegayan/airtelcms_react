@@ -14,6 +14,7 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import OrgFilterSelect from "../../orgHierarchy/components/OrgFilterSelect";
 import { getOrgFilterVisibility } from "../../orgHierarchy/config/orgFilterVisibility";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useOrgAutoSelect } from "../../orgHierarchy/hooks/useOrgAutoSelect";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import type { OrgFilterKey, OrgFilterOption } from "../../orgHierarchy/types/orgHierarchy.types";
 import { errMsg } from "../../cabManager/components/shared/errMsg";
@@ -27,6 +28,7 @@ import { useReassignTokens } from "../hooks/useReassignTokens";
 import {
   addDays,
   batchStorage,
+  CAB_FLAG_LABEL,
   CAB_FLAGS,
   LEVEL_OPTIONS,
   longDate,
@@ -90,6 +92,7 @@ export default function CrqReassignMainPage({ setDynamicHeaderText, setDynamicHe
   const roleName = useAuth().role ?? "TEAM_MEMBER";
   const { values, handleChange, resetAll } = useOrgHierarchyState("crqReassign");
   const { options } = useOrgHierarchyFilters(values);
+  useOrgAutoSelect(values, options, handleChange);
   const visibleOrg = useMemo(() => {
     const granted = getOrgFilterVisibility(roleName);
     return ORG_FILTER_ORDER.filter((k) => granted.includes(k));
@@ -343,10 +346,10 @@ export default function CrqReassignMainPage({ setDynamicHeaderText, setDynamicHe
                 </>
               ) : (
                 <>
-                  <TextField select size="small" label="CAB" value={cab} onChange={(e) => setCab(e.target.value)} sx={selectSx}>
+                  <TextField select size="small" label="Send to CAB" value={cab} onChange={(e) => setCab(e.target.value)} sx={selectSx}>
                     <MenuItem value="all" sx={menuItemSx}>All</MenuItem>
                     {CAB_FLAGS.map((f) => (
-                      <MenuItem key={f} value={f} sx={menuItemSx}>{f}</MenuItem>
+                      <MenuItem key={f} value={f} sx={menuItemSx}>{CAB_FLAG_LABEL[f]}</MenuItem>
                     ))}
                   </TextField>
                   <TextField

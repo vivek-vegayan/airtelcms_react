@@ -186,7 +186,7 @@ export function CrqJourneyPage() {
                 background: `conic-gradient(${slaColor} ${(parallelTracks.filter((t) => t.status === "approved").length / parallelTracks.length) * 100}%, rgba(0,0,0,0.08) 0)`,
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <Box sx={{ width: 50, height: 50, borderRadius: "50%", bgcolor: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, color: slaColor }}>
+                <Box sx={{ width: 50, height: 50, borderRadius: "50%", bgcolor: "background.paper", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, color: slaColor }}>
                   {parallelTracks.filter((t) => t.status === "approved").length}/{parallelTracks.length}
                 </Box>
               </Box>

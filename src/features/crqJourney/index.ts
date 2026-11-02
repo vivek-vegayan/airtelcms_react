@@ -21,6 +21,7 @@ export { CrqFlowStacked }    from "./components/CrqFlowStacked";
 export { CrqFlowSkeleton }   from "./components/CrqFlowSkeleton";
 export { ServiceRosterPanel, serviceRosterReserve } from "./components/ServiceRosterPanel";
 export { CrqEmptyState }     from "./components/CrqEmptyState";
+export { StageAssignmentPanel } from "./components/StageAssignmentPanel";
 export * from "./components/schedulingChain";
 export { StageCard }         from "./components/StageCard";
 export { ApprovalCard }      from "./components/ApprovalCard";

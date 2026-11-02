@@ -21,6 +21,7 @@ import { useGetMyCrqsQuery} from "../api/cabManagerApiSlice";
 import { MyCrqDetailDrawer } from "../components/shared/MyCrqDetailDrawer";
 import { CabKpiCard } from "../components/dashboard/CabKpiCard";
 import { errMsg } from "../components/shared/errMsg";
+import { formatCreatedAt } from "../components/shared/formatCreatedAt";
 import { ExportExcelButton } from "../components/shared/ExportExcelButton";
 import { exportRowsToExcel, type ExcelColumn } from "../../crqAnalytics/utils/excelExport";
 import type { Crq, DashboardKpi } from "../types/types";
@@ -33,6 +34,7 @@ const MY_CRQS_EXPORT_COLUMNS: ExcelColumn[] = [
   { header: "Stage Status", key: "stageStatus", width: 18 },
   { header: "Service", key: "serviceCode", width: 18 },
   { header: "Approval Status", key: "serviceApprovalStatus", width: 18 },
+  { header: "Created At", key: "createdAt", width: 20 },
 ];
 
 export function MyCrqsPage() {
@@ -163,6 +165,16 @@ export function MyCrqsPage() {
           />
         ),
       },
+      {
+        accessorKey: "createdAt",
+        header: "Created At",
+        size: 160,
+        Cell: ({ cell }) => (
+          <Typography variant="body2" sx={{ whiteSpace: "nowrap" }}>
+            {formatCreatedAt(cell.getValue<string | undefined>())}
+          </Typography>
+        ),
+      },
     ],
     [],
   );
@@ -283,7 +295,10 @@ export function MyCrqsPage() {
           <ExportExcelButton
             onExport={() =>
               exportRowsToExcel(
-                table.getPrePaginationRowModel().rows.map((r) => r.original),
+                table.getPrePaginationRowModel().rows.map((r) => ({
+                  ...r.original,
+                  createdAt: formatCreatedAt(r.original.createdAt),
+                })),
                 MY_CRQS_EXPORT_COLUMNS,
                 "My CRQs",
                 "My_CRQs",

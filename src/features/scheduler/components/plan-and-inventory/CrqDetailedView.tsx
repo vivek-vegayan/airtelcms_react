@@ -139,8 +139,8 @@ export const CrqDetailedView: React.FC = () => {
   // (PlanAndInventoryPage / ImpactAnalysisPage / GenericStagePage) receive
   // as props - here it arrives via query params since this route is
   // reached directly (deep link / new tab), not nested under those pages.
-  // Falls back to 1/1 to preserve the previous hardcoded default when a
-  // link doesn't carry them (e.g. an old bookmark).
+  // domainId falls back to 1 when a link doesn't carry it (e.g. an old
+  // bookmark); subDomainId is taken as-is (0 = ALL).
   //
   // For a role with no domain scope (TEAM_MEMBER/TEAM_LEAD) the scope is
   // resolved to null instead: no Domain is ever picked for them upstream, so
@@ -152,7 +152,7 @@ export const CrqDetailedView: React.FC = () => {
     roleCode,
     Number(searchParams.get("domainId")) || 1,
   );
-  const subDomainId = Number(searchParams.get("subDomainId")) || 1;
+  const subDomainId = Number(searchParams.get("subDomainId"));
 
   const [expPlans, setExpPlans] = useState<Record<string, boolean>>({});
   const [expCrqs, setExpCrqs] = useState<Record<string, boolean>>({});

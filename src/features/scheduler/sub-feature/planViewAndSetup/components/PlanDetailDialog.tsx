@@ -49,9 +49,9 @@ const LEVELS = ["L1", "L2", "L3", "L4"];
 const STAGE_KEYS = [
   "review",
   "impactAnalysis",
-  "scheduling",
   "mopCreation",
   "mopValidation",
+  "scheduling",
   "execution",
 ] as const;
 

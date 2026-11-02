@@ -397,10 +397,16 @@ function buildPreset<TData extends MRT_RowData>(
       },
     },
 
+    // Slim footer, so the space goes to rows: minHeight is lowered (never
+    // unset, see above) and MRT's own 12px vertical padding on the
+    // pagination row is cut to 2px.
     muiBottomToolbarProps: {
       sx: {
         backgroundColor: tk.surface2,
         borderTop: `1px solid ${tk.border}`,
+        minHeight: 36,
+        "& .MuiTablePagination-root": { py: "2px", gap: "6px" },
+        "& .MuiInputLabel-root, & .MuiSelect-select": { fontSize: 11.5 },
         [down]: { "& > .MuiBox-root": { justifyContent: "center" } },
       },
     },
@@ -442,8 +448,8 @@ function buildPreset<TData extends MRT_RowData>(
         currentPageSize: table.getState().pagination.pageSize,
       }),
       sx: {
-        "& .MuiPaginationItem-root": { fontSize: 12, minWidth: 28, height: 28 },
-        "& .MuiInputBase-root": { fontSize: 12.5 },
+        "& .MuiPaginationItem-root": { fontSize: 11, minWidth: 24, height: 24 },
+        "& .MuiInputBase-root": { fontSize: 11.5 },
       },
     }),
   };

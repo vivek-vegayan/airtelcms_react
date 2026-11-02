@@ -219,13 +219,29 @@ export interface CrqJourneyScope {
   subDomainName: string | null;
 }
 
-/** GET /crqworkflow/journey-explorer/{crqNo} — all four result sets in one payload. */
+/**
+ * Result set 5 of sp_get_crq_journey_page (added 2026-10-23) — who was assigned
+ * each canonical workflow stage, and when that stage ran. One row per stage in
+ * workflow order. A stage that has not run yet can have every field but
+ * `stage` null; End_Time equal to Start_Time means the stage passed instantly.
+ */
+export interface CrqStageAssignment {
+  stage: string;
+  assignedEngineer: string | null;
+  assignOlmId: string | null;
+  startTime: string | null;
+  endTime: string | null;
+}
+
+/** GET /crqworkflow/journey-explorer/{crqNo} — all five result sets in one payload. */
 export interface CrqJourneyPageResponse {
   stages: CrqJourneyStageRow[];
   pendingApprovals: CrqPendingApproval[];
   /** Empty on a database still running a pre-2026-09-08 revision of the proc. */
   serviceSpocs: CrqServiceSpoc[];
   scope: CrqJourneyScope | null;
+  /** Empty (or absent from an older backend) before the 2026-10-23 revision of the proc. */
+  stageAssignments?: CrqStageAssignment[];
 }
 
 /** Result set 1 of get_crq_details — the CRQ info card. */

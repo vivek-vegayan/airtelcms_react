@@ -5,6 +5,7 @@ import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { usePermission } from "../../../../rbac/usePermission";
 import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useOrgAutoSelect } from "../../../orgHierarchy/hooks/useOrgAutoSelect";
 import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import type { OrgFilterValues } from "../../../orgHierarchy/types/orgHierarchy.types";
 import { AddMemberDialog } from "../dialog/AddMemberDialog";
@@ -62,6 +63,7 @@ export const TeamManagementFilter = ({
     },
     [setFilters],
   );
+  useOrgAutoSelect(filters, options, handleFilterChange);
 
   return (
     <>

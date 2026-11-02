@@ -1,12 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Button, Chip, LinearProgress, Menu, MenuItem, Typography } from "@mui/material";
+import { Box, Chip, LinearProgress, Menu, MenuItem, Typography } from "@mui/material";
 import { MaterialReactTable, type MRT_ColumnDef, type MRT_PaginationState } from "material-react-table";
 import { useAppTable } from "../../../components/ui/AppTable";
 import { errMsg } from "../../cabManager/components/shared/errMsg";
 import { formatWindow, orDash, stageLabel } from "../../scheduler/sub-feature/cancelledCrq/cancelledCrqFormat";
 import { useGetReassignGridQuery, useReassignCabMutation } from "../api/crqReassignApi";
 import type { CabFlag, ReassignGridRow } from "../types/crqReassign.types";
-import { CAB_FLAGS, isPairedStage, STAGE_NAMES, STAGE_OWNER_COLUMNS } from "../utils/crqReassign.utils";
+import {
+  CAB_FLAG_ACTION,
+  CAB_FLAGS,
+  cabFlagLabel,
+  isPairedStage,
+  STAGE_NAMES,
+  STAGE_OWNER_COLUMNS,
+} from "../utils/crqReassign.utils";
 import { useReassignTokens } from "../hooks/useReassignTokens";
 import StageOwnerDrawer, { type StageSelection } from "./StageOwnerDrawer";
 import { DetailTip, HintBar, type Note } from "./reassignUi";
@@ -27,7 +34,7 @@ interface Props {
 export const MemberGridView = ({ teamId, search, cab, onlyGaps, batchId, note, setNote, onBatch, onTotal }: Props) => {
   const { tk } = useReassignTokens();
   const [sel, setSel] = useState<StageSelection | null>(null);
-  const [cabMenu, setCabMenu] = useState<{ el: HTMLElement; crqNo: string | null } | null>(null);
+  const [cabMenu, setCabMenu] = useState<{ el: HTMLElement; crqNo: string } | null>(null);
 
   // A page number only counts for the filters it was picked under.
   const filterKey = `${teamId ?? ""}|${search}|${cab}|${onlyGaps}`;
@@ -47,24 +54,24 @@ export const MemberGridView = ({ teamId, search, cab, onlyGaps, batchId, note, s
   const total = Number(rows[0]?.total_rows ?? 0);
   useEffect(() => onTotal(total), [total, onTotal]);
 
+  // Saved straight away, outside the draft batch, so the batch is left untouched.
   const applyCab = async (flag: CabFlag) => {
-    const crqNo = cabMenu?.crqNo ?? null;
+    if (!cabMenu) return;
+    const { crqNo } = cabMenu;
     setCabMenu(null);
     try {
-      const res = await reassignCab({ crqNo, teamId: crqNo ? null : teamId, cabFlag: flag, batchId }).unwrap();
-      onBatch(res.batchId);
+      const res = await reassignCab({ crqNo, sentToCab: flag }).unwrap();
       setNote({ text: res.message, bad: false });
     } catch (e) {
       setNote({ text: errMsg(e), bad: true });
     }
   };
 
+  // YES = goes to CAB (highlighted); NO / not set = neutral.
   const cabTone = (flag: string | null) =>
-    flag === "APPROVED"
-      ? { fg: tk.success, bg: tk.successDim, br: tk.successBorder }
-      : flag === "REJECTED"
-        ? { fg: tk.danger, bg: tk.dangerDim, br: tk.dangerBorder }
-        : { fg: tk.warning, bg: tk.warningDim, br: tk.warningBorder };
+    flag === "YES"
+      ? { fg: tk.info, bg: tk.infoDim, br: tk.infoBorder }
+      : { fg: tk.textSecondary, bg: "transparent", br: tk.border };
 
   const columns = useMemo<MRT_ColumnDef<ReassignGridRow>[]>(
     () => [
@@ -82,7 +89,7 @@ export const MemberGridView = ({ teamId, search, cab, onlyGaps, batchId, note, s
                 details={[
                   ["Stage", stageLabel(r.current_stage)],
                   ["Status", orDash(r.current_status)],
-                  ["CAB", orDash(r.cab_approval_flag)],
+                  ["Send to CAB", cabFlagLabel(r.sent_to_cab)],
                   ["Execution", formatWindow(r.execution_slot_start, r.execution_slot_end)],
                   ["Draft batch", r.open_batch_id ? r.open_batch_id.slice(0, 8) : ""],
                 ]}
@@ -108,17 +115,17 @@ export const MemberGridView = ({ teamId, search, cab, onlyGaps, batchId, note, s
         },
       },
       {
-        accessorKey: "cab_approval_flag",
-        header: "CAB",
-        size: 95,
+        accessorKey: "sent_to_cab",
+        header: "Send to CAB",
+        size: 110,
         Cell: ({ row: { original: r } }) => {
-          const c = cabTone(r.cab_approval_flag);
+          const c = cabTone(r.sent_to_cab);
           return (
             <Chip
               size="small"
               clickable
               disabled={cabSaving}
-              label={orDash(r.cab_approval_flag)}
+              label={cabFlagLabel(r.sent_to_cab)}
               onClick={(e) => setCabMenu({ el: e.currentTarget, crqNo: r.crq_no })}
               sx={{ height: 22, fontSize: 11, fontWeight: 700, color: c.fg, bgcolor: c.bg, border: `1px solid ${c.br}` }}
             />
@@ -202,16 +209,6 @@ export const MemberGridView = ({ teamId, search, cab, onlyGaps, batchId, note, s
         <Box component="span">
           MOP Creation and MOP Validation need different owners · Network Execution and Task Closure share one owner.
         </Box>
-        {teamId ? (
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={(e) => setCabMenu({ el: e.currentTarget, crqNo: null })}
-            sx={{ textTransform: "none", height: 28 }}
-          >
-            Set CAB for whole team
-          </Button>
-        ) : null}
       </HintBar>
 
       <Box sx={{ p: 1.5 }}>
@@ -229,11 +226,11 @@ export const MemberGridView = ({ teamId, search, cab, onlyGaps, batchId, note, s
 
       <Menu anchorEl={cabMenu?.el} open={!!cabMenu} onClose={() => setCabMenu(null)}>
         <MenuItem disabled sx={{ fontSize: 12, opacity: "1 !important" }}>
-          {cabMenu?.crqNo ? `Set CAB · ${cabMenu.crqNo}` : "Set CAB · every open CRQ of the team"}
+          Send to CAB? · {cabMenu?.crqNo}
         </MenuItem>
         {CAB_FLAGS.map((f) => (
           <MenuItem key={f} onClick={() => applyCab(f)} sx={{ fontSize: 13 }}>
-            {f}
+            {CAB_FLAG_ACTION[f]}
           </MenuItem>
         ))}
       </Menu>

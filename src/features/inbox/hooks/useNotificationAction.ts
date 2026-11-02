@@ -102,14 +102,11 @@ export const useNotificationAction = () => {
           comment: extra?.reason,
         }).unwrap();
 
-      // Same shape as CAB_APPROVER: `reason` is the structured label when the
-      // dialog offers one, `comment` the free-text remark. The reschedule
-      // dialog is TEXT-only today, so only the remark travels.
+      // The reschedule dialog is TEXT-only, so the remark travels as `comment`.
       case "RESCHEDULE":
         return await cabRescheduleAction({
           notificationId,
           status: actionType,
-          reason: extra?.reasonText,
           comment: extra?.reason,
         }).unwrap();
 
