@@ -14,6 +14,8 @@ export interface PlanViewRow {
   planType: string;
   planVendor: string;
   status: string;
+  /** "YES" | "NO"; null on plans created before the flag existed. */
+  sendToCab: string | null;
 }
 
 export interface UpdatePlanRequest {
@@ -27,6 +29,7 @@ export interface UpdatePlanRequest {
   layer: string;
   planVendor: string;
   changeImpact: string;
+  sendToCab: string | null;
 }
 
 export interface PlanViewQueryParams {
@@ -203,6 +206,8 @@ export interface PlanActivityExcelRow {
   planType: string;
   vendorOem: string;
   changeImpact: string;
+  /** Template column T, CRQ Review row; optional. */
+  sendToCab: string | null;
 
   activityName: string;
 

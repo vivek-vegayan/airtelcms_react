@@ -69,6 +69,8 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
   const CHANGE_IMPACT_OPTIONS = ["SA", "NSA"];
   // Matches PLAN_MASTER.status enum('Active','Inactive')
   const STATUS_OPTIONS = ["Active", "Inactive"];
+  // Fields that may be left blank (no * marker, no validation)
+  const OPTIONAL_FIELDS: (keyof FormDataState)[] = ["sendToCab"];
 
   useEffect(() => {
     // chmDomainId/chmSubDomainId now come straight from the backend
@@ -118,6 +120,7 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
           layer: formData.layer,
           planVendor: formData.planVendor,
           changeImpact: formData.changeImpact,
+          sendToCab: formData.sendToCab || null,
         };
 
         const res = await updatePlan(updatePayload).unwrap();
@@ -156,6 +159,7 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
       kind: "dropdown",
       options: CHANGE_IMPACT_OPTIONS.map((v) => ({ label: v, value: v as any })),
     },
+    { key: "sendToCab", label: "Send to CAB", kind: "text" },
     {
       key: "status",
       label: "Status",
@@ -258,7 +262,8 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
                     textTransform: "capitalize",
                   }}
                 >
-                  {label} <span style={{ color: "red" }}>*</span>
+                  {label}{" "}
+                  {!OPTIONAL_FIELDS.includes(key) && <span style={{ color: "red" }}>*</span>}
                 </Typography>
 
                 {kind === "dropdown" ? (
