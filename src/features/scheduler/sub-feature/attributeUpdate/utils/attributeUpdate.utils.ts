@@ -142,7 +142,7 @@ export function resolveStageView(
   );
   const activeRemedyStatus = stage.remedyStatuses[safeStatusIndex] ?? "";
   const context: StageResolutionContext = {
-    stageLabel: stage.label,
+    stageLabel: stage.cmsStageValue ?? stage.label,
     remedyStatus: activeRemedyStatus,
     crqNo,
     currentUserOlmId,

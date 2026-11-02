@@ -145,7 +145,7 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
 
   scheduling: buildStageConfig({
     key: "scheduling",
-    label: "Scheduling",
+    label: "Impacted Party Approval",
     endpointBase: "updatescheduling",
     reviewQueryUrl: "/crqworkflow/scheduling",
     stageEnum: "SCHEDULING_APPROVAL",

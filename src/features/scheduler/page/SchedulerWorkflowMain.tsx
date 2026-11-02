@@ -52,7 +52,7 @@ const WORKFLOW_STEPS: IStep[] = [
   },
   {
     id: 5,
-    label: "Scheduling",
+    label: "Impacted Party Approval",
     icon: <EditCalendarOutlinedIcon fontSize="small" />,
   },
   { id: 6, label: "Network exec", icon: <WifiOutlinedIcon fontSize="small" /> },
