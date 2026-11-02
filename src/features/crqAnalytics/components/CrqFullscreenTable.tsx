@@ -106,15 +106,15 @@ export function CrqFullscreenTable({ config, filters, onBack, onRowClick, tableM
   const renderBody = () => {
     switch (config.tableType) {
       case "CIRCLE_REGION":
-        return <GenericViewAllTable response={circleRegion.data} isLoading={circleRegion.isFetching} isError={circleRegion.isError} maxHeight={tableMaxHeight} />;
+        return <GenericViewAllTable response={circleRegion.data} isLoading={circleRegion.isFetching} isError={circleRegion.isError} maxHeight={tableMaxHeight} onRowClick={onRowClick} />;
       case "OPEN_CRQ_DOMAIN":
-        return <GenericViewAllTable response={openDomain.data} isLoading={openDomain.isFetching} isError={openDomain.isError} maxHeight={tableMaxHeight} />;
+        return <GenericViewAllTable response={openDomain.data} isLoading={openDomain.isFetching} isError={openDomain.isError} maxHeight={tableMaxHeight} onRowClick={onRowClick} />;
       case "AGING_HEATMAP":
-        return <GenericViewAllTable response={agingHeatmap.data} isLoading={agingHeatmap.isFetching} isError={agingHeatmap.isError} maxHeight={tableMaxHeight} />;
+        return <GenericViewAllTable response={agingHeatmap.data} isLoading={agingHeatmap.isFetching} isError={agingHeatmap.isError} maxHeight={tableMaxHeight} onRowClick={onRowClick} />;
       case "OPEN_VS_CLOSED":
-        return <GenericViewAllTable response={openVsClosed.data} isLoading={openVsClosed.isFetching} isError={openVsClosed.isError} maxHeight={tableMaxHeight} />;
+        return <GenericViewAllTable response={openVsClosed.data} isLoading={openVsClosed.isFetching} isError={openVsClosed.isError} maxHeight={tableMaxHeight} onRowClick={onRowClick} />;
       case "RUN_RATE":
-        return <GenericViewAllTable response={runRate.data} isLoading={runRate.isFetching} isError={runRate.isError} maxHeight={tableMaxHeight} />;
+        return <GenericViewAllTable response={runRate.data} isLoading={runRate.isFetching} isError={runRate.isError} maxHeight={tableMaxHeight} onRowClick={onRowClick} />;
       case "CRQ_LIST":
         return (
           <CrqListTable

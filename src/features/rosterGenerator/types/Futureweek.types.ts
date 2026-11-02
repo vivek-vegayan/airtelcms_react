@@ -1,4 +1,4 @@
-export type ShiftCode = "A" | "B" | "G" | "LG" | "N" | "H" | "WO" | "OFF";
+export type ShiftCode = "A" | "B" | "G" | "LG" | "N" | "H" | "L" | "WO" | "OFF";
 
 export interface FutureWeekRow {
   // Lower-case "w" — FutureWeekRowDto's W7D1..W7D7 fields serialize under

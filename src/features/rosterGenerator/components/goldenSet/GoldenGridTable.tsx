@@ -461,14 +461,17 @@ export default function GoldenGridTable({
                   );
                 })}
 
-                {(["Work", "N", "OFF"] as const).map((h, i) => (
+                {(["Work", "N", "Non-Work"] as const).map((h, i) => (
                   <TableCell
                     key={h}
                     rowSpan={2}
+                    title={h === "Non-Work" ? "Week Off + Holiday + C" : undefined}
                     sx={{
                       ...weekHeadSx,
-                      width: 48,
-                      minWidth: 48,
+                      // "Non-Work" is wider so it stays on one line.
+                      width: h === "Non-Work" ? 64 : 48,
+                      minWidth: h === "Non-Work" ? 64 : 48,
+                      whiteSpace: "nowrap",
                       borderLeft: i === 0 ? `2.5px solid ${alpha(tk.textPrimary, 0.12)}` : undefined,
                     }}
                   >

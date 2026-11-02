@@ -15,15 +15,20 @@ interface Props {
   isError?: boolean;
   /** Body height cap; defaults to filling the screen under the title bar. */
   maxHeight?: string;
+  /** Opens the CRQ Journey for a row; only wired when the response carries a CRQ number column. */
+  onRowClick?: (crqNo: string) => void;
 }
 
 export const VIEW_ALL_FULL_HEIGHT = "max(320px, calc(100vh - 230px))";
 
-/** Renders whatever columns the backend's view-all procedure selected — these
- * are aggregate rows (per circle/domain/date/...), not individual CRQs, so
- * there's no per-row detail to drill into. */
-export function GenericViewAllTable({ response, isLoading, isError, maxHeight = VIEW_ALL_FULL_HEIGHT }: Props) {
+/** "CRQ No.", "crq_number", "CRQ ID", "CRQ" → the column holding the CRQ number. */
+const isCrqNoHeader = (header: string) => /^crq(no|number|num|id)?$/.test(header.toLowerCase().replace(/[^a-z]/g, ""));
+
+/** Renders whatever columns the backend's view-all procedure selected. When
+ * those include a CRQ number, clicking a row drills into that CRQ's journey. */
+export function GenericViewAllTable({ response, isLoading, isError, maxHeight = VIEW_ALL_FULL_HEIGHT, onRowClick }: Props) {
   const headers = response?.headers ?? [];
+  const crqNoKey = onRowClick ? headers.find(isCrqNoHeader) : undefined;
 
   const columns = useMemo<MRT_ColumnDef<Record<string, string | number | null>>[]>(
     () => headers.map((h) => ({ accessorKey: h, header: h })),
@@ -35,6 +40,12 @@ export function GenericViewAllTable({ response, isLoading, isError, maxHeight = 
     data: response?.data ?? [],
     state: { isLoading },
     enableColumnFilters: false,
+    muiTableBodyRowProps: ({ row }) => {
+      const crqNo = crqNoKey ? row.original[crqNoKey] : null;
+      return crqNo != null && crqNo !== ""
+        ? { onClick: () => onRowClick?.(String(crqNo)), sx: { cursor: "pointer" } }
+        : {};
+    },
     renderEmptyRowsFallback: () => (
       <Box sx={{ py: 4 }}>
         <EmptyOrErrorState kind={isError ? "error" : "empty"} />

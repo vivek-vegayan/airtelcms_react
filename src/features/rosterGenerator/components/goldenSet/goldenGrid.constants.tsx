@@ -30,14 +30,14 @@ export const DOW_LONG: string[] = [
   "Sunday",
 ];
 
+// Pickable/visible shifts. "L" (Leave) and "H" (Holiday) are deliberately not
+// offered; their meta and colour stay below so any existing cell still renders.
 export const SHIFT_CODES: string[] = [
   "G",
   "N",
   "A",
   "B",
-  "L",
   "W",
-  "H",
 ];
 
 export const SHIFT_META: Record<string, { label: string }> = {
