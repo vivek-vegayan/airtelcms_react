@@ -73,7 +73,7 @@ const PHASE_META: Record<
     icon: <WarningAmberIcon sx={{ fontSize: 16 }} />,
   },
   scheduling: {
-    label: "Scheduling",
+    label: "Impacted Party Approval",
     desc: "Scheduling shift, level and duration window",
     icon: <CalendarMonthIcon sx={{ fontSize: 16 }} />,
   },

@@ -519,8 +519,10 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
   },
   {
     id: "scheduling",
-    label: "Scheduling & Approvals",
-    shortLabel: "Scheduling & Approvals",
+    label: "Impacted Party Approval",
+    // Display rename only - the backend still expects the original CMS Status.
+    cmsStageValue: "Scheduling & Approvals",
+    shortLabel: "Impacted Party Approval",
     planningToolPhase: "Scheduling",
     remedyStatuses: ["Planning In Progress"],
     planningToolScopes: ["scheduling"],

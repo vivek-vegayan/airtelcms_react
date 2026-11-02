@@ -117,6 +117,8 @@ export interface AttributeStageSchema {
   id: WorkflowStageId;
   /** Full CMS stage label, e.g. "Plan & Inventory Validation". */
   label: string;
+  /** Value saved as CMS Status (cms_stage) when it differs from `label`. */
+  cmsStageValue?: string;
   /** Short label rendered in the stage stepper. */
   shortLabel: string;
   /** Planning Tool phase name shown in the header badge. */
