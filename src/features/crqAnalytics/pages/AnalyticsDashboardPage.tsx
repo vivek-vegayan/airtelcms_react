@@ -33,8 +33,15 @@ export default function AnalyticsDashboardPage() {
   const handleCardClick = (key: ExpandableKpiKey) => setActivePanel((p) => (p === key ? null : key));
   const goToTable = (config: TableViewConfig) => setNav({ view: "table", tableConfig: config });
 
-  const drillToStage = (stage: string) => goToTable({ title: `CRQs in Stage: ${stage}`, tableType: "CRQ_LIST", stage });
-  const drillToReason = (reason: string) => goToTable({ title: `Rejected CRQs — ${reason}`, tableType: "CRQ_LIST", rejectionReason: reason });
+  // The Open and SLA panels' bars count a subset of CRQs, so their drills must
+  // carry the status too — otherwise GetCRQList returns every CRQ in that stage.
+  const drillToStage = (stage: string) => {
+    const status = activePanel === "open" ? "OPEN" : activePanel === "sla" ? "SLA SCORE" : undefined;
+    const prefix = activePanel === "open" ? "Open CRQs" : activePanel === "sla" ? "SLA Breached CRQs" : "CRQs";
+    goToTable({ title: `${prefix} in Stage: ${stage}`, tableType: "CRQ_LIST", stage, status });
+  };
+  const drillToReason = (reason: string) =>
+    goToTable({ title: `Rejected CRQs — ${reason}`, tableType: "CRQ_LIST", status: "REJECTED", rejectionReason: reason });
 
   // Clicking a CRQ row shows the Scheduler's CRQ Journey in place. This page
   // stays mounted, so Back returns to the same table and filters.
