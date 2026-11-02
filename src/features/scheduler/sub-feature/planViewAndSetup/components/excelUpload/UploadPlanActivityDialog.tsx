@@ -197,6 +197,7 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
       { accessorKey: "networkDomain", header: "Network Domain", size: 120 },
       { accessorKey: "vendorOem", header: "Vendor / OEM", size: 120 },
       { accessorKey: "changeImpact", header: "Impact", size: 80 },
+      { accessorKey: "sendToCab", header: "Send to CAB", size: 100 },
       { accessorKey: "activityName", header: "Activity Name", size: 180 },
       {
         id: "phaseCount",
@@ -307,7 +308,7 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
                 </Typography>
                 <Typography variant="body2" color="text.secondary" mb={2}>
                   One activity = 6 rows (one per phase) sharing an Activity Ref. Fill
-                  the plan columns on the CRQ Review row only; Time (Min) is required on
+                  the plan columns and Send to CAB on the CRQ Review row only; Time (Min) is required on
                   every phase row. See the &quot;How to load&quot; sheet for details.
                 </Typography>
                 <Button

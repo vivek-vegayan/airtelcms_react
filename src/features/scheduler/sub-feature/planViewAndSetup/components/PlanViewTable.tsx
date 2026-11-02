@@ -57,6 +57,7 @@ const PLAN_EXPORT_COLUMNS: ExcelColumn[] = [
   { header: "Layer", key: "layer", width: 14 },
   { header: "Vendor / OEM", key: "planVendor", width: 20 },
   { header: "Impact", key: "changeImpact", width: 12 },
+  { header: "Send to CAB", key: "sendToCab", width: 14 },
   { header: "Status", key: "status", width: 12 },
 ];
 
@@ -276,6 +277,18 @@ export const PlanViewTable: React.FC<Props> = ({
         Cell: ({ cell }) => (
           <Typography sx={{ fontSize: 12 }}>
             {cell.getValue<string>()}
+          </Typography>
+        ),
+      },
+      {
+        accessorKey: "sendToCab",
+        header: "Send to CAB",
+        size: 120,
+        // Checkbox list of the values in this column (faceted values).
+        filterVariant: "multi-select",
+        Cell: ({ cell }) => (
+          <Typography sx={{ fontSize: 12 }}>
+            {cell.getValue<string | null>() || "—"}
           </Typography>
         ),
       },
