@@ -33,6 +33,10 @@ const InfoBlock = ({
       justifyContent: "center",
       alignItems: "center",
       minWidth: "180px",
+      // Never shrink below the text: with nowrap, a long stage label
+      // ("CRQ Impacted Party Approval Status") would otherwise spill past
+      // the background. The row's parent scrolls horizontally instead.
+      flexShrink: 0,
       whiteSpace: "nowrap",
     }}
   >
