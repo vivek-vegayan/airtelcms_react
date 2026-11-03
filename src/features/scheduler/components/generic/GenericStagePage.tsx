@@ -26,6 +26,10 @@ import { useStageWorkflow } from "../../hook/useStageWorkflow";
 import { filterPlansBySearch } from "../../util/filterPlansBySearch";
 import { filterPlansByChangeImpact, type ChangeImpactFilter } from "../../util/changeImpact";
 import ChangeImpactSelect from "./ChangeImpactSelect";
+import MyCrqsToggle from "./MyCrqsToggle";
+import { filterPlansByMyCrqs } from "../../util/myCrqs";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../../../app/store";
 import {
   searchFieldSx,
   stageToolbarContainerSx,
@@ -100,6 +104,9 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   const [globalSearchInput, setGlobalSearchInput] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
   const [changeImpact, setChangeImpact] = useState<ChangeImpactFilter>("");
+  // "My CRQs": only CRQs whose OLM id for this tab's stage (stageConfig.olmIdField) is the logged-in user's.
+  const [myCrqsOnly, setMyCrqsOnly] = useState(false);
+  const currentUserOlmId = useSelector((state: RootState) => state.auth.user?.olmId);
   const [rescheduleCrq, setRescheduleCrq] = useState<any | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [previewPdfOpen, setPreviewPdfOpen] = useState(false);
@@ -198,8 +205,14 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   const toggleCrq = (id: string) => setOpenCrqs((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const filteredPlans = useMemo(
-    () => filterPlansByChangeImpact(filterPlansBySearch(plansOriginal, globalSearch), changeImpact),
-    [plansOriginal, globalSearch, changeImpact],
+    () =>
+      filterPlansByMyCrqs(
+        filterPlansByChangeImpact(filterPlansBySearch(plansOriginal, globalSearch), changeImpact),
+        myCrqsOnly,
+        stageConfig.olmIdField,
+        currentUserOlmId,
+      ),
+    [plansOriginal, globalSearch, changeImpact, myCrqsOnly, stageConfig.olmIdField, currentUserOlmId],
   );
 
   const columns = useMemo<MRT_ColumnDef<any>[]>(
@@ -249,6 +262,12 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
       sx={stageToolbarRowSx}
     >
       <ChangeImpactSelect value={changeImpact} onChange={setChangeImpact} colors={colors} />
+      <MyCrqsToggle
+        active={myCrqsOnly}
+        onToggle={() => setMyCrqsOnly((v) => !v)}
+        olmId={currentUserOlmId}
+        colors={colors}
+      />
       <TextField
         size="small"
         placeholder={`Search ${stageConfig.label.toLowerCase()} plans, CRQs…`}
