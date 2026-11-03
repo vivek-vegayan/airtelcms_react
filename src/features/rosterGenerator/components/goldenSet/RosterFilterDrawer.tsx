@@ -71,11 +71,12 @@ interface RosterFilterDrawerProps {
 // ── Local Constants ───────────────────────────────────────────────────────────
 const TOTAL_COLS = 42;
 const ALL_LEVELS = ["L1", "L2", "L3", "L4"];
-const SHIFT_CODES = ["G", "N", "A", "B", "W"];
+const SHIFT_CODES = ["G", "LG", "N", "A", "B", "W"];
 const MONO = "'Roboto Mono', 'Fira Mono', monospace";
 
 const SHIFT_META: Record<string, { label: string }> = {
   G: { label: "General" },
+  LG: { label: "Late General" },
   N: { label: "Night" },
   A: { label: "Early Morning" },
   B: { label: "Afternoon" },
@@ -98,6 +99,7 @@ const shiftColorMap = new Map<string, { background: string; color: string; borde
   ["A", { background: "#F5F3FF", color: "#6B21A8", border: "#C4B5FD" }],
   ["B", { background: "#ECFEFF", color: "#155E75", border: "#67E8F9" }],
   ["G", { background: "#EFF6FF", color: "#1D4ED8", border: "#93C5FD" }],
+  ["LG", { background: "#F0FDF4", color: "#15803D", border: "#BBF7D0" }],
   ["L", { background: "#FEF2F2", color: "#B91C1C", border: "#FCA5A5" }],
   ["W", { background: "#F8FAFC", color: "#475569", border: "#CBD5F5" }],
   ["H", { background: "#FFF7ED", color: "#C2410C", border: "#FDBA74" }],
