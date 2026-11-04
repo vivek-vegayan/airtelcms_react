@@ -25,14 +25,11 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { useActivity } from "../hooks/useActivity";
 import {
   useGetPlanViewQuery,
-  useLazyGetPlanViewQuery,
+  useLazyExportPlanActivityExcelQuery,
   type PlanViewRow,
 } from "../api/planApiSlice";
 import { ExportExcelButton } from "../../../../cabManager/components/shared/ExportExcelButton";
-import {
-  exportRowsToExcel,
-  type ExcelColumn,
-} from "../../../../crqAnalytics/utils/excelExport";
+
 import { PlanEditDialog, type FilterOption } from "./PlanEditDialog";
 import { PlanAddDialog } from "./PlanAddDialog";
 import { UploadPlanActivityDialog } from "./excelUpload/UploadPlanActivityDialog";
@@ -51,15 +48,7 @@ interface Props {
 const DEFAULT_PAGE_SIZE = 50;
 const PLAN_PAGE_SIZES = [10, 25, 50, 100, 200, 300, 500];
 
-const PLAN_EXPORT_COLUMNS: ExcelColumn[] = [
-  { header: "Plan Type", key: "planType", width: 30 },
-  { header: "Network Domain", key: "networkDomain", width: 20 },
-  { header: "Layer", key: "layer", width: 14 },
-  { header: "Vendor / OEM", key: "planVendor", width: 20 },
-  { header: "Impact", key: "changeImpact", width: 12 },
-  { header: "Send to CAB", key: "sendToCab", width: 14 },
-  { header: "Status", key: "status", width: 12 },
-];
+
 
 // ── Badges ─────────────────────────────────────────────────────────────────
 
@@ -127,7 +116,7 @@ export const PlanViewTable: React.FC<Props> = ({
   const { handleOpenPlanDialog } = useActivity();
   const [addPlanDialogOpen, setAddPlanDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [fetchAllPlans] = useLazyGetPlanViewQuery();
+  const [exportPlanActivityExcel] = useLazyExportPlanActivityExcelQuery();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
 
@@ -196,17 +185,23 @@ export const PlanViewTable: React.FC<Props> = ({
 
   // The grid is server-paged, so export fetches every plan for the current
   // filters in one request instead of only the rows on screen.
+    // Server builds the file in the upload template layout (6 phase rows per
+  // activity), so an export can be edited and uploaded back as-is.
   const handleExportExcel = async () => {
-    const all = await fetchAllPlans({
+    const blob = await exportPlanActivityExcel({
       verticalId,
       functionId,
       domainId,
       subDomainId,
-      page: 0,
-      size: data?.totalElements ?? 0,
     }).unwrap();
-    await exportRowsToExcel(all.content, PLAN_EXPORT_COLUMNS, "Plans", "Plan_View");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Plan_Activity_Export.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
   };
+
 
 
   // ── Columns ───────────────────────────────────────────────────────────────
