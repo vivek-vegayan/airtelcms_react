@@ -339,6 +339,19 @@ export const planApi = api.injectEndpoints({
       }),
       invalidatesTags: ["Plan"],
     }),
+    
+    // GET /activity/excel/v1/export — every plan for the filters, in the upload template layout.
+    exportPlanActivityExcel: builder.query<Blob, PlanViewQueryParams>({
+      query: (params) => ({
+        url: "/activity/excel/v1/export",
+        method: "GET",
+        params,
+        responseHandler: (response: Response) => response.blob(),
+        cache: "no-cache",
+      }),
+      keepUnusedDataFor: 0,
+    }),
+
   }),
 });
 
@@ -355,4 +368,5 @@ export const {
   useAddPlanMutation,
   useParsePlanActivityExcelMutation,
   useUploadPlanActivityExcelMutation,
+  useLazyExportPlanActivityExcelQuery,
 } = planApi;
