@@ -1,4 +1,5 @@
 import { api } from "../../../service/api";
+import { setToken } from "../slices/auth.slice";
 import type { LoggedUserApiResponse, LoginResponse } from "../types/auth.types";
 
 export const authApi = api.injectEndpoints({
@@ -33,6 +34,21 @@ export const authApi = api.injectEndpoints({
       },
     ),
 
+    // Activity heartbeat / "Stay signed in": renews the access token from the
+    // httpOnly refresh cookie and slides the server's idle deadline. A 401
+    // here means the session is over and api.ts signs the user out.
+    refreshSession: builder.mutation<LoginResponse, void>({
+      query: () => ({ url: "/auth/v1/refresh", method: "POST" }),
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          if (data.accessToken) dispatch(setToken(data.accessToken));
+        } catch {
+          // Handled globally in api.ts.
+        }
+      },
+    }),
+
     logout: builder.mutation<void, { olmId: string }>({
       query: (body) => ({
         url: "/auth/v1/logout",
@@ -47,5 +63,6 @@ export const {
   useLoginMutation,
   useLazyGetLoggedUserQuery,
   useTerminateSessionMutation,
+  useRefreshSessionMutation,
   useLogoutMutation,
 } = authApi;

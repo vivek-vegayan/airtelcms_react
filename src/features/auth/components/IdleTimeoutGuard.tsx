@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { authStorage } from "../../../app/store/auth.storage";
 import { ConfirmDialog } from "../../../components/common/ConfirmDialog";
 import { useTabColorTokens } from "../../../style/theme";
+import { useRefreshSessionMutation } from "../api/auth.api";
 import { useLogout } from "../hooks/useLogout";
 
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
@@ -11,6 +12,9 @@ const WARNING_BEFORE_MS = 60 * 1000;
 // Activity fires constantly (mousemove, scroll); persisting it at most this
 // often keeps localStorage writes cheap while staying far inside the timeout.
 const ACTIVITY_WRITE_THROTTLE_MS = 5 * 1000;
+// Real user activity is reported to the server at most this often, so its
+// idle deadline tracks the user and not just whatever API calls happen to run.
+const HEARTBEAT_THROTTLE_MS = 60 * 1000;
 const CHECK_INTERVAL_MS = 1000;
 const ACTIVITY_EVENTS = [
   "mousedown",
@@ -32,6 +36,7 @@ const IdleTimeoutGuard = () => {
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
   const logoutUser = useLogout();
+  const [refreshSession] = useRefreshSessionMutation();
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const warningRef = useRef(false);
   const loggingOutRef = useRef(false);
@@ -47,17 +52,25 @@ const IdleTimeoutGuard = () => {
     authStorage.setLastActivity();
     warningRef.current = false;
     setSecondsLeft(null);
-  }, []);
+    // Extend the session on the server too, not just this timer. If the
+    // server session is already gone, api.ts signs the user out.
+    void refreshSession();
+  }, [refreshSession]);
 
   useEffect(() => {
     if (authStorage.getLastActivity() === null) authStorage.setLastActivity();
 
     let lastWrite = 0;
+    let lastHeartbeat = Date.now();
     const onActivity = () => {
       // Once the warning is up, only an explicit "Stay signed in" extends the
       // session — a stray mouse twitch shouldn't silently dismiss it.
       if (warningRef.current) return;
       const now = Date.now();
+      if (now - lastHeartbeat >= HEARTBEAT_THROTTLE_MS) {
+        lastHeartbeat = now;
+        void refreshSession();
+      }
       if (now - lastWrite < ACTIVITY_WRITE_THROTTLE_MS) return;
       lastWrite = now;
       authStorage.setLastActivity(now);
@@ -100,7 +113,7 @@ const IdleTimeoutGuard = () => {
       document.removeEventListener("visibilitychange", check);
       window.clearInterval(intervalId);
     };
-  }, [signOut]);
+  }, [signOut, refreshSession]);
 
   return (
     <ConfirmDialog

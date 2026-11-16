@@ -8,7 +8,7 @@ import {
 import { toast } from "react-toastify";
 import type { RootState } from "../app/store";
 import { authStorage } from "../app/store/auth.storage";
-import { logout } from "../features/auth/slices/auth.slice";
+import { logout, setToken } from "../features/auth/slices/auth.slice";
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: import.meta.env.VITE_REACT_APP_BASE_URL,
@@ -35,21 +35,65 @@ const AUTH_LIFECYCLE_PATHS = [
   "/auth/v1/session/terminate",
 ];
 
-const isAuthLifecycleRequest = (args: string | FetchArgs): boolean => {
+// Calls where a 401 must not trigger a token refresh: no session exists yet,
+// or the call is the refresh itself.
+const NO_REFRESH_PATHS = [
+  "/auth/v1/signin",
+  "/auth/v1/session/terminate",
+  "/auth/v1/refresh",
+];
+
+const matchesPath = (args: string | FetchArgs, paths: string[]): boolean => {
   const url = typeof args === "string" ? args : args.url;
-  return AUTH_LIFECYCLE_PATHS.some((path) => url.includes(path));
+  return paths.some((path) => url.includes(path));
 };
 
-// Global session-expiration handler: any endpoint (other than login/logout
-// themselves) that comes back 401/403 means the token was rejected by the
-// backend — clear the cached session so PrivateRoute redirects to /login,
-// instead of leaving the UI in a broken, half-authenticated state.
+const isAuthLifecycleRequest = (args: string | FetchArgs): boolean =>
+  matchesPath(args, AUTH_LIFECYCLE_PATHS);
+
+// One refresh at a time: when several calls hit 401 together they all wait on
+// the same /auth/v1/refresh instead of each firing their own.
+let refreshInFlight: Promise<boolean> | null = null;
+
+const refreshAccessToken = (
+  queryApi: Parameters<typeof rawBaseQuery>[1],
+  extraOptions: Parameters<typeof rawBaseQuery>[2],
+): Promise<boolean> => {
+  refreshInFlight ??= (async () => {
+    const res = await rawBaseQuery(
+      { url: "/auth/v1/refresh", method: "POST" },
+      queryApi,
+      extraOptions,
+    );
+    const token = (res.data as { accessToken?: string } | undefined)
+      ?.accessToken;
+    if (token) queryApi.dispatch(setToken(token));
+    return Boolean(token);
+  })().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+};
+
+// Global session-expiration handler. A 401 first tries to renew the short
+// access token from the httpOnly refresh cookie and retries the call once.
+// Only if that fails is the session really over on the server (idle timeout,
+// 12-hour limit, terminated elsewhere), so clearing it locally leaves no live
+// server session behind to trigger "Already Logged" on the next sign-in.
 const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
 > = async (args, queryApi, extraOptions) => {
-  const result = await rawBaseQuery(args, queryApi, extraOptions);
+  let result = await rawBaseQuery(args, queryApi, extraOptions);
+
+  if (
+    result.error?.status === 401 &&
+    !matchesPath(args, NO_REFRESH_PATHS) &&
+    (await refreshAccessToken(queryApi, extraOptions))
+  ) {
+    result = await rawBaseQuery(args, queryApi, extraOptions);
+  }
 
   if (result.error && !isAuthLifecycleRequest(args)) {
     const status = result.error.status;
