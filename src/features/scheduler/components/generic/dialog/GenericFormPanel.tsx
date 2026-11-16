@@ -107,6 +107,16 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
 
   const values = useWatch({ control }) as Record<string, any>;
 
+  // Fill config `defaultValue`s once their field is shown and still empty -
+  // e.g. Remedy Status = "Cancelled" the moment the Cancel outcome is picked.
+  useEffect(() => {
+    stageConfig.fields.forEach((f) => {
+      if (f.defaultValue === undefined || values[f.name]) return;
+      if (f.visibleWhen && !f.visibleWhen(values)) return;
+      setValue(f.name, f.defaultValue, { shouldDirty: true });
+    });
+  }, [values, stageConfig.fields, setValue]);
+
   const handleFormSubmit = async (formValues: Record<string, any>) => {
     if (!crq?.crqNo || !crq?.crqId) {
       toast.error("CRQ details missing. Please select a valid CRQ.");

@@ -379,6 +379,25 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
         values: ["ACC", "AGG", "CORE", "ISP", "MPLS/PE"],
       },
       { name: "Node IP Address*", field: "nodeIpAddress", type: "Text", mandatory: "Mandatory" },
+      // OLM ID of the person scheduled to implement the change.
+      {
+        name: "Scheduled Implementer",
+        field: "scheduledImplementer",
+        type: "Text",
+        mandatory: "Mandatory",
+      },
+      {
+        name: "Circle",
+        field: "circle",
+        type: "Dropdown",
+        mandatory: "Mandatory",
+        // Live from GET_DISTINCT_CIRCLE_CODES; CIRCLE_VALUES is the fallback
+        // if the lookup fails.
+        optionSource: "circleCode",
+        values: CIRCLE_VALUES,
+      },
+      // Comma separated when the CRQ covers more than one task.
+      { name: "Task ID", field: "taskId", type: "Text", mandatory: "Mandatory" },
     ],
   },
   {
@@ -554,6 +573,13 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
         values: EXECUTED_BY_VALUES,
       },
       { name: "L3 Approver OLM ID", field: "l3ApproverOlmId", type: "Text", mandatory: "Mandatory" },
+      {
+        name: "CRQ Approval Status",
+        field: "crqApprovalStatus",
+        type: "Dropdown",
+        mandatory: "Mandatory",
+        values: ["PENDING FOR APPROVAL", "REJECTED"],
+      },
     ],
   },
   {
@@ -587,10 +613,17 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
         mandatory: "Mandatory",
       },
     ],
-    // No CAB fields at this stage - see the note above. An empty section is not
-    // rendered (AttributeSection) and is left out of the save payload entirely
-    // (buildAttributeSaveSections), so nothing an earlier stage saved is blanked.
-    cab: [],
+    // Only the approval outcome is recorded here - the execution details are
+    // collected at Task Closure (see the note above).
+    cab: [
+      {
+        name: "CRQ Approval Status",
+        field: "crqApprovalStatus",
+        type: "Dropdown",
+        mandatory: "Mandatory",
+        values: ["APPROVED"],
+      },
+    ],
   },
   {
     id: "closer",
@@ -762,6 +795,26 @@ const STAGES_WITH_CAB_CIRCLE_SLOTS = new Set<AttributeStageSchema["id"]>(["impac
 export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = CMS_STAGE_SCHEMAS_BASE.map((stage) =>
   STAGES_WITH_CAB_CIRCLE_SLOTS.has(stage.id)
     ? { ...stage, cab: [...stage.cab, ...CAB_CIRCLE_SLOT_ATTRIBUTES] }
+    : stage,
+).map((stage) =>
+  // CAB's "Change Request Status" = the stage's Remedy status, sent on every
+  // CAB save (only where the stage has CAB fields).
+  stage.cab.length
+    ? {
+        ...stage,
+        cab: [
+          {
+            name: "Change Request Status",
+            field: "changeRequestStatus",
+            type: "Text",
+            mandatory: "Mandatory",
+            readOnly: true,
+            autoSetFrom: "remedyStatus",
+            hidden: true,
+          },
+          ...stage.cab,
+        ],
+      }
     : stage,
 );
 

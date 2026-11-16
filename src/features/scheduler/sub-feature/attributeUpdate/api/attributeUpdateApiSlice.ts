@@ -82,6 +82,12 @@ export const attributeUpdateApiSlice = api.injectEndpoints({
       }),
     }),
 
+    // GET /attributeupdate/dropdown/circle - circle codes from
+    // GET_DISTINCT_CIRCLE_CODES. Reference data, cached once, no tag.
+    getCircleCodeOptions: builder.query<string[], void>({
+      query: () => ({ url: "/attributeupdate/dropdown/circle", method: "GET" }),
+    }),
+
     // POST /attributeupdate/save - saves whichever of remedy/cab/cygnet the
     // caller includes for the current stage. Each section succeeds or fails on
     // its own, so the response carries a per-section breakdown alongside the
@@ -106,5 +112,6 @@ export const {
   useGetImplCompanyOptionsQuery,
   useGetImplOrganizationOptionsQuery,
   useGetImplGroupOptionsQuery,
+  useGetCircleCodeOptionsQuery,
   useSaveAttributeUpdateMutation,
 } = attributeUpdateApiSlice;

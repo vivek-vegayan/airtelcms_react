@@ -52,6 +52,8 @@ export const CANCELLATION_FIELDS: StageFieldConfig[] = [
     label: "Remedy Status",
     type: "select",
     options: [{ label: "Cancelled", value: "Cancelled" }],
+    // Only one valid value, so it is pre-selected rather than asked for.
+    defaultValue: "Cancelled",
     visibleWhen: (v) => v.status === "canceled",
     requiredWhen: (v) => v.status === "canceled",
   },

@@ -119,6 +119,9 @@ export interface StageFieldConfig {
   /** Fetch this select's options from the server rather than listing them
    * here. Takes precedence over `options`. */
   optionsSource?: StageFieldOptionsSource;
+  /** Pre-selected as soon as the field becomes visible, if it is still empty
+   * (e.g. Remedy Status = "Cancelled" on the cancel outcome). Stays editable. */
+  defaultValue?: string;
   /** Show this field only when predicate against current form values is true */
   visibleWhen?: (values: Record<string, any>) => boolean;
   /** Mark required dynamically (e.g. only when status === "canceled") */

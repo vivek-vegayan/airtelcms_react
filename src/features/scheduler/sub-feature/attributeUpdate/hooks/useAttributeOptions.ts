@@ -1,6 +1,7 @@
 import { useWatch, type Control } from "react-hook-form";
 
 import {
+  useGetCircleCodeOptionsQuery,
   useGetImplCompanyOptionsQuery,
   useGetImplGroupOptionsQuery,
   useGetImplOrganizationOptionsQuery,
@@ -108,6 +109,9 @@ export function useAttributeOptions(
     { company, organization },
     { skip: !live || source !== "implGroup" || Boolean(missing) },
   );
+  const circleQuery = useGetCircleCodeOptionsQuery(undefined, {
+    skip: !live || source !== "circleCode",
+  });
 
   if (!source) return { options: attribute.values ?? [], isLoading: false };
 
@@ -118,7 +122,9 @@ export function useAttributeOptions(
       ? companyQuery
       : source === "implOrganization"
         ? organizationQuery
-        : groupQuery;
+        : source === "implGroup"
+          ? groupQuery
+          : circleQuery;
 
   // The catalog list is the fallback for a *failed* lookup only. An empty
   // successful response is a real answer ("this combination has no groups"),

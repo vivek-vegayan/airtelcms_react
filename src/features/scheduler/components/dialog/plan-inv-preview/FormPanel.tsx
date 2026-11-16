@@ -560,10 +560,11 @@ export const FormPanel: React.FC<Props> = ({
                       />
                     </Box>
 
-                    {/* Remedy Status */}
+                    {/* Remedy Status - only one valid value, so pre-selected. */}
                     <Controller
                       name="field1"
                       control={control}
+                      defaultValue="Cancelled"
                       rules={{ required: "Required" }}
                       render={({ field }) => (
                         <FormControl

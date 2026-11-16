@@ -65,7 +65,7 @@ const isMandatoryEditable = (a: ResolvedAttribute) =>
  */
 export const AttributeSection: React.FC<AttributeSectionProps> = React.memo(function AttributeSection({
   system,
-  attributes,
+  attributes: allAttributes,
   backendAttributes,
   control,
   setValue,
@@ -73,6 +73,8 @@ export const AttributeSection: React.FC<AttributeSectionProps> = React.memo(func
   viewOnly,
   colors,
 }) {
+  // Hidden attributes are saved but never shown.
+  const attributes = useMemo(() => allAttributes.filter((a) => !a.hidden), [allAttributes]);
   const meta = SYSTEM_SECTIONS[system];
   const accent = SYSTEM_ACCENT[system];
   const totalCount = attributes.length + (backendAttributes?.length ?? 0);

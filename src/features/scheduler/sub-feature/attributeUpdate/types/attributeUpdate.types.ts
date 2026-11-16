@@ -50,11 +50,14 @@ export type AutoSetSource =
  * Named after the GET_IMPL_*_DROPDOWN procedures behind them. Both the Change
  * Coordinator and the Change Implementer trio read these same lists - they are
  * one pool of support companies/organizations/groups, not two.
+ *
+ * "circleCode" is a flat (non-cascading) list from GET_DISTINCT_CIRCLE_CODES.
  */
 export type AttributeOptionSource =
   | "implCompany"
   | "implOrganization"
-  | "implGroup";
+  | "implGroup"
+  | "circleCode";
 
 /** A sibling field whose current value parameterizes an attribute's lookup. */
 export interface AttributeDependency {
@@ -96,6 +99,8 @@ export interface StageAttribute {
   resets?: string[];
   readOnly?: boolean;
   autoSetFrom?: AutoSetSource;
+  /** Not rendered in the UI, but still sent on save (e.g. CAB Change Request Status). */
+  hidden?: boolean;
   /**
    * Seeds an EMPTY field from the same sources as `autoSetFrom`, then gets out
    * of the way - unlike `autoSetFrom` the field stays editable, and a value
