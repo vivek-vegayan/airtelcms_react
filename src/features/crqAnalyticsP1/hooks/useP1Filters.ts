@@ -1,0 +1,192 @@
+import { useCallback, useMemo, useState } from "react";
+import dayjs, { type Dayjs } from "dayjs";
+import { useGetP1FiltersQuery } from "../api/crqAnalyticsP1Api";
+import type { QuickDateFilter } from "../../crqAnalytics/utils/dateRange";
+import type { P1FilterParams, P1Side, P1View } from "../types/crqAnalyticsP1.types";
+import { DAY, STAGES, ddmon, dmonhm, minuteFloor, parseDT, stageCodesOfSide, toSql } from "../utils/p1Format";
+
+export type P1FilterKey = "vertical" | "side" | "domain" | "subDomain" | "stage" | "circle";
+
+export interface P1FilterValues {
+  vertical: string;
+  side: P1Side;
+  domain: string;
+  subDomain: string;
+  stage: string;
+  circle: string;
+}
+
+const EMPTY: P1FilterValues = { vertical: "", side: "", domain: "", subDomain: "", stage: "", circle: "" };
+
+/** Which filters each view offers. Results never sends a stage; Teams sends Side as the stage worked. */
+export const P1_VIEW_FILTERS: Record<P1View, readonly P1FilterKey[]> = {
+  pendency: ["vertical", "side", "domain", "subDomain", "stage", "circle"],
+  results: ["vertical", "domain", "subDomain", "circle"],
+  teams: ["vertical", "side", "domain", "subDomain", "circle"],
+};
+
+export interface P1Option {
+  value: string;
+  label: string;
+}
+
+export interface P1Range {
+  /** Epoch ms. The range is [lo, hi). */
+  lo: number;
+  hi: number;
+  from: string;
+  to: string;
+  /** "Last 7 days" / "Selected range". */
+  name: string;
+  /** "10 Nov, 14:05 – 17 Nov, 14:05". */
+  label: string;
+  /** Chip text: "last 7 days" or the custom dates. */
+  short: string;
+}
+
+const PRESETS: Record<Exclude<QuickDateFilter, "custom">, { name: string; days: number }> = {
+  "24h": { name: "Last 24 h", days: 1 },
+  "1w": { name: "Last 7 days", days: 7 },
+  "30d": { name: "Last 30 days", days: 30 },
+};
+
+const uniqueOptions = <T,>(rows: readonly T[], id: (r: T) => number, name: (r: T) => string): P1Option[] => {
+  const seen = new Map<string, string>();
+  rows.forEach((r) => seen.set(String(id(r)), name(r)));
+  return [...seen].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
+};
+
+/**
+ * Filter + date-range state shared by the three Phase 1 views, so switching between Pendency,
+ * Results and Teams keeps the selection. The org tree, circles and "data as of" come from
+ * CRQ_AN_SP_FILTERS.
+ */
+export function useP1Filters(view: P1View) {
+  const filtersQuery = useGetP1FiltersQuery();
+  const orgTree = useMemo(() => filtersQuery.data?.orgTree ?? [], [filtersQuery.data]);
+
+  const [values, setValues] = useState<P1FilterValues>(EMPTY);
+  const [quickFilter, setQuickFilter] = useState<QuickDateFilter>("1w");
+  const [customStart, setCustomStart] = useState<Dayjs | null>(dayjs().subtract(14, "day"));
+  const [customEnd, setCustomEnd] = useState<Dayjs | null>(dayjs());
+  // "Now" is pinned (to the minute) so the query arguments stay stable between renders.
+  // It moves when the range is changed or the refresh button is pressed.
+  const [now, setNow] = useState(() => minuteFloor(Date.now()));
+  const touchNow = useCallback(() => setNow(minuteFloor(Date.now())), []);
+
+  const options = useMemo<Record<P1FilterKey, P1Option[]>>(() => {
+    const inVertical = orgTree.filter((r) => !values.vertical || String(r.verticalId) === values.vertical);
+    const inDomain = inVertical.filter((r) => !values.domain || String(r.domainId) === values.domain);
+    return {
+      vertical: uniqueOptions(orgTree, (r) => r.verticalId, (r) => r.verticalName),
+      domain: uniqueOptions(inVertical, (r) => r.domainId, (r) => r.domainName),
+      subDomain: uniqueOptions(inDomain, (r) => r.subDomainId, (r) => r.subDomainName),
+      side: [
+        { value: "CCB", label: "CCB" },
+        { value: "SE", label: "SE" },
+      ],
+      stage: STAGES.filter((s) => !values.side || s.side === values.side).map((s) => ({ value: s.code, label: s.label })),
+      circle: (filtersQuery.data?.circles ?? []).map((c) => ({ value: c.circle, label: c.circle })),
+    };
+  }, [orgTree, values.vertical, values.domain, values.side, filtersQuery.data]);
+
+  const setFilter = useCallback((key: P1FilterKey, value: string) => {
+    setValues((prev) => {
+      const next = { ...prev, [key]: value } as P1FilterValues;
+      // A narrower parent clears the children that may no longer belong to it.
+      if (key === "vertical") {
+        next.domain = "";
+        next.subDomain = "";
+      }
+      if (key === "domain") next.subDomain = "";
+      if (key === "side" && value && next.stage && !STAGES.some((s) => s.code === next.stage && s.side === value)) {
+        next.stage = "";
+      }
+      return next;
+    });
+  }, []);
+
+  const resetFilters = useCallback(() => setValues(EMPTY), []);
+
+  const active = P1_VIEW_FILTERS[view];
+
+  /** The six procedure filters for the current view. */
+  const filterParams = useMemo<P1FilterParams>(() => {
+    const on = (k: P1FilterKey) => (active.includes(k) && values[k] ? values[k] : undefined);
+    const side = on("side") as P1Side | undefined;
+    return {
+      vertical: on("vertical"),
+      domain: on("domain"),
+      subDomain: on("subDomain"),
+      circle: on("circle"),
+      // "Who holds it / Side" travels as the stage codes of that side.
+      stage: on("stage") ?? (side ? stageCodesOfSide(side) : undefined),
+    };
+  }, [active, values]);
+
+  const range = useMemo<P1Range>(() => {
+    if (quickFilter === "custom" && customStart?.isValid() && customEnd?.isValid()) {
+      const lo = customStart.startOf("day").valueOf();
+      const last = customEnd.startOf("day").valueOf();
+      // First day 00:00 to the day after the last day 00:00, never past now.
+      const hi = Math.max(Math.min(last + DAY, now), lo + 60_000);
+      const spansYears = dayjs(lo).year() !== dayjs(last).year();
+      const fmt = (t: number) => ddmon(t) + (spansYears ? ` ${dayjs(t).year()}` : "");
+      const label = `${fmt(lo)} – ${fmt(last)}`;
+      return { lo, hi, from: toSql(lo), to: toSql(hi), name: "Selected range", label, short: label };
+    }
+    const preset = PRESETS[quickFilter === "custom" ? "1w" : quickFilter];
+    const lo = now - preset.days * DAY;
+    return {
+      lo,
+      hi: now,
+      from: toSql(lo),
+      to: toSql(now),
+      name: preset.name,
+      label: `${dmonhm(lo)} – ${dmonhm(now)}`,
+      short: preset.name.toLowerCase(),
+    };
+  }, [quickFilter, customStart, customEnd, now]);
+
+  /** Text of the active filters, for the drill-down subtitle and export names. */
+  const filterText = useMemo(
+    () =>
+      active
+        .filter((k) => values[k])
+        .map((k) => options[k].find((o) => o.value === values[k])?.label ?? values[k])
+        .join(" · "),
+    [active, values, options],
+  );
+
+  return {
+    view,
+    active,
+    orgTree,
+    values,
+    options,
+    setFilter,
+    resetFilters,
+    filterParams,
+    filterText,
+    quickFilter,
+    setQuickFilter: useCallback(
+      (v: QuickDateFilter) => {
+        setQuickFilter(v);
+        touchNow();
+      },
+      [touchNow],
+    ),
+    customStart,
+    setCustomStart,
+    customEnd,
+    setCustomEnd,
+    range,
+    now,
+    touchNow,
+    dataAsOf: parseDT(filtersQuery.data?.dataStatus?.dataAsOf),
+    dataStatus: filtersQuery.data?.dataStatus ?? null,
+    filtersError: filtersQuery.isError,
+  };
+}
+
+export type UseP1FiltersReturn = ReturnType<typeof useP1Filters>;

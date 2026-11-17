@@ -15,12 +15,14 @@ interface Props {
   slices: Slice[];
   isLoading?: boolean;
   isError?: boolean;
+  /** Explicit slice colours by index (a fixed series such as CCB / SE); defaults to the categorical palette. */
+  colors?: readonly string[];
   /** Called with the clicked slice's label (folded "Other" slice is not clickable). */
   onSliceClick?: (label: string) => void;
 }
 
 /** Doughnut chart for a category breakdown (e.g. rejection reasons) — folds past 8 categories into "Other". */
-export function PieChartCard({ slices, isLoading, isError, onSliceClick }: Props) {
+export function PieChartCard({ slices, isLoading, isError, colors, onSliceClick }: Props) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const chrome = chartChrome(isDark);
@@ -41,14 +43,14 @@ export function PieChartCard({ slices, isLoading, isError, onSliceClick }: Props
       datasets: [
         {
           data: folded.map((s) => s.value),
-          backgroundColor: folded.map((_, i) => categoryColor(i, isDark)),
+          backgroundColor: folded.map((_, i) => colors?.[i] ?? categoryColor(i, isDark)),
           borderColor: theme.palette.background.paper,
           borderWidth: 2,
           hoverOffset: 6,
         },
       ],
     }),
-    [folded, isDark, theme],
+    [folded, isDark, theme, colors],
   );
 
   const options = useMemo<ChartOptions<"doughnut">>(

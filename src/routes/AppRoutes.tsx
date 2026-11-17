@@ -212,6 +212,21 @@ const SlotVisibilityPage = lazy(() =>
     default: m.SlotVisibilityPage,
   })),
 );
+const PendencyPage = lazy(() =>
+  import("../features/crqAnalyticsP1").then((m) => ({
+    default: m.PendencyPage,
+  })),
+);
+const ResultsPage = lazy(() =>
+  import("../features/crqAnalyticsP1").then((m) => ({
+    default: m.ResultsPage,
+  })),
+);
+const TeamsPeoplePage = lazy(() =>
+  import("../features/crqAnalyticsP1").then((m) => ({
+    default: m.TeamsPeoplePage,
+  })),
+);
 const TeamReportMainPage = lazy(() =>
   import("../features/teamReport").then((m) => ({
     default: m.TeamReportMainPage,
@@ -380,7 +395,9 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path="crq-analytics" element={<CrqAnalyticsPage />} />
           <Route path="reports" element={<AnalyticsReportsPage />} />
           <Route path="slot-visibility" element={<SlotVisibilityPage />} />
-          
+          <Route path="pendency" element={<PendencyPage />} />
+          <Route path="results" element={<ResultsPage />} />
+          <Route path="teams-people" element={<TeamsPeoplePage />} />
         </Route>
 
         <Route
