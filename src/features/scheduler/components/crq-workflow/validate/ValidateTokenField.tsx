@@ -3,6 +3,7 @@ import {
   Autocomplete,
   Box,
   Chip,
+  InputBase,
   Stack,
   TextField,
   Tooltip,
@@ -34,6 +35,12 @@ export const splitTokens = (raw: string): string[] =>
 /** Back to the stored shape, duplicates dropped (the procedure stores text). */
 export const joinTokens = (tokens: string[]): string =>
   Array.from(new Set(tokens.map((token) => token.trim()).filter(Boolean))).join(",");
+
+/** `list` with `items` spliced in at `index` (appended when null / past the end). */
+const insertAt = (list: string[], items: string[], index: number | null): string[] =>
+  index === null || index > list.length
+    ? [...list, ...items]
+    : [...list.slice(0, index), ...items, ...list.slice(index)];
 
 export interface TokenIssue {
   severity: "error" | "warning";
@@ -79,6 +86,12 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
 }) => {
   const tokens = useMemo(() => splitTokens(value), [value]);
   const [inputValue, setInputValue] = useState("");
+  /**
+   * Inline chip editing: the clicked chip turns into a text box in the same
+   * spot. Enter / click-away saves, Esc cancels, clearing it removes the entry.
+   */
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const used = joinTokens(tokens).length;
@@ -93,6 +106,37 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
       onChange(joinTokens(next));
     },
     [onChange],
+  );
+
+  const startEdit = useCallback(
+    (index: number) => {
+      if (disabled) return;
+      setEditingIndex(index);
+      setEditDraft(tokens[index] ?? "");
+    },
+    [disabled, tokens],
+  );
+
+  const cancelEdit = useCallback(() => {
+    setEditingIndex(null);
+    setEditDraft("");
+  }, []);
+
+  /** Put the edited text back in the same slot (a typed comma splits it). */
+  const saveEdit = useCallback(() => {
+    if (editingIndex === null) return;
+    const rest = tokens.filter((_, i) => i !== editingIndex);
+    commit(insertAt(rest, splitTokens(editDraft), editingIndex));
+    cancelEdit();
+  }, [cancelEdit, commit, editDraft, editingIndex, tokens]);
+
+  const handleChange = useCallback(
+    (next: string[]) => {
+      // Adding/removing other chips shifts indexes - drop any open edit.
+      if (editingIndex !== null) cancelEdit();
+      commit(next);
+    },
+    [cancelEdit, commit, editingIndex],
   );
 
   const handleInputChange = useCallback(
@@ -135,7 +179,7 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
         value={tokens}
         inputValue={inputValue}
         onInputChange={handleInputChange}
-        onChange={(_event, next) => commit(next as string[])}
+        onChange={(_event, next) => handleChange(next as string[])}
         renderTags={(values, getTagProps) =>
           values.map((token, index) => {
             const issue = inspect?.(token);
@@ -147,12 +191,64 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
                   : { fg: colors.accent, bg: colors.accentDim, border: colors.accentBorder };
             const { key, ...tagProps } = getTagProps({ index });
 
+            if (index === editingIndex) {
+              // Stop events reaching the Autocomplete root, which would
+              // otherwise steal focus back to its own input / handle keys.
+              const stop = (event: React.SyntheticEvent) => event.stopPropagation();
+              return (
+                <InputBase
+                  key={key}
+                  autoFocus
+                  value={editDraft}
+                  onChange={(event) => setEditDraft(event.target.value)}
+                  onBlur={saveEdit}
+                  onFocus={(event) => event.target.select()}
+                  onMouseDown={stop}
+                  onClick={stop}
+                  onKeyDown={(event) => {
+                    event.stopPropagation();
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      saveEdit();
+                    } else if (event.key === "Escape") {
+                      event.preventDefault();
+                      cancelEdit();
+                    }
+                  }}
+                  inputProps={{
+                    "aria-label": `Edit ${token}`,
+                    size: Math.max(editDraft.length, 4),
+                  }}
+                  sx={{
+                    m: "3px",
+                    height: 22,
+                    maxWidth: "100%",
+                    px: 1,
+                    borderRadius: "11px",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                    color: colors.textPrimary,
+                    bgcolor: colors.isDark ? "rgba(255,255,255,0.06)" : "#fff",
+                    border: `1px solid ${colors.accent}`,
+                    boxShadow: `0 0 0 2px ${colors.accentDim}`,
+                    "& input": { p: 0, minWidth: 0 },
+                  }}
+                />
+              );
+            }
+
             return (
-              <Tooltip key={key} title={issue?.message ?? ""} placement="top">
+              <Tooltip
+                key={key}
+                title={issue ? `${issue.message} Click to edit.` : disabled ? "" : "Click to edit"}
+                placement="top"
+              >
                 <Chip
                   {...tagProps}
                   size="small"
                   label={token}
+                  onClick={disabled ? undefined : () => startEdit(index)}
                   icon={
                     issue ? (
                       <ErrorOutlineRoundedIcon sx={{ fontSize: 13, color: `${tone.fg} !important` }} />
@@ -167,6 +263,7 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
                     color: tone.fg,
                     bgcolor: tone.bg,
                     border: `1px solid ${tone.border}`,
+                    cursor: disabled ? "default" : "text",
                     "& .MuiChip-deleteIcon": {
                       fontSize: 14,
                       color: tone.fg,
