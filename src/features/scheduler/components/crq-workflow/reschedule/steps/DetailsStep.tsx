@@ -180,7 +180,8 @@ export const DetailsStep: React.FC<{
 
       <TextField
         select
-        label="Reason for reschedule (optional)"
+        label="Reason for reschedule"
+        required
         fullWidth
         value={selectedReason ?? ""}
         onChange={(e) => setSelectedReason(e.target.value || null)}
@@ -188,9 +189,6 @@ export const DetailsStep: React.FC<{
         size="small"
         sx={{ mb: selectedReason ? 1.5 : 0 }}
       >
-        <MenuItem value="">
-          <em>None</em>
-        </MenuItem>
         {reasonOptions.map((option) => (
           <MenuItem key={option.reason} value={option.reason}>
             {option.reason}

@@ -106,7 +106,7 @@ export function useRescheduleWizard({ open, crqId, onCompleted }: UseRescheduleW
   // indicator uses this for its checkmarks; navigation itself is strictly
   // sequential (Continue only), the stages are never clickable.
   const [furthestStep, setFurthestStep] = useState<number>(STEP_DETAILS);
-  // Reason for reschedule: a fixed option from sp_reschedule_reason_drop_down,
+  // Reason for reschedule: a mandatory option from sp_reschedule_reason_drop_down,
   // plus optional free text the user can add alongside it.
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [reasonNote, setReasonNote] = useState("");
@@ -255,6 +255,11 @@ export function useRescheduleWizard({ open, crqId, onCompleted }: UseRescheduleW
   const submitDetails = useCallback(async () => {
     if (!crqId) return;
     setStepError(null);
+
+    if (!rescheduleId && !selectedReason) {
+      setStepError("Please select a reason for reschedule.");
+      return;
+    }
 
     if (rescheduleId) {
       const target = resumeTarget ?? STEP_DATE;

@@ -125,7 +125,9 @@ export const RescheduleDialog: React.FC<RescheduleDialogProps> = ({
   const canContinue = (() => {
     switch (step) {
       case STEP_DETAILS:
-        return !!context?.canReschedule;
+        // Reason is mandatory for a new attempt; a resumed attempt already
+        // stored its reason when it was initiated.
+        return !!context?.canReschedule && (!!wizard.selectedReason || !!wizard.rescheduleId);
       case STEP_DATE:
         return !!wizard.desiredDate;
       case STEP_STAGE:

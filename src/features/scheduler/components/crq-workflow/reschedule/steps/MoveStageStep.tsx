@@ -35,7 +35,7 @@ export const MoveStageStep: React.FC<{ wizard: RescheduleWizard; colors: Colors 
       {eligible.size === 0 && (
         <Alert severity="warning" sx={{ mb: 2, fontSize: 12.5 }}>
           {stageLabel(context.currentStage)} is the first stage of the workflow, so there is no
-          earlier stage to move this CRQ back to.
+          earlier stage to move this CRQ back to. You can keep it on the current stage.
         </Alert>
       )}
 
@@ -53,7 +53,9 @@ export const MoveStageStep: React.FC<{ wizard: RescheduleWizard; colors: Colors 
           {WORKFLOW_STAGES.map((stage) => {
             const stageEnum = STAGE_ID_TO_ENUM[stage.id] as CrqStageEnum;
             const isCurrent = stageEnum === context.currentStage;
-            const selectable = eligible.has(stageEnum);
+            // The current stage is selectable too: "stay on this stage" and just
+            // pick a new date/slot without moving the CRQ back.
+            const selectable = eligible.has(stageEnum) || isCurrent;
             const isSelected = toStage === stageEnum;
 
             return (
