@@ -25,6 +25,7 @@ import AssessmentIcon from "@mui/icons-material/AssessmentOutlined";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonthOutlined";
 import SchemaIcon from "@mui/icons-material/SchemaOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
+import HourglassBottomOutlinedIcon from "@mui/icons-material/HourglassBottomOutlined";
 import DnsOutlinedIcon from "@mui/icons-material/DnsOutlined";
 import TerminalIcon from "@mui/icons-material/TerminalOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
@@ -319,6 +320,27 @@ export const ALL_NAV_ITEMS: NavItem[] = [
         icon: <CloudSyncOutlinedIcon />,
         requiredModule: "CRQ Analytics",
         matchPaths: ["/analytics/slot-visibility"],
+      },
+      {
+        to: "/analytics/pendency",
+        text: "Pendency",
+        icon: <HourglassBottomOutlinedIcon />,
+        requiredModule: "CRQ Analytics",
+        matchPaths: ["/analytics/pendency"],
+      },
+      {
+        to: "/analytics/results",
+        text: "Results",
+        icon: <AssessmentIcon />,
+        requiredModule: "CRQ Analytics",
+        matchPaths: ["/analytics/results"],
+      },
+      {
+        to: "/analytics/teams-people",
+        text: "Teams & people",
+        icon: <Groups2Icon />,
+        requiredModule: "CRQ Analytics",
+        matchPaths: ["/analytics/teams-people"],
       },
     ],
   },
