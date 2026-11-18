@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Box, Button, CircularProgress, Drawer, IconButton, Typography } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import { toast } from "react-toastify";
 import { EmptyOrErrorState } from "../../crqAnalytics/components/EmptyOrErrorState";
 import { useLazyGetP1CrqListQuery } from "../api/crqAnalyticsP1Api";
@@ -10,7 +9,6 @@ import type { P1CrqListParams, P1CrqRowDto, P1Drill } from "../types/crqAnalytic
 import { exportP1Objects } from "../utils/p1Export";
 import { DAY, fdt, fmtN, h1, toSql } from "../utils/p1Format";
 import { ResultPill, StageTracker } from "./P1Bits";
-import { P1JourneyPanel } from "./P1JourneyPanel";
 
 const PAGE_SIZE = 50;
 /** CRQ_AN_SP_LIST caps p_limit at 1000; "copy all" / "download" page through at that size. */
@@ -49,15 +47,15 @@ const EXPORT_HEADERS: Record<string, string> = {
 interface Props {
   drill: P1Drill | null;
   onClose: () => void;
-  /** Opens the scheduler's full CRQ Journey page for this CRQ. */
-  onOpenFullJourney: (crqNo: string) => void;
+  /** A clicked CRQ opens the scheduler's CRQ Journey page, the same as on CRQ Analytics. */
+  onOpenJourney: (crqNo: string) => void;
 }
 
 /**
- * Right-hand drawer with the CRQs behind a clicked number (CRQ_AN_SP_LIST, paged) and, for a
- * clicked CRQ, its analytics journey (CRQ_AN_SP_JOURNEY).
+ * Right-hand drawer with the CRQs behind a clicked number (CRQ_AN_SP_LIST, paged). Clicking a
+ * CRQ opens its CRQ Journey page.
  */
-export function P1DrillDrawer({ drill, onClose, onOpenFullJourney }: Props) {
+export function P1DrillDrawer({ drill, onClose, onOpenJourney }: Props) {
   const { f, colors } = useP1();
   const t = colors.tokens;
   const [fetchList] = useLazyGetP1CrqListQuery();
@@ -67,7 +65,6 @@ export function P1DrillDrawer({ drill, onClose, onOpenFullJourney }: Props) {
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [journeyCrq, setJourneyCrq] = useState<string | null>(null);
   // Guards against a slow response of an earlier click landing in a newer list.
   const requestId = useRef(0);
 
@@ -115,7 +112,6 @@ export function P1DrillDrawer({ drill, onClose, onOpenFullJourney }: Props) {
   useEffect(() => {
     setRows([]);
     setTotal(0);
-    setJourneyCrq(null);
     if (drill) void loadPage(drill, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drill]);
@@ -152,7 +148,7 @@ export function P1DrillDrawer({ drill, onClose, onOpenFullJourney }: Props) {
   const downloadAll = () => runBulk((all) => exportP1Objects(drill?.title ?? "CRQ list", all, EXPORT_HEADERS));
 
   const when = drill ? (drill.sub ?? (drill.now || NOW_KEYS.includes(drill.key) ? "Now" : f.range.label)) : "";
-  const subtitle = [when, f.filterText, drill && !journeyCrq && !loading ? `${fmtN(total)} CRQ${total === 1 ? "" : "s"}` : ""].filter(Boolean).join(" · ");
+  const subtitle = [when, f.filterText, drill && !loading ? `${fmtN(total)} CRQ${total === 1 ? "" : "s"}` : ""].filter(Boolean).join(" · ");
 
   return (
     <Drawer
@@ -162,16 +158,11 @@ export function P1DrillDrawer({ drill, onClose, onOpenFullJourney }: Props) {
       slotProps={{ paper: { sx: { width: { xs: "100%", sm: 680 }, maxWidth: "100%", background: t.surface, backgroundImage: "none" } } }}
     >
       <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, p: "16px 20px", borderBottom: `1px solid ${t.border}` }}>
-        {journeyCrq && (
-          <IconButton size="small" onClick={() => setJourneyCrq(null)} aria-label="Back to the list" sx={{ mt: "-2px" }}>
-            <ArrowBackRoundedIcon fontSize="small" />
-          </IconButton>
-        )}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography component="h2" sx={{ fontSize: 16, fontWeight: 700, color: t.textPrimary, overflowWrap: "anywhere" }}>
-            {journeyCrq ?? drill?.title}
+            {drill?.title}
           </Typography>
-          <Typography sx={{ fontSize: 12.5, color: t.textSecondary, mt: "3px" }}>{journeyCrq ? `From: ${drill?.title ?? ""}` : subtitle}</Typography>
+          <Typography sx={{ fontSize: 12.5, color: t.textSecondary, mt: "3px" }}>{subtitle}</Typography>
         </Box>
         <IconButton size="small" onClick={onClose} aria-label="Close">
           <CloseRoundedIcon fontSize="small" />
@@ -179,9 +170,7 @@ export function P1DrillDrawer({ drill, onClose, onOpenFullJourney }: Props) {
       </Box>
 
       <Box sx={{ flex: 1, overflow: "auto", p: "12px 20px 20px" }}>
-        {journeyCrq ? (
-          <P1JourneyPanel crqNo={journeyCrq} />
-        ) : failed ? (
+        {failed ? (
           <EmptyOrErrorState kind="error" message={failed} />
         ) : loading && !rows.length ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
@@ -201,7 +190,8 @@ export function P1DrillDrawer({ drill, onClose, onOpenFullJourney }: Props) {
                     <Box
                       component="button"
                       type="button"
-                      onClick={() => setJourneyCrq(r.crqNo)}
+                      onClick={() => onOpenJourney(r.crqNo)}
+                      title="Open CRQ Journey"
                       sx={{ all: "unset", cursor: "pointer", fontWeight: 700, color: t.accent, "&:hover": { textDecoration: "underline" } }}
                     >
                       {r.crqNo}
@@ -245,22 +235,7 @@ export function P1DrillDrawer({ drill, onClose, onOpenFullJourney }: Props) {
       </Box>
 
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, p: "12px 20px", borderTop: `1px solid ${t.border}` }}>
-        {journeyCrq ? (
-          <>
-            <Button
-              size="small"
-              variant="outlined"
-              sx={{ textTransform: "none" }}
-              onClick={() => navigator.clipboard.writeText(journeyCrq).then(() => toast.success("Copied 1 CRQ number"))}
-            >
-              Copy CRQ number
-            </Button>
-            <Button size="small" variant="contained" sx={{ textTransform: "none" }} onClick={() => onOpenFullJourney(journeyCrq)}>
-              Open full CRQ journey
-            </Button>
-          </>
-        ) : (
-          rows.length > 0 && (
+        {rows.length > 0 && (
             <>
               <Button size="small" variant="outlined" disabled={bulkBusy} onClick={copyAll} sx={{ textTransform: "none" }}>
                 Copy CRQ numbers
@@ -269,7 +244,6 @@ export function P1DrillDrawer({ drill, onClose, onOpenFullJourney }: Props) {
                 {bulkBusy ? "Preparing…" : "Download these (Excel)"}
               </Button>
             </>
-          )
         )}
       </Box>
     </Drawer>

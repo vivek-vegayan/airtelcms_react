@@ -96,7 +96,7 @@ export interface P1PendencyResponse {
   teamStatus: P1TeamStatusDto[];
 }
 
-/* ── GET /results · CRQ_AN_SP_P1_RESULTS ──────────────────────────────── */
+/* ── GET /results/summary · CRQ_AN_SP_P1_RESULTS ──────────────────────────────── */
 export interface P1KeyNumbersDto {
   fromAt: S;
   toAt: S;
@@ -192,7 +192,7 @@ export interface P1ResultsResponse {
   stopByCircle: P1StopGeoDto[];
 }
 
-/* ── GET /breakdown · CRQ_AN_SP_P1_BREAKDOWN ──────────────────────────── */
+/* ── GET /results/breakdown · CRQ_AN_SP_P1_BREAKDOWN ──────────────────────────── */
 export interface P1CircleTeamDto {
   circle: S;
   region: S;
@@ -257,7 +257,7 @@ export interface P1BreakdownResponse {
   stopByRegion: P1StopGeoDto[];
 }
 
-/* ── GET /teams · CRQ_AN_SP_P1_TEAMS ──────────────────────────────────── */
+/* ── GET /teams/hours · CRQ_AN_SP_P1_TEAMS ──────────────────────────────────── */
 export interface P1EngineerHoursDto {
   personOlmid: string;
   employeeName: S;
@@ -302,7 +302,7 @@ export interface P1TeamsResponse {
   requestors: P1RequestorDto[];
 }
 
-/* ── GET /nights · CRQ_AN_SP_P1_NIGHTS ────────────────────────────────── */
+/* ── GET /teams/nights · CRQ_AN_SP_P1_NIGHTS ────────────────────────────────── */
 export interface P1NightDto {
   nightDate: string;
   weekday: S;
@@ -378,80 +378,6 @@ export interface P1CrqListParams extends P1RangeParams {
   value: string;
   offset: number;
   limit: number;
-}
-
-/* ── GET /journey · CRQ_AN_SP_JOURNEY ─────────────────────────────────── */
-export interface P1JourneyHeaderDto {
-  crqNo: string;
-  planType: S;
-  verticalName: S;
-  functionName: S;
-  domainName: S;
-  subDomainName: S;
-  circle: S;
-  region: S;
-  currentStage: S;
-  stageNo: number;
-  side: S;
-  currentStatus: S;
-  result: string;
-  isOpen: boolean | null;
-  createdAt: S;
-  ccbDoneAt: S;
-  endAt: S;
-  cancelStage: S;
-  cancelReason: S;
-  slotStart: S;
-  slotEnd: S;
-  firstSlotStart: S;
-  engineerName: S;
-  shiftLetter: S;
-  dayNight: S;
-  rescheduleCount: N;
-  requestorType: S;
-  ageDays: N;
-}
-export interface P1JourneyStageDto {
-  stageNo: number;
-  stage: S;
-  side: S;
-  team: S;
-  assignedName: S;
-  performedName: S;
-  enteredAt: S;
-  pickedAt: S;
-  doneAt: S;
-  waitMin: N;
-  workMin: N;
-  holdMin: N;
-}
-export interface P1JourneyMoveDto {
-  moveNo: N;
-  movedAt: S;
-  src: S;
-  reason: S;
-  oldSlotStart: S;
-  newSlotStart: S;
-}
-export interface P1JourneyFailDto {
-  eventAt: S;
-  reason: S;
-  performedBy: S;
-}
-export interface P1JourneyCancelDto {
-  cancelledAt: S;
-  cancelledStage: S;
-  cancellationOrRejection: S;
-  mappedType: S;
-  cancellationReason: S;
-  cancelledBy: S;
-}
-export interface P1JourneyResponse {
-  header: P1JourneyHeaderDto | null;
-  stages: P1JourneyStageDto[];
-  moves: P1JourneyMoveDto[];
-  failures: P1JourneyFailDto[];
-  cancelRows: P1JourneyCancelDto[];
 }
 
 /* ── UI state ─────────────────────────────────────────────────────────── */

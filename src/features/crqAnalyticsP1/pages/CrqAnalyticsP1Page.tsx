@@ -46,17 +46,17 @@ export default function CrqAnalyticsP1Page({ view, switcher }: Props) {
   const colors = useP1Colors();
   const [drill, setDrill] = useState<P1Drill | null>(null);
   const [months, setMonths] = useState(6);
-  const [fullJourney, setFullJourney] = useState<string | null>(null);
+  const [journeyCrq, setJourneyCrq] = useState<string | null>(null);
 
   const openDrill = useCallback((d: P1Drill) => setDrill(d), []);
   const ctx = useMemo<P1ContextValue>(() => ({ f, colors, openDrill, months, setMonths }), [f, colors, openDrill, months]);
   const head = HEADINGS[view];
   const t = colors.tokens;
 
-  // The scheduler's own CRQ Journey replaces the page; this component stays mounted, so Back
-  // returns to the same view, filters and open list.
-  if (fullJourney) {
-    return <CrqJourneyPage crqNo={fullJourney} onBack={() => setFullJourney(null)} />;
+  // A clicked CRQ shows the scheduler's CRQ Journey in place, as on CRQ Analytics. This page stays
+  // mounted and keeps the clicked number, so Back returns to the same filters and the same CRQ list.
+  if (journeyCrq) {
+    return <CrqJourneyPage crqNo={journeyCrq} onBack={() => setJourneyCrq(null)} />;
   }
 
   return (
@@ -82,10 +82,7 @@ export default function CrqAnalyticsP1Page({ view, switcher }: Props) {
       <P1DrillDrawer
         drill={drill}
         onClose={() => setDrill(null)}
-        onOpenFullJourney={(crqNo) => {
-          setDrill(null);
-          setFullJourney(crqNo);
-        }}
+        onOpenJourney={setJourneyCrq}
       />
     </P1Context.Provider>
   );
