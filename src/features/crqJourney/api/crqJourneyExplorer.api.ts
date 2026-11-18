@@ -4,6 +4,7 @@ import type {
   CrqJourneyPageResponse,
   CrqDetailsResponse,
 } from "../types/crqJourney.types";
+import type { CrqReviewResponse } from "../../scheduler/types/crqWorkflow.types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CRQ Journey Explorer — RTK Query endpoints
@@ -57,6 +58,19 @@ export const crqJourneyExplorerApi = api.injectEndpoints({
       }),
       providesTags: (_r, _e, crqNo) => [{ type: "CrqReview" as const, id: `JOURNEY-DETAILS-${crqNo}` }],
     }),
+
+    /**
+     * "CRQ Details" button (sp_get_journey_page_crq_details, keyed on the CRQ
+     * number only). Same { plans: [...] } shape as /crqworkflow/overview/{crqNo},
+     * so the scheduler's PrevCrqStatusDialog renders it unchanged.
+     */
+    getJourneyPageCrqDetails: builder.query<CrqReviewResponse, string>({
+      query: (crqNo) => ({
+        url: `/crqworkflow/journey-explorer/${encodeURIComponent(crqNo)}/crq-details`,
+        method: "GET",
+      }),
+      providesTags: (_r, _e, crqNo) => [{ type: "CrqReview" as const, id: `JOURNEY-CRQ-DETAILS-${crqNo}` }],
+    }),
   }),
   overrideExisting: false,
 });
@@ -66,4 +80,5 @@ export const {
   useLazyGetCrqsBySubDomainQuery,
   useGetCrqJourneyStagesQuery,
   useGetCrqDetailsQuery,
+  useLazyGetJourneyPageCrqDetailsQuery,
 } = crqJourneyExplorerApi;
