@@ -29,7 +29,6 @@ export type OrgFilterScope =
   | "cabPlanning"
   | "crqJourney"
   | "crqDetails"
-  | "crqAnalytics"
   | "userLogs"
   | "teamCapacity"
   | "allPlans"

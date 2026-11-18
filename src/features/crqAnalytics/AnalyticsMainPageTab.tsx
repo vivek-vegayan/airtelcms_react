@@ -2,7 +2,6 @@ import { Box, Tabs, Tab, useTheme } from "@mui/material";
 import React, { type JSX, Suspense, useEffect, useMemo } from "react";
 import { useLocation, Link } from "react-router";
 import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
-import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
 import SummarizeRoundedIcon from "@mui/icons-material/SummarizeRounded";
 import HourglassBottomRoundedIcon from "@mui/icons-material/HourglassBottomRounded";
@@ -19,13 +18,11 @@ interface AnalyticsMainPageTabProps {
 }
 
 const TAB_META: Record<string, { label: string; headerText: string; icon: JSX.Element }> = {
-  dashboard: { label: "Dashboard", headerText: "Analytics Dashboard", icon: <DashboardRoundedIcon sx={{ color: "white" }} /> },
-  "crq-analytics": { label: "CRQ Analytics", headerText: "CRQ Analytics", icon: <QueryStatsRoundedIcon sx={{ color: "white" }} /> },
-  reports: { label: "Reports", headerText: "Analytics Reports", icon: <SummarizeRoundedIcon sx={{ color: "white" }} /> },
-  "slot-visibility": { label: "Slot Visibility", headerText: "Slot Visibility", icon: <QueryStatsRoundedIcon sx={{ color: "white" }} /> },
   pendency: { label: "Pendency", headerText: "Pendency", icon: <HourglassBottomRoundedIcon sx={{ color: "white" }} /> },
   results: { label: "Results", headerText: "Results", icon: <AssessmentRoundedIcon sx={{ color: "white" }} /> },
   "teams-people": { label: "Teams & people", headerText: "Teams & people", icon: <GroupsRoundedIcon sx={{ color: "white" }} /> },
+  reports: { label: "Reports", headerText: "Analytics Reports", icon: <SummarizeRoundedIcon sx={{ color: "white" }} /> },
+  "slot-visibility": { label: "Slot Visibility", headerText: "Slot Visibility", icon: <QueryStatsRoundedIcon sx={{ color: "white" }} /> },
 };
 
 const AnalyticsMainPageTab: React.FC<AnalyticsMainPageTabProps> = ({ setDynamicHeaderText, setDynamicHeaderIcon }) => {
@@ -34,7 +31,7 @@ const AnalyticsMainPageTab: React.FC<AnalyticsMainPageTabProps> = ({ setDynamicH
 
   const activeTab = useMemo(() => {
     const found = Object.keys(TAB_META).find((path) => location.pathname.includes(`/analytics/${path}`));
-    return found ?? "dashboard";
+    return found ?? "pendency";
   }, [location.pathname]);
 
   useEffect(() => {

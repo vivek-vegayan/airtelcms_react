@@ -18,8 +18,6 @@ import SettingsIcon from "@mui/icons-material/SettingsOutlined";
 import TuneIcon from "@mui/icons-material/TuneOutlined";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsOutlined";
 import InsightsRoundedIcon from "@mui/icons-material/InsightsOutlined";
-import DashboardRoundedIcon from "@mui/icons-material/DashboardOutlined";
-import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsOutlined";
 import SummarizeRoundedIcon from "@mui/icons-material/SummarizeOutlined";
 import AssessmentIcon from "@mui/icons-material/AssessmentOutlined";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonthOutlined";
@@ -294,34 +292,6 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     requiredModule: "CRQ Analytics",
     children: [
       {
-        to: "/analytics/dashboard",
-        text: "Dashboard",
-        icon: <DashboardRoundedIcon />,
-        requiredModule: "CRQ Analytics",
-        matchPaths: ["/analytics/dashboard"],
-      },
-      {
-        to: "/analytics/crq-analytics",
-        text: "CRQ Analytics",
-        icon: <QueryStatsRoundedIcon />,
-        requiredModule: "CRQ Analytics",
-        matchPaths: ["/analytics/crq-analytics"],
-      },
-      {
-        to: "/analytics/reports",
-        text: "Reports",
-        icon: <SummarizeRoundedIcon />,
-        requiredModule: "CRQ Analytics",
-        matchPaths: ["/analytics/reports"],
-      },
-      {
-        to: "/analytics/slot-visibility",
-        text: "Slot Visibility",
-        icon: <CloudSyncOutlinedIcon />,
-        requiredModule: "CRQ Analytics",
-        matchPaths: ["/analytics/slot-visibility"],
-      },
-      {
         to: "/analytics/pendency",
         text: "Pendency",
         icon: <HourglassBottomOutlinedIcon />,
@@ -341,6 +311,20 @@ export const ALL_NAV_ITEMS: NavItem[] = [
         icon: <Groups2Icon />,
         requiredModule: "CRQ Analytics",
         matchPaths: ["/analytics/teams-people"],
+      },
+      {
+        to: "/analytics/reports",
+        text: "Reports",
+        icon: <SummarizeRoundedIcon />,
+        requiredModule: "CRQ Analytics",
+        matchPaths: ["/analytics/reports"],
+      },
+      {
+        to: "/analytics/slot-visibility",
+        text: "Slot Visibility",
+        icon: <CloudSyncOutlinedIcon />,
+        requiredModule: "CRQ Analytics",
+        matchPaths: ["/analytics/slot-visibility"],
       },
     ],
   },
