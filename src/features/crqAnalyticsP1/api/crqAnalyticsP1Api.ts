@@ -5,7 +5,6 @@ import type {
   P1CrqListResponse,
   P1FilterParams,
   P1FiltersResponse,
-  P1JourneyResponse,
   P1NightsParams,
   P1NightsResponse,
   P1PendencyResponse,
@@ -14,7 +13,8 @@ import type {
   P1TeamsResponse,
 } from "../types/crqAnalyticsP1.types";
 
-// One endpoint per CRQ_AN_SP_* procedure (backend package crqanalyticsp1). An unset filter
+// One endpoint per CRQ_AN_SP_* procedure (backend package crqanalyticsp1: Pendency, Results and
+// Teams & people controllers; /filters and /crqs are shared by all three tabs). An unset filter
 // is left out of the query string; the backend then sends NULL (= all) to the procedure.
 const filterParams = (f: P1FilterParams) => ({
   vertical: f.vertical || undefined,
@@ -45,26 +45,26 @@ export const crqAnalyticsP1Api = api.injectEndpoints({
 
     // CRQ_AN_SP_P1_RESULTS
     getP1Results: builder.query<P1ResultsResponse, P1RangeParams & { months: number }>({
-      query: ({ months, ...f }) => ({ url: `${BASE}/results`, params: { ...rangeParams(f), months } }),
+      query: ({ months, ...f }) => ({ url: `${BASE}/results/summary`, params: { ...rangeParams(f), months } }),
       providesTags: ["CrqAnalytics"],
     }),
 
     // CRQ_AN_SP_P1_BREAKDOWN
     getP1Breakdown: builder.query<P1BreakdownResponse, P1RangeParams & { months: number }>({
-      query: ({ months, ...f }) => ({ url: `${BASE}/breakdown`, params: { ...rangeParams(f), months } }),
+      query: ({ months, ...f }) => ({ url: `${BASE}/results/breakdown`, params: { ...rangeParams(f), months } }),
       providesTags: ["CrqAnalytics"],
     }),
 
     // CRQ_AN_SP_P1_TEAMS
     getP1Teams: builder.query<P1TeamsResponse, P1RangeParams>({
-      query: (f) => ({ url: `${BASE}/teams`, params: rangeParams(f) }),
+      query: (f) => ({ url: `${BASE}/teams/hours`, params: rangeParams(f) }),
       providesTags: ["CrqAnalytics"],
     }),
 
     // CRQ_AN_SP_P1_NIGHTS
     getP1Nights: builder.query<P1NightsResponse, P1NightsParams>({
       query: ({ nightsFrom, nightsTo, ...f }) => ({
-        url: `${BASE}/nights`,
+        url: `${BASE}/teams/nights`,
         params: { ...filterParams(f), nightsFrom, nightsTo },
       }),
       providesTags: ["CrqAnalytics"],
@@ -76,11 +76,6 @@ export const crqAnalyticsP1Api = api.injectEndpoints({
         url: `${BASE}/crqs`,
         params: { ...rangeParams(f), key, value, offset, limit },
       }),
-    }),
-
-    // CRQ_AN_SP_JOURNEY
-    getP1Journey: builder.query<P1JourneyResponse, string>({
-      query: (crqNo) => ({ url: `${BASE}/journey`, params: { crqNo } }),
     }),
   }),
   overrideExisting: false,
@@ -94,5 +89,4 @@ export const {
   useGetP1TeamsQuery,
   useGetP1NightsQuery,
   useLazyGetP1CrqListQuery,
-  useGetP1JourneyQuery,
 } = crqAnalyticsP1Api;
