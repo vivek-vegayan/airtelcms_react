@@ -191,17 +191,6 @@ const AnalyticsMainPageTab = lazy(() =>
     default: m.AnalyticsMainPageTab,
   })),
 );
-const AnalyticsDashboardPage = lazy(() =>
-  import("../features/crqAnalytics").then((m) => ({
-    default: m.AnalyticsDashboardPage,
-  })),
-);
-
-const CrqAnalyticsPage = lazy(() =>
-  import("../features/crqAnalytics").then((m) => ({
-    default: m.CrqAnalyticsPage,
-  })),
-);
 const AnalyticsReportsPage = lazy(() =>
   import("../features/crqAnalytics").then((m) => ({
     default: m.AnalyticsReportsPage,
@@ -390,14 +379,12 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
             />
           }
         >
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<AnalyticsDashboardPage />} />
-          <Route path="crq-analytics" element={<CrqAnalyticsPage />} />
-          <Route path="reports" element={<AnalyticsReportsPage />} />
-          <Route path="slot-visibility" element={<SlotVisibilityPage />} />
+          <Route index element={<Navigate to="pendency" replace />} />
           <Route path="pendency" element={<PendencyPage />} />
           <Route path="results" element={<ResultsPage />} />
           <Route path="teams-people" element={<TeamsPeoplePage />} />
+          <Route path="reports" element={<AnalyticsReportsPage />} />
+          <Route path="slot-visibility" element={<SlotVisibilityPage />} />
         </Route>
 
         <Route
