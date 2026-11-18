@@ -18,6 +18,7 @@ import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
 import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import EngineeringOutlinedIcon from "@mui/icons-material/EngineeringOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import type { CrqDetailsInfo, CrqJourneySearchRow } from "../types/crqJourney.types";
 import { formatDateTime, formatStatusLabel, statusChipColor } from "../utils/crqJourney.utils";
 
@@ -31,6 +32,9 @@ interface CrqInfoStripProps {
   isRefreshing?: boolean;
   /** Opens the CRQ-level SPOC / Field Engineer dialog. Omitted -> the button is not rendered. */
   onViewSpocFe?: () => void;
+  /** Opens the CRQ Details dialog (same one as the scheduler cockpit). Omitted -> not rendered. */
+  onViewCrqDetails?: () => void;
+  isLoadingCrqDetails?: boolean;
 }
 
 const MetaItem: React.FC<{
@@ -100,12 +104,34 @@ export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({
   onRefresh,
   isRefreshing = false,
   onViewSpocFe,
+  onViewCrqDetails,
+  isLoadingCrqDetails = false,
 }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const chip = statusChipColor(info.currentStatus, isDark);
 
   const remark = details?.remark?.trim();
+
+  // Shared look of the pill buttons in the identity row (SPOC & FE, CRQ Details).
+  const pillButtonSx = {
+    height: 26,
+    px: 1.1,
+    fontSize: 11,
+    fontWeight: 700,
+    textTransform: "none",
+    borderRadius: "999px",
+    whiteSpace: "nowrap",
+    color: "text.secondary",
+    borderColor: "divider",
+    background: theme.palette.background.paper,
+    "& .MuiButton-startIcon": { mr: 0.5 },
+    "&:hover": {
+      borderColor: theme.palette.primary.main,
+      color: theme.palette.primary.main,
+      background: alpha(theme.palette.primary.main, isDark ? 0.12 : 0.06),
+    },
+  } as const;
 
   return (
     <Box
@@ -244,27 +270,33 @@ export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({
                 variant="outlined"
                 onClick={onViewSpocFe}
                 startIcon={<EngineeringOutlinedIcon sx={{ fontSize: 16 }} />}
-                sx={{
-                  height: 26,
-                  px: 1.1,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: "none",
-                  borderRadius: "999px",
-                  whiteSpace: "nowrap",
-                  color: "text.secondary",
-                  borderColor: "divider",
-                  background: theme.palette.background.paper,
-                  "& .MuiButton-startIcon": { mr: 0.5 },
-                  "&:hover": {
-                    borderColor: theme.palette.primary.main,
-                    color: theme.palette.primary.main,
-                    background: alpha(theme.palette.primary.main, isDark ? 0.12 : 0.06),
-                  },
-                }}
+                sx={pillButtonSx}
               >
                 SPOC &amp; Field Engineer
               </Button>
+            </Tooltip>
+          )}
+
+          {onViewCrqDetails && (
+            <Tooltip title="View CRQ status, previous stages, plan, schedule and tasks" arrow>
+              <span>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={onViewCrqDetails}
+                  disabled={isLoadingCrqDetails}
+                  startIcon={
+                    isLoadingCrqDetails ? (
+                      <CircularProgress size={12} color="inherit" />
+                    ) : (
+                      <VisibilityOutlinedIcon sx={{ fontSize: 16 }} />
+                    )
+                  }
+                  sx={pillButtonSx}
+                >
+                  CRQ Details
+                </Button>
+              </span>
             </Tooltip>
           )}
 
