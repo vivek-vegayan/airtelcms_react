@@ -1,10 +1,10 @@
 import { Box } from "@mui/material";
-import { useGetP1BreakdownQuery, useGetP1ResultsQuery } from "../api/crqAnalyticsP1Api";
+import { useGetP1BreakdownQuery, useGetP1SummaryQuery } from "../api/crqAnalyticsP1Api";
 import { Section } from "../components/P1Bits";
 import { useP1 } from "../hooks/useP1Context";
-import { DailyStatusCard, ExecutiveCard, KeyNumbersCard, PeriodCard } from "./results/OverviewCards";
-import { CancelGeoCard, CancelMonthCard, CancelSideCard, CancelWhereCard, CancelWhyCard, FlowCard, InOutCard } from "./results/FlowStopCards";
-import { CircleTeamCard, DayNightCard, GeoStatusCard, RescheduleMonthCard, RescheduleReasonCard, Trend7Card } from "./results/BreakdownCards";
+import { DailyStatusCard, ExecutiveCard, KeyNumbersCard, PeriodCard } from "./summary/OverviewCards";
+import { CancelGeoCard, CancelMonthCard, CancelSideCard, CancelWhereCard, CancelWhyCard, FlowCard, InOutCard } from "./summary/FlowStopCards";
+import { CircleTeamCard, DayNightCard, GeoStatusCard, RescheduleMonthCard, RescheduleReasonCard, Trend7Card } from "./summary/BreakdownCards";
 
 const SECTIONS = [
   { id: "p1-sec-over", label: "Overview" },
@@ -15,14 +15,14 @@ const SECTIONS = [
   { id: "p1-sec-canc", label: "Cancelled & rejected" },
 ];
 
-/** Results: how CRQs ended (CRQ_AN_SP_P1_RESULTS + CRQ_AN_SP_P1_BREAKDOWN, each its own endpoint). */
-export default function P1ResultsView() {
+/** Summary: how CRQs ended (CRQ_AN_SP_P1_RESULTS + CRQ_AN_SP_P1_BREAKDOWN, each its own endpoint). */
+export default function P1SummaryView() {
   const { f, months, colors } = useP1();
   const t = colors.tokens;
   const args = { ...f.filterParams, from: f.range.from, to: f.range.to, months };
-  const results = useGetP1ResultsQuery(args);
+  const overview = useGetP1SummaryQuery(args);
   const breakdown = useGetP1BreakdownQuery(args);
-  const r = { data: results.data, loading: results.isFetching && !results.data, error: results.isError };
+  const r = { data: overview.data, loading: overview.isFetching && !overview.data, error: overview.isError };
   const b = { data: breakdown.data, loading: breakdown.isFetching && !breakdown.data, error: breakdown.isError };
 
   return (
@@ -58,8 +58,8 @@ export default function P1ResultsView() {
       </Box>
 
       <Section id="p1-sec-over" title="Overview" />
-      <KeyNumbersCard {...r} />
       <ExecutiveCard {...r} />
+      <KeyNumbersCard {...r} />
       <Trend7Card {...b} />
       <PeriodCard {...r} />
       <DailyStatusCard {...r} />
@@ -88,7 +88,7 @@ export default function P1ResultsView() {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0,1fr)", lg: "repeat(2, minmax(0,1fr))" }, gap: 2, alignItems: "start" }}>
         <CancelWhereCard {...r} />
         <CancelGeoCard
-          results={results.data?.stopByCircle}
+          circles={overview.data?.stopByCircle}
           regions={breakdown.data?.stopByRegion}
           loading={r.loading || b.loading}
           error={r.error || b.error}

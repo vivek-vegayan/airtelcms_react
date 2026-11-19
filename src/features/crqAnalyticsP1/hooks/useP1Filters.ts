@@ -18,10 +18,10 @@ export interface P1FilterValues {
 
 const EMPTY: P1FilterValues = { vertical: "", side: "", domain: "", subDomain: "", stage: "", circle: "" };
 
-/** Which filters each view offers. Results never sends a stage; Teams sends Side as the stage worked. */
+/** Which filters each view offers. Summary never sends a stage; Teams sends Side as the stage worked. */
 export const P1_VIEW_FILTERS: Record<P1View, readonly P1FilterKey[]> = {
   pendency: ["vertical", "side", "domain", "subDomain", "stage", "circle"],
-  results: ["vertical", "domain", "subDomain", "circle"],
+  summary: ["vertical", "domain", "subDomain", "circle"],
   teams: ["vertical", "side", "domain", "subDomain", "circle"],
 };
 
@@ -73,7 +73,7 @@ const inSelection = (selected: string, id: number) => !selected || selected.spli
 
 /**
  * Filter + date-range state shared by the three Phase 1 views, so switching between Pendency,
- * Results and Teams keeps the selection. The org tree, circles and "data as of" come from
+ * Summary and Teams keeps the selection. The org tree, circles and "data as of" come from
  * CRQ_AN_SP_FILTERS.
  */
 export function useP1Filters(view: P1View) {

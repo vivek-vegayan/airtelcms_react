@@ -292,18 +292,18 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     requiredModule: "CRQ Analytics",
     children: [
       {
+        to: "/analytics/summary",
+        text: "Summary",
+        icon: <AssessmentIcon />,
+        requiredModule: "CRQ Analytics",
+        matchPaths: ["/analytics/summary"],
+      },
+      {
         to: "/analytics/pendency",
         text: "Pendency",
         icon: <HourglassBottomOutlinedIcon />,
         requiredModule: "CRQ Analytics",
         matchPaths: ["/analytics/pendency"],
-      },
-      {
-        to: "/analytics/results",
-        text: "Results",
-        icon: <AssessmentIcon />,
-        requiredModule: "CRQ Analytics",
-        matchPaths: ["/analytics/results"],
       },
       {
         to: "/analytics/teams-people",

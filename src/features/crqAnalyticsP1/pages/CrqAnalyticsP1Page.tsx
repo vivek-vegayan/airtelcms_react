@@ -8,7 +8,7 @@ import { useP1Filters } from "../hooks/useP1Filters";
 import type { P1Drill, P1View } from "../types/crqAnalyticsP1.types";
 import { useP1Colors } from "../utils/p1Colors";
 import P1PendencyView from "./P1PendencyView";
-import P1ResultsView from "./P1ResultsView";
+import P1SummaryView from "./P1SummaryView";
 import P1TeamsView from "./P1TeamsView";
 
 const HEADINGS: Record<P1View, { eyebrow: string; title: string; text: string; note?: string }> = {
@@ -18,8 +18,8 @@ const HEADINGS: Record<P1View, { eyebrow: string; title: string; text: string; n
     text: "Click any number to see the CRQs behind it.",
     note: "Open CRQs are always counted as of now, so the date range does not change the ageing grid. It applies to Closed, Cancelled and Rejected in Team-wise status.",
   },
-  results: {
-    eyebrow: "Results · for managers",
+  summary: {
+    eyebrow: "Summary · for managers",
     title: "How CRQs ended",
     text: "Every chart has a Table view with the exact numbers. Hover a bar for details, click it for the CRQs.",
   },
@@ -37,7 +37,7 @@ interface Props {
 }
 
 /**
- * CRQ Analytics Phase 1 (Pendency · Results · Teams & people) on the CRQ_AN_* analytics layer.
+ * CRQ Analytics Phase 1 (Pendency · Summary · Teams & people) on the CRQ_AN_* analytics layer.
  * Each card reads its own endpoint; every number opens the CRQs behind it, and a CRQ opens
  * its journey.
  */
@@ -75,7 +75,7 @@ export default function CrqAnalyticsP1Page({ view, switcher }: Props) {
         <P1FilterBar f={f} note={head.note} />
 
         {view === "pendency" && <P1PendencyView />}
-        {view === "results" && <P1ResultsView />}
+        {view === "summary" && <P1SummaryView />}
         {view === "teams" && <P1TeamsView />}
       </Box>
 

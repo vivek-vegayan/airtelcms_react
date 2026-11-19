@@ -18,8 +18,8 @@ interface AnalyticsMainPageTabProps {
 }
 
 const TAB_META: Record<string, { label: string; headerText: string; icon: JSX.Element }> = {
+  summary: { label: "Summary", headerText: "Summary", icon: <AssessmentRoundedIcon sx={{ color: "white" }} /> },
   pendency: { label: "Pendency", headerText: "Pendency", icon: <HourglassBottomRoundedIcon sx={{ color: "white" }} /> },
-  results: { label: "Results", headerText: "Results", icon: <AssessmentRoundedIcon sx={{ color: "white" }} /> },
   "teams-people": { label: "Teams & people", headerText: "Teams & people", icon: <GroupsRoundedIcon sx={{ color: "white" }} /> },
   reports: { label: "Reports", headerText: "Analytics Reports", icon: <SummarizeRoundedIcon sx={{ color: "white" }} /> },
   "slot-visibility": { label: "Slot Visibility", headerText: "Slot Visibility", icon: <QueryStatsRoundedIcon sx={{ color: "white" }} /> },
@@ -31,7 +31,7 @@ const AnalyticsMainPageTab: React.FC<AnalyticsMainPageTabProps> = ({ setDynamicH
 
   const activeTab = useMemo(() => {
     const found = Object.keys(TAB_META).find((path) => location.pathname.includes(`/analytics/${path}`));
-    return found ?? "pendency";
+    return found ?? "summary";
   }, [location.pathname]);
 
   useEffect(() => {

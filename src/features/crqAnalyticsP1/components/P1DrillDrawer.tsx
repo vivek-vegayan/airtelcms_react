@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Box, Button, CircularProgress, Drawer, IconButton, Typography } from "@mui/material";
+import { Box, Button, CircularProgress, Drawer, IconButton, Tooltip, Typography } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import { toast } from "react-toastify";
 import { EmptyOrErrorState } from "../../crqAnalytics/components/EmptyOrErrorState";
 import { useLazyGetP1CrqListQuery } from "../api/crqAnalyticsP1Api";
@@ -11,7 +12,7 @@ import { DAY, fdt, fmtN, h1, toSql } from "../utils/p1Format";
 import { ResultPill, StageTracker } from "./P1Bits";
 
 const PAGE_SIZE = 50;
-/** CRQ_AN_SP_LIST caps p_limit at 1000; "copy all" / "download" page through at that size. */
+/** CRQ_AN_SP_LIST caps p_limit at 1000; "download" pages through at that size. */
 const BULK_PAGE = 1000;
 const BULK_MAX = 20_000;
 
@@ -140,11 +141,6 @@ export function P1DrillDrawer({ drill, onClose, onOpenJourney }: Props) {
     }
   };
 
-  const copyAll = () =>
-    runBulk(async (all) => {
-      await navigator.clipboard.writeText(all.map((r) => r.crqNo).join("\n"));
-      toast.success(`Copied ${fmtN(all.length)} CRQ number${all.length === 1 ? "" : "s"}`);
-    });
   const downloadAll = () => runBulk((all) => exportP1Objects(drill?.title ?? "CRQ list", all, EXPORT_HEADERS));
 
   const when = drill ? (drill.sub ?? (drill.now || NOW_KEYS.includes(drill.key) ? "Now" : f.range.label)) : "";
@@ -164,6 +160,22 @@ export function P1DrillDrawer({ drill, onClose, onOpenJourney }: Props) {
           </Typography>
           <Typography sx={{ fontSize: 12.5, color: t.textSecondary, mt: "3px" }}>{subtitle}</Typography>
         </Box>
+        {rows.length > 0 && (
+          <Tooltip title={bulkBusy ? "Preparing the Excel file…" : "Download these (Excel)"} arrow>
+            {/* span: a disabled button cannot show a tooltip */}
+            <span style={{ display: "inline-flex" }}>
+              <IconButton
+                size="small"
+                onClick={downloadAll}
+                disabled={bulkBusy}
+                aria-label="Download these CRQs (Excel)"
+                sx={{ color: t.textSecondary, "&:hover": { color: t.accent } }}
+              >
+                {bulkBusy ? <CircularProgress size={16} /> : <FileDownloadOutlinedIcon sx={{ fontSize: 18 }} />}
+              </IconButton>
+            </span>
+          </Tooltip>
+        )}
         <IconButton size="small" onClick={onClose} aria-label="Close">
           <CloseRoundedIcon fontSize="small" />
         </IconButton>
@@ -231,19 +243,6 @@ export function P1DrillDrawer({ drill, onClose, onOpenJourney }: Props) {
               </Box>
             )}
           </>
-        )}
-      </Box>
-
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, p: "12px 20px", borderTop: `1px solid ${t.border}` }}>
-        {rows.length > 0 && (
-            <>
-              <Button size="small" variant="outlined" disabled={bulkBusy} onClick={copyAll} sx={{ textTransform: "none" }}>
-                Copy CRQ numbers
-              </Button>
-              <Button size="small" variant="contained" disabled={bulkBusy} onClick={downloadAll} sx={{ textTransform: "none" }}>
-                {bulkBusy ? "Preparing…" : "Download these (Excel)"}
-              </Button>
-            </>
         )}
       </Box>
     </Drawer>

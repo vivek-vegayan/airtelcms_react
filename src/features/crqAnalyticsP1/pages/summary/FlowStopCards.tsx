@@ -10,7 +10,7 @@ import { useP1 } from "../../hooks/useP1Context";
 import type { P1Drill, P1StepDto, P1StopCounts, P1StopGeoDto, P1StopReasonDto } from "../../types/crqAnalyticsP1.types";
 import { exportP1Table } from "../../utils/p1Export";
 import { STAGES, fmtN, monthSlots, num, parseDT, pct, stepInfo, sumBy } from "../../utils/p1Format";
-import type { ResultsCardProps } from "./OverviewCards";
+import type { SummaryCardProps } from "./OverviewCards";
 
 const stepWindow = (b: P1StepDto) => ({ from: parseDT(b.bucketStart) ?? undefined, to: parseDT(b.bucketEnd) ?? undefined });
 
@@ -36,7 +36,7 @@ interface StepSeries {
   drill: (b: P1StepDto) => Pick<P1Drill, "key" | "value" | "from" | "to">;
 }
 
-function StepCard({ title, info, data, loading, error, series, diff }: ResultsCardProps & { title: string; info: "r-flow" | "r-inout"; series: StepSeries[]; diff?: boolean }) {
+function StepCard({ title, info, data, loading, error, series, diff }: SummaryCardProps & { title: string; info: "r-flow" | "r-inout"; series: StepSeries[]; diff?: boolean }) {
   const { f, colors, openDrill } = useP1();
   const steps = useMemo(() => data?.steps ?? [], [data]);
   const si = useMemo(() => stepInfo(steps), [steps]);
@@ -100,7 +100,7 @@ function StepCard({ title, info, data, loading, error, series, diff }: ResultsCa
   );
 }
 
-export function FlowCard(props: ResultsCardProps) {
+export function FlowCard(props: SummaryCardProps) {
   const c = useP1().colors;
   return (
     <StepCard
@@ -116,7 +116,7 @@ export function FlowCard(props: ResultsCardProps) {
   );
 }
 
-export function InOutCard(props: ResultsCardProps) {
+export function InOutCard(props: SummaryCardProps) {
   const c = useP1().colors;
   return (
     <StepCard
@@ -134,7 +134,7 @@ export function InOutCard(props: ResultsCardProps) {
 
 /* ══════════════ Cancelled CRQs — CCB vs SE ══════════════ */
 
-export function CancelSideCard({ data, loading, error }: ResultsCardProps) {
+export function CancelSideCard({ data, loading, error }: SummaryCardProps) {
   const { f, colors, openDrill: open } = useP1();
   const sides = (["CCB", "SE"] as const).map(
     (side) => data?.stopBySide.find((x) => x.side === side) ?? { side, cancelled: 0, rejected: 0, cancelTypeUnknown: 0, total: 0 },
@@ -190,7 +190,7 @@ export function CancelSideCard({ data, loading, error }: ResultsCardProps) {
 
 /* ══════════════ Cancelled and rejected — month by month ══════════════ */
 
-export function CancelMonthCard({ data, loading, error }: ResultsCardProps) {
+export function CancelMonthCard({ data, loading, error }: SummaryCardProps) {
   const { f, colors, months, setMonths, openDrill: open } = useP1();
   const slots = monthSlots(months, f.now);
   const byMonth = new Map((data?.stopByMonth ?? []).map((m) => [m.month, m]));
@@ -234,7 +234,7 @@ export function CancelMonthCard({ data, loading, error }: ResultsCardProps) {
 
 /* ══════════════ Why were CRQs cancelled or rejected? ══════════════ */
 
-export function CancelWhyCard({ data, loading, error }: ResultsCardProps) {
+export function CancelWhyCard({ data, loading, error }: SummaryCardProps) {
   const { f, colors, openDrill: open } = useP1();
   const [showAll, setShowAll] = useState(false);
   const reasons = useMemo(() => data?.stopByReason ?? [], [data]);
@@ -307,7 +307,7 @@ export function CancelWhyCard({ data, loading, error }: ResultsCardProps) {
 
 /* ══════════════ Where were CRQs cancelled or rejected? ══════════════ */
 
-export function CancelWhereCard({ data, loading, error }: ResultsCardProps) {
+export function CancelWhereCard({ data, loading, error }: SummaryCardProps) {
   const { f, colors, openDrill: open } = useP1();
   const t = colors.tokens;
   const rows = STAGES.map((s) => {
@@ -382,11 +382,11 @@ export function CancelWhereCard({ data, loading, error }: ResultsCardProps) {
 
 /* ══════════════ Circle-wise cancellation report (Circle / Region tab) ══════════════ */
 
-export function CancelGeoCard({ results, regions, loading, error }: { results: P1StopGeoDto[] | undefined; regions: P1StopGeoDto[] | undefined; loading: boolean; error: boolean }) {
+export function CancelGeoCard({ circles, regions, loading, error }: { circles: P1StopGeoDto[] | undefined; regions: P1StopGeoDto[] | undefined; loading: boolean; error: boolean }) {
   const { f } = useP1();
   const [tab, setTab] = useState<"circle" | "region">("circle");
   const isRegion = tab === "region";
-  const rows = (isRegion ? regions : results) ?? [];
+  const rows = (isRegion ? regions : circles) ?? [];
   const name = (r: P1StopGeoDto) => (isRegion ? r.region : r.circle) ?? "Not set";
   const key = isRegion ? "REGION_STOPPED" : "CIRCLE_STOPPED";
   const types = stopTypes(rows);

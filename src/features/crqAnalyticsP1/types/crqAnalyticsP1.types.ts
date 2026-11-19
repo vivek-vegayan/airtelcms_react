@@ -96,7 +96,7 @@ export interface P1PendencyResponse {
   teamStatus: P1TeamStatusDto[];
 }
 
-/* ── GET /results/summary · CRQ_AN_SP_P1_RESULTS ──────────────────────────────── */
+/* ── GET /summary/overview · CRQ_AN_SP_P1_RESULTS ──────────────────────────────── */
 export interface P1KeyNumbersDto {
   fromAt: S;
   toAt: S;
@@ -180,7 +180,7 @@ export interface P1StopGeoDto extends P1StopCounts {
   mainReason: S;
   mainReasonCrqs: N;
 }
-export interface P1ResultsResponse {
+export interface P1SummaryResponse {
   keyNumbers: P1KeyNumbersDto | null;
   steps: P1StepDto[];
   executive: P1ExecCellDto[];
@@ -192,7 +192,7 @@ export interface P1ResultsResponse {
   stopByCircle: P1StopGeoDto[];
 }
 
-/* ── GET /results/breakdown · CRQ_AN_SP_P1_BREAKDOWN ──────────────────────────── */
+/* ── GET /summary/breakdown · CRQ_AN_SP_P1_BREAKDOWN ──────────────────────────── */
 export interface P1CircleTeamDto {
   circle: S;
   region: S;
@@ -381,7 +381,7 @@ export interface P1CrqListParams extends P1RangeParams {
 }
 
 /* ── UI state ─────────────────────────────────────────────────────────── */
-export type P1View = "pendency" | "results" | "teams";
+export type P1View = "pendency" | "summary" | "teams";
 export type P1Side = "" | "CCB" | "SE";
 
 /** A clickable number: which CRQ_AN_SP_LIST key / value returns the CRQs behind it. */

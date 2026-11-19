@@ -1,7 +1,7 @@
 import CommonContainer from "../../../components/common/CommonContainer";
 import CrqAnalyticsP1Page from "./CrqAnalyticsP1Page";
 
-/* One routed page per Analytics tab: /analytics/pendency, /analytics/results, /analytics/teams-people. */
+/* One routed page per Analytics tab: /analytics/pendency, /analytics/summary, /analytics/teams-people. */
 
 export function PendencyPage() {
   return (
@@ -11,10 +11,10 @@ export function PendencyPage() {
   );
 }
 
-export function ResultsPage() {
+export function SummaryPage() {
   return (
     <CommonContainer>
-      <CrqAnalyticsP1Page view="results" />
+      <CrqAnalyticsP1Page view="summary" />
     </CommonContainer>
   );
 }

@@ -6,12 +6,12 @@ import { Num, Tag } from "../../components/P1Bits";
 import { P1Card, P1Empty } from "../../components/P1Card";
 import { P1Table, type P1Column } from "../../components/P1Table";
 import { useP1 } from "../../hooks/useP1Context";
-import type { P1Drill, P1PeriodRowDto, P1ResultsResponse, P1StepDto } from "../../types/crqAnalyticsP1.types";
+import type { P1Drill, P1PeriodRowDto, P1StepDto, P1SummaryResponse } from "../../types/crqAnalyticsP1.types";
 import { exportP1Table } from "../../utils/p1Export";
 import { DAY, STAGES, fmtN, num, parseDT, pct, stepInfo, sumBy } from "../../utils/p1Format";
 
-export interface ResultsCardProps {
-  data: P1ResultsResponse | undefined;
+export interface SummaryCardProps {
+  data: P1SummaryResponse | undefined;
   loading: boolean;
   error: boolean;
 }
@@ -25,7 +25,7 @@ interface Tile {
   drill: P1Drill;
 }
 
-export function KeyNumbersCard({ data, loading, error }: ResultsCardProps) {
+export function KeyNumbersCard({ data, loading, error }: SummaryCardProps) {
   const { f, colors, openDrill } = useP1();
   const c = data?.keyNumbers;
   const steps = data?.steps ?? [];
@@ -141,7 +141,7 @@ const EXEC_LABEL: Record<string, string> = {
   UNKNOWN: "Type not mapped yet",
 };
 
-export function ExecutiveCard({ data, loading, error }: ResultsCardProps) {
+export function ExecutiveCard({ data, loading, error }: SummaryCardProps) {
   const { f, colors } = useP1();
   const t = colors.tokens;
   const [picked, setPicked] = useState<string>("Total");
@@ -254,7 +254,7 @@ const PERIOD_ITEMS: Record<string, { label: string; key: string; value: string }
   RESCHEDULED: { label: "Rescheduled", key: "RESCHEDULED", value: "" },
 };
 
-export function PeriodCard({ data, loading, error }: ResultsCardProps) {
+export function PeriodCard({ data, loading, error }: SummaryCardProps) {
   const { f, colors } = useP1();
   const t = colors.tokens;
 
@@ -319,7 +319,7 @@ const DAILY_ROWS: DailyRow[] = [
   { section: "SE bin", activity: "Total pending CRQ in SE bin", field: "sePendingAtEnd", strong: true, drill: (b) => ({ key: "OPEN_AT", value: `${b.bucketEnd}|SE` }) },
 ];
 
-export function DailyStatusCard({ data, loading, error }: ResultsCardProps) {
+export function DailyStatusCard({ data, loading, error }: SummaryCardProps) {
   const { f } = useP1();
   const steps = useMemo(() => data?.steps ?? [], [data]);
   const info = useMemo(() => stepInfo(steps), [steps]);

@@ -9,11 +9,11 @@ import type {
   P1NightsResponse,
   P1PendencyResponse,
   P1RangeParams,
-  P1ResultsResponse,
+  P1SummaryResponse,
   P1TeamsResponse,
 } from "../types/crqAnalyticsP1.types";
 
-// One endpoint per CRQ_AN_SP_* procedure (backend package crqanalyticsp1: Pendency, Results and
+// One endpoint per CRQ_AN_SP_* procedure (backend package crqanalyticsp1: Pendency, Summary and
 // Teams & people controllers; /filters and /crqs are shared by all three tabs). An unset filter
 // is left out of the query string; the backend then sends NULL (= all) to the procedure.
 const filterParams = (f: P1FilterParams) => ({
@@ -44,14 +44,14 @@ export const crqAnalyticsP1Api = api.injectEndpoints({
     }),
 
     // CRQ_AN_SP_P1_RESULTS
-    getP1Results: builder.query<P1ResultsResponse, P1RangeParams & { months: number }>({
-      query: ({ months, ...f }) => ({ url: `${BASE}/results/summary`, params: { ...rangeParams(f), months } }),
+    getP1Summary: builder.query<P1SummaryResponse, P1RangeParams & { months: number }>({
+      query: ({ months, ...f }) => ({ url: `${BASE}/summary/overview`, params: { ...rangeParams(f), months } }),
       providesTags: ["CrqAnalytics"],
     }),
 
     // CRQ_AN_SP_P1_BREAKDOWN
     getP1Breakdown: builder.query<P1BreakdownResponse, P1RangeParams & { months: number }>({
-      query: ({ months, ...f }) => ({ url: `${BASE}/results/breakdown`, params: { ...rangeParams(f), months } }),
+      query: ({ months, ...f }) => ({ url: `${BASE}/summary/breakdown`, params: { ...rangeParams(f), months } }),
       providesTags: ["CrqAnalytics"],
     }),
 
@@ -84,7 +84,7 @@ export const crqAnalyticsP1Api = api.injectEndpoints({
 export const {
   useGetP1FiltersQuery,
   useGetP1PendencyQuery,
-  useGetP1ResultsQuery,
+  useGetP1SummaryQuery,
   useGetP1BreakdownQuery,
   useGetP1TeamsQuery,
   useGetP1NightsQuery,

@@ -206,9 +206,9 @@ const PendencyPage = lazy(() =>
     default: m.PendencyPage,
   })),
 );
-const ResultsPage = lazy(() =>
+const SummaryPage = lazy(() =>
   import("../features/crqAnalyticsP1").then((m) => ({
-    default: m.ResultsPage,
+    default: m.SummaryPage,
   })),
 );
 const TeamsPeoplePage = lazy(() =>
@@ -379,9 +379,9 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
             />
           }
         >
-          <Route index element={<Navigate to="pendency" replace />} />
+          <Route index element={<Navigate to="summary" replace />} />
           <Route path="pendency" element={<PendencyPage />} />
-          <Route path="results" element={<ResultsPage />} />
+          <Route path="summary" element={<SummaryPage />} />
           <Route path="teams-people" element={<TeamsPeoplePage />} />
           <Route path="reports" element={<AnalyticsReportsPage />} />
           <Route path="slot-visibility" element={<SlotVisibilityPage />} />

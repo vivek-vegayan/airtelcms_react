@@ -118,12 +118,6 @@ export function P1Card({ id, title, tag, info, legend, right, chart, table, onEx
                 {body}
               </Box>
             ))}
-            <Box sx={{ gridColumn: "1 / -1", borderTop: `1px dashed ${t.border}`, pt: 1, fontSize: 11, color: t.textSecondary, fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}>
-              <Box component="span" sx={{ fontFamily: "inherit", fontWeight: 700, mr: 1, textTransform: "uppercase", letterSpacing: ".06em", fontSize: 10 }}>
-                Source
-              </Box>
-              {note.src}
-            </Box>
           </Box>
         </Collapse>
       )}
