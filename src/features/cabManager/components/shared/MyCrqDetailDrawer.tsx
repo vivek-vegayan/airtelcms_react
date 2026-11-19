@@ -2,9 +2,11 @@ import {
   Alert,
   Box,
   Button,
+  Collapse,
   Divider,
   Drawer,
   IconButton,
+  Paper,
   Skeleton,
   Stack,
   Typography,
@@ -16,6 +18,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useGetMyCrqByIdQuery } from "../../api/cabManagerApiSlice";
@@ -24,6 +28,7 @@ import { RejectCrqModal } from "../modals/RejectCrqModal";
 import { RescheduleCrqModal } from "../modals/RescheduleCrqModal";
 import { ConflictCrqModal } from "../modals/ConflictCrqModal";
 import { SpocFeDetailsModal } from "../modals/SpocFeDetailsModal";
+import { CrqImpactAnalysisPanel } from "./CrqImpactAnalysisPanel";
 import { StageChip, StatusChip } from "./Chips";
 import { errMsg } from "./errMsg";
 import type { Crq } from "../../types/types";
@@ -50,6 +55,11 @@ export function MyCrqDetailDrawer({ crq, onClose }: { crq: Crq | null; onClose: 
 
   const serviceApprovalId = crq?.serviceApprovalId ?? null;
   const crqNo = crq?.crqNo ?? null;
+
+  // Collapsed by default and keyed to the approval id, so it resets per CRQ
+  // and makes no impact calls until expanded (same as AllCrqDetailDrawer).
+  const [impactOpenFor, setImpactOpenFor] = useState<number | null>(null);
+  const impactOpen = impactOpenFor !== null && impactOpenFor === serviceApprovalId;
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: 480 } }}>
@@ -109,6 +119,33 @@ export function MyCrqDetailDrawer({ crq, onClose }: { crq: Crq | null; onClose: 
                 </Box>
               ))}
             </Box>
+
+            {/* Impact Analysis — same panel as the All CRQs drawer. */}
+            <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden", mb: 3 }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1}
+                onClick={() => setImpactOpenFor(impactOpen ? null : serviceApprovalId)}
+                sx={{ px: 1.75, py: 1.25, cursor: "pointer", userSelect: "none", "&:hover": { bgcolor: "action.hover" } }}
+              >
+                <InsightsRoundedIcon sx={{ fontSize: 17, color: "primary.main" }} />
+                <Typography
+                  variant="caption"
+                  sx={{ flex: 1, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", color: "text.secondary" }}
+                >
+                  Impact Analysis Summary
+                </Typography>
+                <ExpandMoreRoundedIcon
+                  sx={{ fontSize: 20, color: "text.secondary", transition: "transform 0.2s", transform: impactOpen ? "rotate(180deg)" : "none" }}
+                />
+              </Stack>
+              <Collapse in={impactOpen} unmountOnExit>
+                <Box sx={{ px: 1.75, pb: 1.75, pt: 1.75, borderTop: "1px solid", borderColor: "divider" }}>
+                  <CrqImpactAnalysisPanel crqNo={data.crqNo} service={data.serviceCode} />
+                </Box>
+              </Collapse>
+            </Paper>
 
             {/* SPOC / Field Engineer are read-only here, viewed through
                 sp_get_SPOC_FE_details rather than changed from this drawer. */}
