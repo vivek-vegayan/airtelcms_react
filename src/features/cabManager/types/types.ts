@@ -50,6 +50,9 @@ export interface Crq {
    */
   changeImpact?: ImpactCode;
   slaPercentage: number;
+  /** Execution_Start_Date / Execution_End_Date from sp_get_cab_crq_by_id (detail only). */
+  executionStartDate?: string | null;
+  executionEndDate?: string | null;
   /** Created_At from sp_get_cab_crqs / sp_get_my_crqs_rows (ISO LocalDateTime). */
   createdAt?: string;  // Not returned by the current AllCRQs/MyCRQs list & detail endpoints —
   // kept optional for the mock-only Journey/Implementation pages.
@@ -76,6 +79,8 @@ export interface MyCrqDetail {
   currentStage: CrqStage;
   serviceCode: string;
   stageStatus: string;
+  executionStartDate?: string | null;
+  executionEndDate?: string | null;
   slaPercentage: number;
 }
 

@@ -29,6 +29,7 @@ import { ConflictCrqModal } from "../modals/ConflictCrqModal";
 import { CrqImpactAnalysisPanel } from "./CrqImpactAnalysisPanel";
 import { StageChip, StatusChip } from "./Chips";
 import { errMsg } from "./errMsg";
+import { formatExecutionDate } from "./executionWindow";
 
 type Props = {
   serviceApprovalId: number | null;
@@ -163,6 +164,8 @@ export function AllCrqDetailDrawer({
                 ["Stage", <StageChip key="stage" stage={data.currentStage} />],
                 ["Service", data.serviceCode],
                 ["Stage Status", data.stageStatus],
+                ["Execution Start", formatExecutionDate(data.executionStartDate)],
+                ["Execution End", formatExecutionDate(data.executionEndDate)],
               ].map(([k, v]) => (
                 <Box key={String(k)}>
                   <Typography

@@ -31,6 +31,7 @@ import { SpocFeDetailsModal } from "../modals/SpocFeDetailsModal";
 import { CrqImpactAnalysisPanel } from "./CrqImpactAnalysisPanel";
 import { StageChip, StatusChip } from "./Chips";
 import { errMsg } from "./errMsg";
+import { formatExecutionDate } from "./executionWindow";
 import type { Crq } from "../../types/types";
 
 /**
@@ -109,6 +110,8 @@ export function MyCrqDetailDrawer({ crq, onClose }: { crq: Crq | null; onClose: 
                 ["Stage",      <StageChip key="s" stage={data.currentStage} />],
                 ["Service",    data.serviceCode],
                 ["Stage Status", data.stageStatus],
+                ["Execution Start", formatExecutionDate(data.executionStartDate)],
+                ["Execution End", formatExecutionDate(data.executionEndDate)],
                 // ["SLA",        data.slaPercentage == null ? "" : `${data.slaPercentage}%`],
               ].map(([k, v]) => (
                 <Box key={String(k)}>

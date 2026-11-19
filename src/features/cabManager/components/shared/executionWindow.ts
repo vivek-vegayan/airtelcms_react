@@ -28,6 +28,20 @@ export function parseExecutionWindow(value: string | null | undefined): ParsedEx
   return { day, start, end };
 }
 
+/**
+ * Execution_Start_Date / Execution_End_Date from the CRQ detail procs arrive
+ * as a LocalDateTime ("2026-11-10T11:30:00" or "2026-11-10 11:30:00", or a
+ * Jackson [y, m, d, h, min, s] array). Shown as "DD-MM-YYYY HH:mm", the same
+ * format the queue's execution window uses; "" when absent/unparseable.
+ */
+export function formatExecutionDate(value: string | number[] | null | undefined): string {
+  if (value == null || value === "") return "";
+  const d = Array.isArray(value)
+    ? dayjs(new Date(value[0], (value[1] ?? 1) - 1, value[2] ?? 1, value[3] ?? 0, value[4] ?? 0, value[5] ?? 0))
+    : dayjs(String(value).trim().replace(" ", "T"));
+  return d.isValid() ? d.format("DD-MM-YYYY HH:mm") : String(value);
+}
+
 /** True once the window's end time has passed. */
 export function isWindowOverdue(w: ParsedExecutionWindow | null, now: Dayjs = dayjs()): boolean {
   return w != null && w.end.isBefore(now);
