@@ -50,11 +50,26 @@ const PRESETS: Record<Exclude<QuickDateFilter, "custom">, { name: string; days: 
   "30d": { name: "Last 30 days", days: 30 },
 };
 
-const uniqueOptions = <T,>(rows: readonly T[], id: (r: T) => number, name: (r: T) => string): P1Option[] => {
-  const seen = new Map<string, string>();
-  rows.forEach((r) => seen.set(String(id(r)), name(r)));
-  return [...seen].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
+/**
+ * One option per distinct name. Different org records can share a name (an "Optics" domain under
+ * several functions, an "OLT Access" team under two verticals), so an option's value is the CSV of
+ * every id behind its name - picking "Optics" filters on all of them. The procedures take CSV ids.
+ */
+const optionsByName = <T,>(rows: readonly T[], id: (r: T) => number, name: (r: T) => string): P1Option[] => {
+  const idsByName = new Map<string, Set<number>>();
+  rows.forEach((r) => {
+    const label = name(r);
+    const ids = idsByName.get(label) ?? new Set<number>();
+    ids.add(id(r));
+    idsByName.set(label, ids);
+  });
+  return [...idsByName]
+    .map(([label, ids]) => ({ label, value: [...ids].sort((a, b) => a - b).join(",") }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 };
+
+/** Is `id` one of the ids of a selected option (a CSV value)? An empty selection matches everything. */
+const inSelection = (selected: string, id: number) => !selected || selected.split(",").includes(String(id));
 
 /**
  * Filter + date-range state shared by the three Phase 1 views, so switching between Pendency,
@@ -75,12 +90,12 @@ export function useP1Filters(view: P1View) {
   const touchNow = useCallback(() => setNow(minuteFloor(Date.now())), []);
 
   const options = useMemo<Record<P1FilterKey, P1Option[]>>(() => {
-    const inVertical = orgTree.filter((r) => !values.vertical || String(r.verticalId) === values.vertical);
-    const inDomain = inVertical.filter((r) => !values.domain || String(r.domainId) === values.domain);
+    const inVertical = orgTree.filter((r) => inSelection(values.vertical, r.verticalId));
+    const inDomain = inVertical.filter((r) => inSelection(values.domain, r.domainId));
     return {
-      vertical: uniqueOptions(orgTree, (r) => r.verticalId, (r) => r.verticalName),
-      domain: uniqueOptions(inVertical, (r) => r.domainId, (r) => r.domainName),
-      subDomain: uniqueOptions(inDomain, (r) => r.subDomainId, (r) => r.subDomainName),
+      vertical: optionsByName(orgTree, (r) => r.verticalId, (r) => r.verticalName),
+      domain: optionsByName(inVertical, (r) => r.domainId, (r) => r.domainName),
+      subDomain: optionsByName(inDomain, (r) => r.subDomainId, (r) => r.subDomainName),
       side: [
         { value: "CCB", label: "CCB" },
         { value: "SE", label: "SE" },
