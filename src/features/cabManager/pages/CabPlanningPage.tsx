@@ -140,6 +140,7 @@ export function CabPlanningPage() {
         accessorKey: "crqNo",
         header: "CRQ No",
         size: 150,
+        filterFn: "contains",
         Cell: ({ row }) => (
           <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500, fontSize: 12.5 }}>
             {row.original.crqNo}
@@ -150,22 +151,27 @@ export function CabPlanningPage() {
         accessorKey: "currentStage",
         header: "Stage",
         size: 150,
+        filterVariant: "multi-select",
+        // Raw stage codes are filtered on, but shown by their display label.
+        filterSelectOptions: STAGES.map((s) => ({ value: s, label: getStageLabel(s) })),
         Cell: ({ row }) => <StageChip stage={row.original.currentStage as CrqStage} />,
       },
       {
         accessorKey: "currentStatus",
         header: "Status",
         size: 120,
+        filterVariant: "multi-select",
         Cell: ({ row }) => <StatusChip status={row.original.currentStatus} />,
       },
       {
         accessorKey: "impact",
         header: "Impact",
         size: 100,
+        filterVariant: "multi-select",
         Cell: ({ row }) => <ImpactChip impact={row.original.impact} />,
       },
-      { accessorKey: "circle", header: "Circle", size: 130 },
-      { accessorKey: "domain", header: "Domain", size: 130 },
+      { accessorKey: "circle", header: "Circle", size: 130, filterVariant: "multi-select" },
+      { accessorKey: "domain", header: "Domain", size: 130, filterVariant: "multi-select" },
       {
         // Sorts on the parsed start time — the raw "DD-MM-YYYY" text would sort
         // by day-of-month. Rows without a window always go last.
@@ -174,7 +180,6 @@ export function CabPlanningPage() {
         sortUndefined: "last",
         header: "Execution Window",
         size: 160,
-        enableColumnFilter: true,
         filterVariant: "date-range",
         filterFn: executionWindowDateFilter,
         muiFilterDatePickerProps: { format: "DD-MM-YYYY" },
@@ -207,12 +212,76 @@ export function CabPlanningPage() {
     onRowSelectionChange: setRowSelection,
     onColumnFiltersChange: setColumnFilters,
     enableRowSelection: true,
-    // Only Execution Window is filterable; its filter opens from a funnel icon
-    // in the column header (the top toolbar is hidden on this table).
+    // Every column is filterable; each filter opens from a funnel icon in the
+    // column header (the top toolbar is hidden on this table). Faceted values
+    // feed the multi-select dropdowns from the rows currently loaded.
     enableColumnFilters: true,
+    enableFacetedValues: true,
     enableGlobalFilter: false,
-    defaultColumn: { enableColumnFilter: false },
     columnFilterDisplayMode: "popover",
+    // Compact filter inputs. MRT also feeds these into the date pickers' text
+    // fields, so the two date-range boxes get a narrower width each.
+    // Multi-selects keep their chips on one line and grow sideways (up to
+    // 360px, then clip) instead of wrapping and growing taller.
+    // MUI X v8 date fields use their own Pickers* classes, styled alongside
+    // the regular MuiInputBase ones so all inputs come out ~30px tall.
+    muiFilterTextFieldProps: ({ column }) => {
+      const variant = column.columnDef.filterVariant;
+      const isMulti = variant === "multi-select";
+      return {
+        size: "small",
+        variant: "outlined",
+        // Compact dropdown list. MRT's hidden placeholder option is shown
+        // anyway because MenuItem's display:flex beats the hidden attribute,
+        // so it is hidden explicitly. MRT's MenuProps are replaced here,
+        // hence disableScrollLock is restated.
+        ...(isMulti && {
+          slotProps: {
+            select: {
+              MenuProps: {
+                disableScrollLock: true,
+                slotProps: {
+                  paper: {
+                    sx: {
+                      maxHeight: 280,
+                      "& .MuiList-root": { py: "4px" },
+                      "& .MuiMenuItem-root[hidden]": { display: "none" },
+                      "& .MuiMenuItem-root": {
+                        minHeight: 0,
+                        py: "2px",
+                        px: "8px",
+                        gap: "4px",
+                        fontSize: 12,
+                      },
+                      "& .MuiCheckbox-root": { p: "3px", mr: 0 },
+                      "& .MuiCheckbox-root .MuiSvgIcon-root": { fontSize: 16 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }),
+        sx: {
+          ...(isMulti
+            ? { width: "auto", minWidth: 170, maxWidth: 360 }
+            : { width: variant === "date-range" ? 125 : 170 }),
+          "& .MuiInputBase-root, & .MuiPickersInputBase-root": { fontSize: 12 },
+          "& .MuiInputBase-input": { py: "5px", px: "8px" },
+          "& .MuiInputBase-input::placeholder": { fontSize: 12 },
+          "& .MuiPickersInputBase-root": { pl: "8px" },
+          "& .MuiPickersSectionList-root": { py: "5px" },
+          "& .MuiInputAdornment-root .MuiIconButton-root": { p: "2px" },
+          "& .MuiInputAdornment-root .MuiSvgIcon-root": { fontSize: 16 },
+          ...(isMulti && {
+            "& .MuiSelect-select": { minHeight: "unset" },
+            "& .MuiSelect-select > .MuiBox-root": { flexWrap: "nowrap" },
+            "& .MuiSelect-select .MuiChip-root": { height: 18, fontSize: 11, flexShrink: 0 },
+            "& .MuiChip-label": { px: "6px" },
+          }),
+        },
+      };
+    },
     appTable: {
       emptyTitle: "No CRQs match the current table filters",
       // Wrapped in the section's own bordered Paper.
