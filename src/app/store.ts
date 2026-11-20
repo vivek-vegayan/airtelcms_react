@@ -14,6 +14,7 @@ import attributeUpdateReducer from "../features/scheduler/sub-feature/attributeU
 // PlanViewAndSetup page, which would otherwise ride into the main bundle.
 import planViewAndSetupReducer from "../features/scheduler/sub-feature/planViewAndSetup/slices/activity.slice";
 import orgFiltersReducer from "../features/orgHierarchy/slices/orgFilters.slice";
+import crqAnalyticsP1FiltersReducer from "../features/crqAnalyticsP1/slices/crqAnalyticsP1Filters.slice";
 
 const appReducer = combineReducers({
   [api.reducerPath]: api.reducer,
@@ -24,6 +25,7 @@ const appReducer = combineReducers({
   // Per-screen org-hierarchy selections, so a screen re-opens on the scope the
   // user left it on. Selected ids only - see slices/orgFilters.slice.ts.
   orgFilters: orgFiltersReducer,
+  crqAnalyticsP1Filters: crqAnalyticsP1FiltersReducer,
 });
 
 // Every logout path (explicit header logout, the global 401/403 handler in

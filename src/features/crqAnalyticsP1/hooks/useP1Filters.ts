@@ -3,12 +3,18 @@ import dayjs, { type Dayjs } from "dayjs";
 import { useGetP1FiltersQuery } from "../api/crqAnalyticsP1Api";
 import type { QuickDateFilter } from "../../crqAnalytics/utils/dateRange";
 import type { P1FilterParams, P1Side, P1View } from "../types/crqAnalyticsP1.types";
-import { EMPTY_FILTERS, useP1SharedSelection, type P1FilterValues } from "./p1SharedFilters";
+import { useAppDispatch, useAppSelector } from "../../../app/hooks";
+import {
+  resetP1Filters,
+  setP1CustomEnd,
+  setP1CustomStart,
+  setP1Filter,
+  setP1QuickFilter,
+  type P1FilterKey,
+} from "../slices/crqAnalyticsP1Filters.slice";
 import { DAY, STAGES, ddmon, dmonhm, minuteFloor, parseDT, stageCodesOfSide, toSql } from "../utils/p1Format";
 
-export type P1FilterKey = "vertical" | "side" | "domain" | "subDomain" | "stage" | "circle";
-
-export type { P1FilterValues } from "./p1SharedFilters";
+export type { P1FilterKey, P1FilterValues } from "../slices/crqAnalyticsP1Filters.slice";
 
 /** A picked custom-range day as YYYY-MM-DD ("" when empty or invalid). */
 const day = (d: Dayjs | null) => (d?.isValid() ? d.format("YYYY-MM-DD") : "");
@@ -75,18 +81,14 @@ export function useP1Filters(view: P1View) {
   const filtersQuery = useGetP1FiltersQuery();
   const orgTree = useMemo(() => filtersQuery.data?.orgTree ?? [], [filtersQuery.data]);
 
-  // Filters and date range are shared by the three Analytics tabs (see p1SharedFilters).
-  const [shared, updateShared] = useP1SharedSelection();
-  const { values, quickFilter } = shared;
-  const customStart = useMemo<Dayjs | null>(() => (shared.customStart ? dayjs(shared.customStart) : null), [shared.customStart]);
-  const customEnd = useMemo<Dayjs | null>(() => (shared.customEnd ? dayjs(shared.customEnd) : null), [shared.customEnd]);
-  const setValues = useCallback(
-    (next: (prev: P1FilterValues) => P1FilterValues) => updateShared((prev) => ({ ...prev, values: next(prev.values) })),
-    [updateShared],
-  );
-  const setQuickFilter = useCallback((v: QuickDateFilter) => updateShared((prev) => ({ ...prev, quickFilter: v })), [updateShared]);
-  const setCustomStart = useCallback((d: Dayjs | null) => updateShared((prev) => ({ ...prev, customStart: day(d) })), [updateShared]);
-  const setCustomEnd = useCallback((d: Dayjs | null) => updateShared((prev) => ({ ...prev, customEnd: day(d) })), [updateShared]);
+  // Filters and date range live in Redux (crqAnalyticsP1Filters slice), shared by the three tabs.
+  const dispatch = useAppDispatch();
+  const { values, quickFilter, customStart: startDay, customEnd: endDay } = useAppSelector((s) => s.crqAnalyticsP1Filters);
+  const customStart = useMemo<Dayjs | null>(() => (startDay ? dayjs(startDay) : null), [startDay]);
+  const customEnd = useMemo<Dayjs | null>(() => (endDay ? dayjs(endDay) : null), [endDay]);
+  const setQuickFilter = useCallback((v: QuickDateFilter) => dispatch(setP1QuickFilter(v)), [dispatch]);
+  const setCustomStart = useCallback((d: Dayjs | null) => dispatch(setP1CustomStart(day(d))), [dispatch]);
+  const setCustomEnd = useCallback((d: Dayjs | null) => dispatch(setP1CustomEnd(day(d))), [dispatch]);
   // "Now" is pinned (to the minute) so the query arguments stay stable between renders.
   // It moves when the range is changed or the refresh button is pressed.
   const [now, setNow] = useState(() => minuteFloor(Date.now()));
@@ -116,23 +118,9 @@ export function useP1Filters(view: P1View) {
     };
   }, [orgTree, values.vertical, values.domain, values.side, filtersQuery.data]);
 
-  const setFilter = useCallback((key: P1FilterKey, value: string) => {
-    setValues((prev) => {
-      const next = { ...prev, [key]: value } as P1FilterValues;
-      // A narrower parent clears the children that may no longer belong to it.
-      if (key === "vertical") {
-        next.domain = "";
-        next.subDomain = "";
-      }
-      if (key === "domain") next.subDomain = "";
-      if (key === "side" && value && next.stage && !STAGES.some((s) => s.code === next.stage && s.side === value)) {
-        next.stage = "";
-      }
-      return next;
-    });
-  }, [setValues]);
-
-  const resetFilters = useCallback(() => setValues(() => EMPTY_FILTERS), [setValues]);
+  // The cascade (a parent clears its children) lives in the slice reducer.
+  const setFilter = useCallback((key: P1FilterKey, value: string) => dispatch(setP1Filter({ key, value })), [dispatch]);
+  const resetFilters = useCallback(() => dispatch(resetP1Filters()), [dispatch]);
 
   const active = P1_VIEW_FILTERS[view];
 
