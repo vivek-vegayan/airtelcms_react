@@ -3,20 +3,15 @@ import dayjs, { type Dayjs } from "dayjs";
 import { useGetP1FiltersQuery } from "../api/crqAnalyticsP1Api";
 import type { QuickDateFilter } from "../../crqAnalytics/utils/dateRange";
 import type { P1FilterParams, P1Side, P1View } from "../types/crqAnalyticsP1.types";
+import { EMPTY_FILTERS, useP1SharedSelection, type P1FilterValues } from "./p1SharedFilters";
 import { DAY, STAGES, ddmon, dmonhm, minuteFloor, parseDT, stageCodesOfSide, toSql } from "../utils/p1Format";
 
 export type P1FilterKey = "vertical" | "side" | "domain" | "subDomain" | "stage" | "circle";
 
-export interface P1FilterValues {
-  vertical: string;
-  side: P1Side;
-  domain: string;
-  subDomain: string;
-  stage: string;
-  circle: string;
-}
+export type { P1FilterValues } from "./p1SharedFilters";
 
-const EMPTY: P1FilterValues = { vertical: "", side: "", domain: "", subDomain: "", stage: "", circle: "" };
+/** A picked custom-range day as YYYY-MM-DD ("" when empty or invalid). */
+const day = (d: Dayjs | null) => (d?.isValid() ? d.format("YYYY-MM-DD") : "");
 
 /** Which filters each view offers. Summary never sends a stage; Teams sends Side as the stage worked. */
 export const P1_VIEW_FILTERS: Record<P1View, readonly P1FilterKey[]> = {
@@ -80,14 +75,30 @@ export function useP1Filters(view: P1View) {
   const filtersQuery = useGetP1FiltersQuery();
   const orgTree = useMemo(() => filtersQuery.data?.orgTree ?? [], [filtersQuery.data]);
 
-  const [values, setValues] = useState<P1FilterValues>(EMPTY);
-  const [quickFilter, setQuickFilter] = useState<QuickDateFilter>("1w");
-  const [customStart, setCustomStart] = useState<Dayjs | null>(dayjs().subtract(14, "day"));
-  const [customEnd, setCustomEnd] = useState<Dayjs | null>(dayjs());
+  // Filters and date range are shared by the three Analytics tabs (see p1SharedFilters).
+  const [shared, updateShared] = useP1SharedSelection();
+  const { values, quickFilter } = shared;
+  const customStart = useMemo<Dayjs | null>(() => (shared.customStart ? dayjs(shared.customStart) : null), [shared.customStart]);
+  const customEnd = useMemo<Dayjs | null>(() => (shared.customEnd ? dayjs(shared.customEnd) : null), [shared.customEnd]);
+  const setValues = useCallback(
+    (next: (prev: P1FilterValues) => P1FilterValues) => updateShared((prev) => ({ ...prev, values: next(prev.values) })),
+    [updateShared],
+  );
+  const setQuickFilter = useCallback((v: QuickDateFilter) => updateShared((prev) => ({ ...prev, quickFilter: v })), [updateShared]);
+  const setCustomStart = useCallback((d: Dayjs | null) => updateShared((prev) => ({ ...prev, customStart: day(d) })), [updateShared]);
+  const setCustomEnd = useCallback((d: Dayjs | null) => updateShared((prev) => ({ ...prev, customEnd: day(d) })), [updateShared]);
   // "Now" is pinned (to the minute) so the query arguments stay stable between renders.
   // It moves when the range is changed or the refresh button is pressed.
   const [now, setNow] = useState(() => minuteFloor(Date.now()));
   const touchNow = useCallback(() => setNow(minuteFloor(Date.now())), []);
+  // A new preset also moves "now", so "Last 7 days" really ends at the moment it is picked.
+  const changeQuickFilter = useCallback(
+    (v: QuickDateFilter) => {
+      setQuickFilter(v);
+      touchNow();
+    },
+    [setQuickFilter, touchNow],
+  );
 
   const options = useMemo<Record<P1FilterKey, P1Option[]>>(() => {
     const inVertical = orgTree.filter((r) => inSelection(values.vertical, r.verticalId));
@@ -119,9 +130,9 @@ export function useP1Filters(view: P1View) {
       }
       return next;
     });
-  }, []);
+  }, [setValues]);
 
-  const resetFilters = useCallback(() => setValues(EMPTY), []);
+  const resetFilters = useCallback(() => setValues(() => EMPTY_FILTERS), [setValues]);
 
   const active = P1_VIEW_FILTERS[view];
 
@@ -184,13 +195,7 @@ export function useP1Filters(view: P1View) {
     filterParams,
     filterText,
     quickFilter,
-    setQuickFilter: useCallback(
-      (v: QuickDateFilter) => {
-        setQuickFilter(v);
-        touchNow();
-      },
-      [touchNow],
-    ),
+    setQuickFilter: changeQuickFilter,
     customStart,
     setCustomStart,
     customEnd,
