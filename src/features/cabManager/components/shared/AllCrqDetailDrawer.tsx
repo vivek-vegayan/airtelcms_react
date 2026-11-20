@@ -27,7 +27,7 @@ import { RejectCrqModal } from "../modals/RejectCrqModal";
 import { RescheduleCrqModal } from "../modals/RescheduleCrqModal";
 import { ConflictCrqModal } from "../modals/ConflictCrqModal";
 import { CrqImpactAnalysisPanel } from "./CrqImpactAnalysisPanel";
-import { StageChip, StatusChip } from "./Chips";
+import { ImpactChip, StageChip, StatusChip } from "./Chips";
 import { errMsg } from "./errMsg";
 import { formatExecutionDate } from "./executionWindow";
 
@@ -164,6 +164,7 @@ export function AllCrqDetailDrawer({
                 ["Stage", <StageChip key="stage" stage={data.currentStage} />],
                 ["Service", data.serviceCode],
                 ["Stage Status", data.stageStatus],
+                ["Change Impact", data.changeImpact ? <ImpactChip key="impact" impact={data.changeImpact} /> : null],
                 ["Execution Start", formatExecutionDate(data.executionStartDate)],
                 ["Execution End", formatExecutionDate(data.executionEndDate)],
               ].map(([k, v]) => (

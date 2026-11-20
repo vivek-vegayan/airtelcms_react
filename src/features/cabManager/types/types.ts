@@ -79,6 +79,8 @@ export interface MyCrqDetail {
   currentStage: CrqStage;
   serviceCode: string;
   stageStatus: string;
+  /** Change_Impact from sp_get_cab_my_crq_by_id — SA / NSA. */
+  changeImpact?: ImpactCode | null;
   executionStartDate?: string | null;
   executionEndDate?: string | null;
   slaPercentage: number;
