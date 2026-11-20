@@ -39,6 +39,8 @@ import { ExportExcelButton } from "../components/shared/ExportExcelButton";
 import { isWindowOverdue, parseExecutionWindow } from "../components/shared/executionWindow";
 import { exportRowsToExcel, type ExcelColumn } from "../../crqAnalytics/utils/excelExport";
 import { STAGES } from "../data/cabManager.mock";
+import { ActionGate } from "../../../rbac/ActionGate";
+import { useActionPermission } from "../../../rbac/useActionPermission";
 import type { CabQueueParams, CabQueueRow, CrqStage } from "../types/types";
 
 type StageFilter = NonNullable<CabQueueParams["stage"]>;
@@ -100,6 +102,9 @@ export function CabPlanningPage() {
     },
     isFetching: queue.isFetching || dates.isFetching,
   });
+  // Selecting rows only leads to "Plan CAB", so without the plan permission
+  // the checkboxes are hidden along with the button.
+  const canPlan = useActionPermission("Cab Manager", "Cab Planning", "CAB_PLAN");
   const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
   const [openPlan, setOpenPlan] = useState(false);
   const selected = useMemo(
@@ -211,7 +216,7 @@ export function CabPlanningPage() {
     state: { isLoading: queue.isFetching, rowSelection, columnFilters },
     onRowSelectionChange: setRowSelection,
     onColumnFiltersChange: setColumnFilters,
-    enableRowSelection: true,
+    enableRowSelection: canPlan,
     // Every column is filterable; each filter opens from a funnel icon in the
     // column header (the top toolbar is hidden on this table). Faceted values
     // feed the multi-select dropdowns from the rows currently loaded.
@@ -384,9 +389,11 @@ export function CabPlanningPage() {
               disabled={!shouldFetch || queue.isFetching || table.getFilteredRowModel().rows.length === 0}
             />
             {selected.length > 0 && (
-              <Button variant="contained" startIcon={<EventNoteIcon />} onClick={() => setOpenPlan(true)}>
-                Plan CAB · {selected.length} selected
-              </Button>
+              <ActionGate module="Cab Manager" subModule="Cab Planning" code="CAB_PLAN">
+                <Button variant="contained" startIcon={<EventNoteIcon />} onClick={() => setOpenPlan(true)}>
+                  Plan CAB · {selected.length} selected
+                </Button>
+              </ActionGate>
             )}
           </Stack>
         </Box>

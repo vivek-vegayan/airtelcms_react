@@ -30,6 +30,12 @@ import { CrqImpactAnalysisPanel } from "./CrqImpactAnalysisPanel";
 import { ImpactChip, StageChip, StatusChip } from "./Chips";
 import { errMsg } from "./errMsg";
 import { formatExecutionDate } from "./executionWindow";
+import { ActionGate } from "../../../../rbac/ActionGate";
+
+/** Codes behind the Approve / Reject / Reschedule row. */
+const DECISION_CODES: readonly string[] = ["CRQ_APPROVE", "CRQ_REJECT", "CRQ_RESCHEDULE"];
+/** Any action at all — decides whether the divider above the actions shows. */
+const ALL_ACTION_CODES: readonly string[] = [...DECISION_CODES, "CRQ_CONFLICT"];
 
 type Props = {
   serviceApprovalId: number | null;
@@ -251,49 +257,63 @@ export function AllCrqDetailDrawer({
               </Collapse>
             </Paper>
 
-            <Divider sx={{ mb: 2 }} />
+            {/* Action area follows the "All CRQs" sub-module permissions; a
+                view-only user gets the details with no action area at all. */}
+            <ActionGate module="Cab Manager" subModule="All CRQs" code={ALL_ACTION_CODES}>
+              <Divider sx={{ mb: 2 }} />
+            </ActionGate>
 
-            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-              <Button
-                fullWidth
-                variant="contained"
-                color="success"
-                startIcon={<CheckCircleOutlineIcon />}
-                onClick={() => setApproveOpen(true)}
-              >
-                Approve
-              </Button>
+            <ActionGate module="Cab Manager" subModule="All CRQs" code={DECISION_CODES}>
+              <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                <ActionGate module="Cab Manager" subModule="All CRQs" code="CRQ_APPROVE">
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    color="success"
+                    startIcon={<CheckCircleOutlineIcon />}
+                    onClick={() => setApproveOpen(true)}
+                  >
+                    Approve
+                  </Button>
+                </ActionGate>
 
+                <ActionGate module="Cab Manager" subModule="All CRQs" code="CRQ_REJECT">
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    color="error"
+                    startIcon={<CancelOutlinedIcon />}
+                    onClick={() => setRejectOpen(true)}
+                  >
+                    Reject
+                  </Button>
+                </ActionGate>
+
+                <ActionGate module="Cab Manager" subModule="All CRQs" code="CRQ_RESCHEDULE">
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<ReplayIcon />}
+                    onClick={() => setScheduleOpen(true)}
+                  >
+                    Reschedule
+                  </Button>
+                </ActionGate>
+              </Stack>
+            </ActionGate>
+
+            <ActionGate module="Cab Manager" subModule="All CRQs" code="CRQ_CONFLICT">
               <Button
                 fullWidth
                 variant="outlined"
-                color="error"
-                startIcon={<CancelOutlinedIcon />}
-                onClick={() => setRejectOpen(true)}
+                color="warning"
+                startIcon={<ReportProblemOutlinedIcon />}
+                onClick={() => setConflictOpen(true)}
+                sx={{ mb: 1 }}
               >
-                Reject
+                Conflict
               </Button>
-
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<ReplayIcon />}
-                onClick={() => setScheduleOpen(true)}
-              >
-                Reschedule
-              </Button>
-            </Stack>
-
-            <Button
-              fullWidth
-              variant="outlined"
-              color="warning"
-              startIcon={<ReportProblemOutlinedIcon />}
-              onClick={() => setConflictOpen(true)}
-              sx={{ mb: 1 }}
-            >
-              Conflict
-            </Button>
+            </ActionGate>
           </>
         )}
       </Box>

@@ -32,6 +32,10 @@ import { CrqImpactAnalysisPanel } from "./CrqImpactAnalysisPanel";
 import { ImpactChip, StageChip, StatusChip } from "./Chips";
 import { errMsg } from "./errMsg";
 import { formatExecutionDate } from "./executionWindow";
+import { ActionGate } from "../../../../rbac/ActionGate";
+
+/** Codes behind the Approve / Reject / Reschedule row (and its divider). */
+const DECISION_CODES: readonly string[] = ["CRQ_APPROVE", "CRQ_REJECT", "CRQ_RESCHEDULE"];
 import type { Crq } from "../../types/types";
 
 /**
@@ -152,29 +156,41 @@ export function MyCrqDetailDrawer({ crq, onClose }: { crq: Crq | null; onClose: 
             </Paper>
 
             {/* SPOC / Field Engineer are read-only here, viewed through
-                sp_get_SPOC_FE_details rather than changed from this drawer. */}
+                sp_get_SPOC_FE_details rather than changed from this drawer,
+                so that button stays visible to everyone. Actions follow the
+                "My CRQs" sub-module permissions. */}
             <Stack direction="row" spacing={1} sx={{ mb: 2.5 }}>
               <Button fullWidth variant="outlined" startIcon={<VisibilityOutlinedIcon />} onClick={() => setSpocFeOpen(true)}>
                 SPOC &amp; FE
               </Button>
-              <Button fullWidth variant="outlined" color="warning" startIcon={<ReportProblemOutlinedIcon />} onClick={() => setConflictOpen(true)}>
-                Conflict
-              </Button>
+              <ActionGate module="Cab Manager" subModule="My CRQs" code="CRQ_CONFLICT">
+                <Button fullWidth variant="outlined" color="warning" startIcon={<ReportProblemOutlinedIcon />} onClick={() => setConflictOpen(true)}>
+                  Conflict
+                </Button>
+              </ActionGate>
             </Stack>
 
             {/* Same actions and APIs as the All CRQs drawer. */}
-            <Divider sx={{ mb: 2 }} />
-            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-              <Button fullWidth variant="contained" color="success" startIcon={<CheckCircleOutlineIcon />} onClick={() => setApproveOpen(true)}>
-                Approve
-              </Button>
-              <Button fullWidth variant="outlined" color="error" startIcon={<CancelOutlinedIcon />} onClick={() => setRejectOpen(true)}>
-                Reject
-              </Button>
-              <Button fullWidth variant="outlined" startIcon={<ReplayIcon />} onClick={() => setScheduleOpen(true)}>
-                Reschedule
-              </Button>
-            </Stack>
+            <ActionGate module="Cab Manager" subModule="My CRQs" code={DECISION_CODES}>
+              <Divider sx={{ mb: 2 }} />
+              <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                <ActionGate module="Cab Manager" subModule="My CRQs" code="CRQ_APPROVE">
+                  <Button fullWidth variant="contained" color="success" startIcon={<CheckCircleOutlineIcon />} onClick={() => setApproveOpen(true)}>
+                    Approve
+                  </Button>
+                </ActionGate>
+                <ActionGate module="Cab Manager" subModule="My CRQs" code="CRQ_REJECT">
+                  <Button fullWidth variant="outlined" color="error" startIcon={<CancelOutlinedIcon />} onClick={() => setRejectOpen(true)}>
+                    Reject
+                  </Button>
+                </ActionGate>
+                <ActionGate module="Cab Manager" subModule="My CRQs" code="CRQ_RESCHEDULE">
+                  <Button fullWidth variant="outlined" startIcon={<ReplayIcon />} onClick={() => setScheduleOpen(true)}>
+                    Reschedule
+                  </Button>
+                </ActionGate>
+              </Stack>
+            </ActionGate>
           </>
         )}
       </Box>

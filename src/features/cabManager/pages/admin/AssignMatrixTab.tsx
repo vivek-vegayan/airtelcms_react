@@ -27,6 +27,8 @@ import {
   useLazyGetServiceRulesQuery,
 } from "../../api/cabManagerApiSlice";
 import { ExportExcelButton } from "../../components/shared/ExportExcelButton";
+import { ActionGate } from "../../../../rbac/ActionGate";
+import { useActionPermission } from "../../../../rbac/useActionPermission";
 import { exportRowsToExcel, type ExcelColumn } from "../../../crqAnalytics/utils/excelExport";
 import {
   APPROVAL_AUTHORITIES,
@@ -65,6 +67,9 @@ const SERVICE_RULE_EXPORT_PAGE_SIZE = 500;
 export function AdminAssignMatrixTab() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
+  // Edit drives the table's row-actions option, so it uses the hook; the Add
+  // buttons below use ActionGate. Both read "Admin Config".
+  const canUpdate = useActionPermission("Cab Manager", "Admin Config", "CAB_ADMIN_UPDATE");
   const matrix      = useGetAssignMatrixQuery();
   const rules       = useGetAssignRulesQuery();
   const [addServiceOpen, setAddServiceOpen] = useState(false);
@@ -204,7 +209,7 @@ export function AdminAssignMatrixTab() {
     enableHiding: true,
 
     // ── Enable Action Column (Edit) ──────────────────────────────────────────
-    enableRowActions: true,
+    enableRowActions: canUpdate,
     positionActionsColumn: "last",
     renderRowActions: ({ row }) => (
       <Tooltip title="Edit Row">
@@ -248,16 +253,18 @@ export function AdminAssignMatrixTab() {
             </IconButton>
           </span>
         </Tooltip>
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<AddIcon sx={{ fontSize: 14 }} />}
-          onClick={() => setAddServiceOpen(true)}
-          disableElevation
-          sx={TOOLBAR_BUTTON_SX}
-        >
-          Add Service Approval
-        </Button>
+        <ActionGate module="Cab Manager" subModule="Admin Config" code="CAB_ADMIN_CREATE">
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+            onClick={() => setAddServiceOpen(true)}
+            disableElevation
+            sx={TOOLBAR_BUTTON_SX}
+          >
+            Add Service Approval
+          </Button>
+        </ActionGate>
         <ExportExcelButton
           onExport={handleExport}
           disabled={serviceRuleTotal === 0}
@@ -309,16 +316,18 @@ export function AdminAssignMatrixTab() {
         <Typography variant="caption" color="text.disabled" sx={{ mb: 2 }}>
           Try adjusting the Service Type or Circle filter.
         </Typography>
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<AddIcon sx={{ fontSize: 14 }} />}
-          onClick={() => setAddServiceOpen(true)}
-          disableElevation
-          sx={TOOLBAR_BUTTON_SX}
-        >
-          Add First Rule
-        </Button>
+        <ActionGate module="Cab Manager" subModule="Admin Config" code="CAB_ADMIN_CREATE">
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+            onClick={() => setAddServiceOpen(true)}
+            disableElevation
+            sx={TOOLBAR_BUTTON_SX}
+          >
+            Add First Rule
+          </Button>
+        </ActionGate>
       </Box>
     ),
   });

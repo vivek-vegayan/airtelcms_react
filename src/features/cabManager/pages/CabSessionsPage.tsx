@@ -50,6 +50,8 @@ import { CabDecisionChip, ImpactChip } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
 import { toSessionUrl } from "../components/shared/sessionLink";
 import type { CabAgendaRow, CabSession } from "../types/types";
+import { ActionGate } from "../../../rbac/ActionGate";
+import { useActionPermission } from "../../../rbac/useActionPermission";
 
 const MONO = { fontFamily: "'Roboto Mono', monospace" } as const;
 
@@ -290,6 +292,12 @@ export function CabSessionsPage() {
   const [circle, setCircle] = useState("");
   const [impact, setImpact] = useState("");
   const [decision, setDecision] = useState("");
+  // Recording a decision and adding CRQs to the agenda follow the
+  // "Cab Sessions" sub-module permissions; view-only users just read the agenda.
+  // Hooks (not the gate) where the value drives a table option or EmptyState's
+  // `action`, which renders a spaced wrapper for any non-empty element.
+  const canDecide = useActionPermission("Cab Manager", "Cab Sessions", "CAB_DECISION");
+  const canAddCrq = useActionPermission("Cab Manager", "Cab Sessions", "CAB_SESSION_ADD_CRQ");
   const [decisionRow, setDecisionRow] = useState<CabAgendaRow | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -427,7 +435,7 @@ export function CabSessionsPage() {
     getRowId: (row) => String(row.mappingId),
     state: { isLoading: agenda.isLoading },
     enableTopToolbar: false,
-    enableRowActions: true,
+    enableRowActions: canDecide,
     positionActionsColumn: "last",
     displayColumnDefOptions: {
       "mrt-row-actions": { header: "", size: 140, muiTableBodyCellProps: { align: "right" } },
@@ -737,15 +745,17 @@ export function CabSessionsPage() {
                   >
                     Add CRQs
                   </Button> */}
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<UploadFileOutlinedIcon />}
-                    onClick={() => setImportOpen(true)}
-                    sx={{ whiteSpace: "nowrap" }}
-                  >
-                    Add External CRQ
-                  </Button>
+                  <ActionGate module="Cab Manager" subModule="Cab Sessions" code="CAB_SESSION_ADD_CRQ">
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<UploadFileOutlinedIcon />}
+                      onClick={() => setImportOpen(true)}
+                      sx={{ whiteSpace: "nowrap" }}
+                    >
+                      Add External CRQ
+                    </Button>
+                  </ActionGate>
                   <Button
                     size="small"
                     variant="outlined"
@@ -891,9 +901,11 @@ export function CabSessionsPage() {
                     title="No CRQs on the agenda"
                     hint="No change requests have been tabled at this session yet."
                     action={
-                      <Button size="small" variant="outlined" startIcon={<PlaylistAddOutlinedIcon />} onClick={() => setAddOpen(true)}>
-                        Add CRQs
-                      </Button>
+                      canAddCrq ? (
+                        <Button size="small" variant="outlined" startIcon={<PlaylistAddOutlinedIcon />} onClick={() => setAddOpen(true)}>
+                          Add CRQs
+                        </Button>
+                      ) : undefined
                     }
                   />
                 ) : visibleRows.length === 0 ? (

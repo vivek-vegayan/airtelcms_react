@@ -30,6 +30,7 @@ import {
 } from "../../api/cabManagerApiSlice";
 import type { CabRejectReason } from "../../types/types";
 import { ExportExcelButton } from "../../components/shared/ExportExcelButton";
+import { ActionGate } from "../../../../rbac/ActionGate";
 import { exportRowsToExcel, type ExcelColumn } from "../../../crqAnalytics/utils/excelExport";
 
 const REASON_EXPORT_COLUMNS: ExcelColumn[] = [
@@ -38,6 +39,7 @@ const REASON_EXPORT_COLUMNS: ExcelColumn[] = [
 ];
 
 export function AdminReasonsTab() {
+  // Add / Edit / Delete are wrapped in ActionGate ("Admin Config").
 
   const { data, isLoading } = useGetCabRejectReasonsQuery();
   const [addReason, { isLoading: isAdding }] = useAddCabRejectReasonMutation();
@@ -153,16 +155,20 @@ export function AdminReasonsTab() {
             </Stack>
           ) : (
             <Stack direction="row" spacing={0.5} justifyContent="center">
-              <Tooltip title="Edit">
-                <IconButton size="small" onClick={() => startEdit(row.original)}>
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Delete">
-                <IconButton size="small" color="error" onClick={() => setDeleteTarget(row.original)}>
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <ActionGate module="Cab Manager" subModule="Admin Config" code="CAB_ADMIN_UPDATE">
+                <Tooltip title="Edit">
+                  <IconButton size="small" onClick={() => startEdit(row.original)}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </ActionGate>
+              <ActionGate module="Cab Manager" subModule="Admin Config" code="CAB_ADMIN_DELETE">
+                <Tooltip title="Delete">
+                  <IconButton size="small" color="error" onClick={() => setDeleteTarget(row.original)}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </ActionGate>
             </Stack>
           ),
       },
@@ -216,24 +222,26 @@ export function AdminReasonsTab() {
             </Typography>
           </Box>
 
-          <Stack direction="row" spacing={1.5} sx={{ flex: 1, maxWidth: 560 }}>
-            <TextField
-              size="small"
-              fullWidth
-              placeholder="Type a new rejection reason…"
-              value={newReason}
-              onChange={(e) => setNewReason(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") void handleAdd(); }}
-            />
-            <Button
-              variant="contained"
-              startIcon={isAdding ? <CircularProgress size={14} color="inherit" /> : <AddIcon />}
-              onClick={() => void handleAdd()}
-              disabled={isAdding || !newReason.trim()}
-              sx={{ whiteSpace: "nowrap" }}
-            >
-              Add reason
-            </Button>
+          <Stack direction="row" spacing={1.5} sx={{ flex: 1, maxWidth: 560, justifyContent: "flex-end" }}>
+            <ActionGate module="Cab Manager" subModule="Admin Config" code="CAB_ADMIN_CREATE">
+              <TextField
+                size="small"
+                fullWidth
+                placeholder="Type a new rejection reason…"
+                value={newReason}
+                onChange={(e) => setNewReason(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") void handleAdd(); }}
+              />
+              <Button
+                variant="contained"
+                startIcon={isAdding ? <CircularProgress size={14} color="inherit" /> : <AddIcon />}
+                onClick={() => void handleAdd()}
+                disabled={isAdding || !newReason.trim()}
+                sx={{ whiteSpace: "nowrap" }}
+              >
+                Add reason
+              </Button>
+            </ActionGate>
             <ExportExcelButton
               onExport={() =>
                 exportRowsToExcel(data ?? [], REASON_EXPORT_COLUMNS, "Rejection Reasons", "CAB_Rejection_Reasons")
