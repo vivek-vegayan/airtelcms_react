@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Box } from "@mui/material";
 import type { SystemStyleObject } from "@mui/system";
-import type { Theme } from "@mui/material/styles";
+import { alpha, type Theme } from "@mui/material/styles";
 import { useP1 } from "../hooks/useP1Context";
 
 export interface P1Column<R> {
@@ -36,6 +36,7 @@ interface Props<R> {
 export function P1Table<R>({ columns, rows, rowKey, stickyFirst, maxHeight }: Props<R>) {
   const { colors } = useP1();
   const t = colors.tokens;
+  const hoverTint = alpha(t.textPrimary, t.isDark ? 0.07 : 0.05);
   const hasFoot = columns.some((c) => c.foot != null);
 
   const sticky = (i: number, bg: string): SystemStyleObject<Theme> =>
@@ -52,7 +53,9 @@ export function P1Table<R>({ columns, rows, rowKey, stickyFirst, maxHeight }: Pr
           fontSize: 12.5,
           "& th, & td": { padding: "8px 12px", whiteSpace: "nowrap", verticalAlign: "middle", borderBottom: `1px solid ${t.border}` },
           "& td": { fontVariantNumeric: "tabular-nums", color: t.textPrimary },
-          "& tbody tr:hover td": { background: t.surface2 },
+          // Row hover is a light tint laid over each cell's own colour (background-image), so cells
+          // that carry a colour (heat-map shades) keep it and their text stays readable.
+          "& tbody tr:hover td": { backgroundImage: `linear-gradient(${hoverTint}, ${hoverTint})` },
           "& tbody tr:last-of-type td": { borderBottom: hasFoot ? undefined : "none" },
           "& tfoot td": { fontWeight: 700, background: t.surface2, borderBottom: "none" },
         }}
@@ -88,7 +91,9 @@ export function P1Table<R>({ columns, rows, rowKey, stickyFirst, maxHeight }: Pr
         </thead>
         <tbody>
           {rows.map((r, ri) => (
-            <tr key={rowKey(r, ri)}>
+            // The position makes every key unique even when the data repeats a value (several
+            // rows with OLM id "REMEDY"); duplicate keys leave stale rows on screen after a filter.
+            <tr key={`${rowKey(r, ri)}#${ri}`}>
               {columns.map((c, i) => (
                 <Box component="td" key={c.key} sx={{ textAlign: c.align ?? "left", ...sticky(i, t.surface), ...c.cellSx?.(r) }}>
                   {c.cell(r, ri)}

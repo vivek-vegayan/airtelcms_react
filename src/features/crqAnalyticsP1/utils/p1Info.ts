@@ -9,12 +9,12 @@ export const P1_INFO = {
   "p-grid": {
     what: "Every CRQ that is still open right now, by team and by how many days old it is.",
     how: "Age = now minus the time the CRQ was raised. With CCB = it is in one of the first four stages; With SE = one of the last three. Slot Lapse = the booked slot is already over and the CRQ is still open. Those CRQs sit in the Slot Lapse column instead of an age column, so each CRQ is counted once and every row adds up to its Total.",
-    read: "Shaded cells hold the most CRQs. Slot Lapse and the right-hand columns are the ones to chase first. The date range does not change this card. Click any number for the CRQs.",
+    read: "Chart: one bar per team, biggest first; parts go from young (light) to old (dark), with Slot Lapse in red at the end. Count shows how much each team has open; Share % shows each team’s age mix at the same width. Darker and red parts are the ones to chase first. The Table view has the exact numbers. The date range does not change this card. Click a part or a number for the CRQs.",
   },
   "p-team": {
     what: "One line per team: what is open now, and what finished in the date range.",
     how: "Open, With CCB and With SE are counted right now. Closed, Cancelled and Rejected are CRQs that ended inside the date range. Total = Open + Closed + Cancelled + Rejected, so every row adds up.",
-    read: "A team with a big Open and a small Closed is falling behind. Click any number for the CRQs.",
+    read: "Each bar is one team, biggest first; its parts add up to the Total. A team with a long Open part and a short Closed part is falling behind. Hover a part for the counts, click it (or any number in the Table view) for the CRQs.",
   },
   "r-kpis": {
     what: "The headline numbers. The first row is for the date range you picked; the second row is right now.",

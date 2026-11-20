@@ -3,6 +3,7 @@ import { Box, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from "@mui/
 import { useP1 } from "../hooks/useP1Context";
 import type { P1Drill } from "../types/crqAnalyticsP1.types";
 import { STAGES, fmtN, num } from "../utils/p1Format";
+import { resultMeta, toneColors } from "../utils/p1Status";
 
 /** A count that opens the CRQs behind it. 0 (or no drill) renders as plain muted text. */
 export function Num({
@@ -131,30 +132,12 @@ export function Seg<T extends string | number>({
   );
 }
 
-type Tone = "info" | "success" | "warning" | "danger" | "none";
-
-const RESULT_META: Record<string, { label: string; tone: Tone }> = {
-  OPEN: { label: "Open", tone: "info" },
-  FAILED: { label: "Failed", tone: "danger" },
-  RESCHEDULED: { label: "Rescheduled", tone: "warning" },
-  DONE: { label: "Done", tone: "success" },
-  CANCELLED: { label: "Cancelled", tone: "none" },
-  REJECTED: { label: "Rejected", tone: "danger" },
-  UNKNOWN: { label: "Type not mapped yet", tone: "none" },
-};
-
 /** Where a CRQ stands: its result, or for an open CRQ a FAILED / RESCHEDULED current status. */
 export function ResultPill({ result, currentStatus }: { result: string | null | undefined; currentStatus?: string | null }) {
   const { colors } = useP1();
   const t = colors.tokens;
-  const meta = (result === "OPEN" ? RESULT_META[currentStatus ?? ""] : undefined) ?? RESULT_META[result ?? ""] ?? RESULT_META.UNKNOWN;
-  const tone = {
-    info: { bg: t.infoDim, fg: t.info },
-    success: { bg: t.successDim, fg: t.success },
-    warning: { bg: t.warningDim, fg: t.warning },
-    danger: { bg: t.dangerDim, fg: t.danger },
-    none: { bg: t.surface2, fg: t.textSecondary },
-  }[meta.tone];
+  const meta = resultMeta(result, currentStatus);
+  const tone = toneColors(t, meta.tone);
   return (
     <Box
       component="span"

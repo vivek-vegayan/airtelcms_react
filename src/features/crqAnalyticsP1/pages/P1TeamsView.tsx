@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { Box } from "@mui/material";
+import { MaterialReactTable, MRT_GlobalFilterTextField, type MRT_ColumnDef, type MRT_TableInstance } from "material-react-table";
+import { useAppTable } from "../../../components/ui/AppTable";
 import dayjs from "dayjs";
 import { PieChartCard } from "../../crqAnalytics/components/PieChartCard";
 import { useGetP1NightsQuery, useGetP1TeamsQuery } from "../api/crqAnalyticsP1Api";
@@ -10,7 +12,7 @@ import { P1HBars } from "../components/P1HBars";
 import { P1Table, type P1Column } from "../components/P1Table";
 import { useP1 } from "../hooks/useP1Context";
 import type { P1BookingDto, P1Drill, P1EngineerHoursDto, P1NightDto, P1RequestorDto, P1TaskTypeDto } from "../types/crqAnalyticsP1.types";
-import { exportP1Table } from "../utils/p1Export";
+import { exportP1Objects, exportP1Table } from "../utils/p1Export";
 import { STAGES, dayLabel, dur, fmtN, h1, num, pct, sumBy, ymd } from "../utils/p1Format";
 
 type NightRange = "last7" | "next7" | "next14";
@@ -86,54 +88,158 @@ function UtilCell({ v }: { v: number | null }) {
 
 function EngineerHoursCard({ rows, loading, error }: { rows: P1EngineerHoursDto[] } & CardState) {
   const { f, colors } = useP1();
-  const sorted = useMemo(() => [...rows].sort((a, b) => num(b.totalH) - num(a.totalH)), [rows]);
   const who = (p: P1EngineerHoursDto) => p.employeeName || p.personOlmid;
   const tasksDrill = (p: P1EngineerHoursDto, stageNo?: number): P1Drill => ({
     title: `${who(p)} · ${stageNo ? STAGES[stageNo - 1].label : "all tasks"}${p.team ? ` (${p.team})` : ""}`,
     key: "PERSON_TASKS",
     value: `${p.personOlmid}||${stageNo ?? ""}`,
   });
-  const rostered = sorted.filter((p) => p.rosterH != null);
-  const totalRoster = sumBy(rostered, (p) => p.rosterH);
-  const totalUtil = totalRoster ? Math.round((1000 * sumBy(rostered, (p) => p.totalH)) / totalRoster) / 10 : null;
 
-  const columns: P1Column<P1EngineerHoursDto>[] = [
-    {
-      key: "who",
-      header: "Engineer",
-      cell: (p) => (
-        <>
-          <b>{who(p)}</b>{" "}
-          <Box component="span" sx={{ color: colors.tokens.textSecondary }}>
-            {p.personOlmid}
-          </Box>
-        </>
+  // Totals in the footer follow what the table shows (after a search).
+  const visibleRows = (table: MRT_TableInstance<P1EngineerHoursDto>) => table.getFilteredRowModel().rows.map((r) => r.original);
+  const right = { muiTableHeadCellProps: { align: "right" as const }, muiTableBodyCellProps: { align: "right" as const }, muiTableFooterCellProps: { align: "right" as const } };
+
+  const columns = useMemo<MRT_ColumnDef<P1EngineerHoursDto>[]>(
+    () => [
+      {
+        id: "who",
+        header: "Engineer",
+        // name and OLM id are both searchable
+        accessorFn: (p) => `${p.employeeName ?? ""} ${p.personOlmid}`,
+        size: 230,
+        Cell: ({ row }) => (
+          <>
+            <b>{who(row.original)}</b>{" "}
+            <Box component="span" sx={{ color: colors.tokens.textSecondary }}>
+              {row.original.personOlmid}
+            </Box>
+          </>
+        ),
+        Footer: () => <b>Total</b>,
+      },
+      { id: "team", header: "Team", accessorFn: (p) => p.team || "Not set", size: 160 },
+      { id: "side", header: "Side", accessorFn: (p) => p.sideByWork, size: 90, Cell: ({ row }) => <SideTag side={row.original.sideByWork} /> },
+      ...HOUR_KEYS.map(
+        (k, i): MRT_ColumnDef<P1EngineerHoursDto> => ({
+          id: k,
+          header: STAGES[i].label,
+          accessorFn: (p) => num(p[k]),
+          size: 110,
+          ...right,
+          Cell: ({ row }) => <Num v={row.original[k]} text={h1(row.original[k])} d={tasksDrill(row.original, i + 1)} />,
+          Footer: ({ table }) => h1(sumBy(visibleRows(table), (p) => p[k])),
+        }),
       ),
-      exportHeader: "Engineer",
-      exportValue: (p) => who(p),
-      foot: "Total",
+      {
+        id: "total",
+        header: "Total hrs",
+        accessorFn: (p) => num(p.totalH),
+        size: 100,
+        ...right,
+        Cell: ({ row }) => <Num v={row.original.totalH} bold text={h1(row.original.totalH)} d={tasksDrill(row.original)} />,
+        Footer: ({ table }) => <b>{h1(sumBy(visibleRows(table), (p) => p.totalH))}</b>,
+      },
+      {
+        id: "hold",
+        header: "On hold hrs",
+        accessorFn: (p) => num(p.onHoldH),
+        size: 100,
+        ...right,
+        Cell: ({ row }) => h1(row.original.onHoldH),
+        Footer: ({ table }) => h1(sumBy(visibleRows(table), (p) => p.onHoldH)),
+      },
+      {
+        id: "tasks",
+        header: "Tasks",
+        accessorFn: (p) => num(p.tasksDone),
+        size: 90,
+        ...right,
+        Cell: ({ row }) => <Num v={row.original.tasksDone} d={tasksDrill(row.original)} />,
+        Footer: ({ table }) => fmtN(sumBy(visibleRows(table), (p) => p.tasksDone)),
+      },
+      {
+        id: "roster",
+        header: "Rostered hrs",
+        accessorFn: (p) => p.rosterH ?? -1,
+        size: 110,
+        ...right,
+        Cell: ({ row }) => (row.original.rosterH == null ? "–" : h1(row.original.rosterH)),
+        Footer: ({ table }) => h1(sumBy(visibleRows(table), (p) => p.rosterH)),
+      },
+      {
+        id: "util",
+        header: "Utilization %",
+        accessorFn: (p) => p.utilPct ?? -1,
+        size: 130,
+        ...right,
+        Cell: ({ row }) => <UtilCell v={row.original.utilPct} />,
+        Footer: ({ table }) => {
+          // utilization of all engineers shown: their hours over their rostered hours
+          const rostered = visibleRows(table).filter((p) => p.rosterH != null);
+          const roster = sumBy(rostered, (p) => p.rosterH);
+          return <UtilCell v={roster ? Math.round((1000 * sumBy(rostered, (p) => p.totalH)) / roster) / 10 : null} />;
+        },
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- who / tasksDrill / visibleRows are pure helpers of this render
+    [colors],
+  );
+
+  // Your shared table (Material React Table), kept plain: its search box, sorting by clicking a
+  // header, and paging. No column menus, column filters, show / hide columns or full screen.
+  const table = useAppTable({
+    columns,
+    data: rows,
+    enableSorting: true,
+    enableColumnActions: false,
+    enableColumnFilters: false,
+    enableHiding: false,
+    enableFullScreenToggle: false,
+    enableDensityToggle: false,
+    enableToolbarInternalActions: false,
+    // The search box sits in the card header (below), so the table needs no top bar of its own.
+    enableTopToolbar: false,
+    enableColumnPinning: true,
+    initialState: {
+      density: "compact",
+      showGlobalFilter: true,
+      sorting: [{ id: "total", desc: true }],
+      columnPinning: { left: ["who"] },
+      // always opens on 10 rows a page
+      pagination: { pageIndex: 0, pageSize: 10 },
     },
-    { key: "olmid", header: "OLM id", cell: () => null, exportValue: (p) => p.personOlmid, headSx: { display: "none" }, cellSx: () => ({ display: "none" }) },
-    { key: "team", header: "Team", cell: (p) => p.team ?? "—", exportValue: (p) => p.team ?? "", foot: "" },
-    { key: "side", header: "Side", cell: (p) => <SideTag side={p.sideByWork} />, exportValue: (p) => p.sideByWork, foot: "" },
-    ...HOUR_KEYS.map(
-      (k, i): P1Column<P1EngineerHoursDto> => ({
-        key: k,
-        header: STAGES[i].label,
-        exportHeader: `${STAGES[i].label} (h)`,
-        align: "right",
-        wrapHeader: true,
-        cell: (p) => <Num v={p[k]} text={h1(p[k])} d={tasksDrill(p, i + 1)} />,
-        exportValue: (p) => num(p[k]),
-        foot: h1(sumBy(sorted, (p) => p[k])),
-      }),
-    ),
-    { key: "total", header: "Total hrs", align: "right", wrapHeader: true, cell: (p) => <Num v={p.totalH} bold text={h1(p.totalH)} d={tasksDrill(p)} />, exportValue: (p) => num(p.totalH), foot: h1(sumBy(sorted, (p) => p.totalH)) },
-    { key: "hold", header: "On hold hrs", align: "right", wrapHeader: true, cell: (p) => h1(p.onHoldH), exportValue: (p) => num(p.onHoldH), foot: h1(sumBy(sorted, (p) => p.onHoldH)) },
-    { key: "tasks", header: "Tasks", align: "right", cell: (p) => <Num v={p.tasksDone} d={tasksDrill(p)} />, exportValue: (p) => num(p.tasksDone), foot: fmtN(sumBy(sorted, (p) => p.tasksDone)) },
-    { key: "roster", header: "Rostered hrs", align: "right", wrapHeader: true, cell: (p) => (p.rosterH == null ? "–" : h1(p.rosterH)), exportValue: (p) => p.rosterH ?? "", foot: h1(totalRoster) },
-    { key: "util", header: "Utilization %", align: "right", wrapHeader: true, cell: (p) => <UtilCell v={p.utilPct} />, exportValue: (p) => p.utilPct ?? "", foot: <UtilCell v={totalUtil} /> },
-  ];
+    appTable: { frame: false, maxHeight: 560, emptyTitle: "No finished work in this range." },
+  });
+
+  // Excel: exactly the rows the table shows, in its current order.
+  const exportShown = () =>
+    exportP1Objects(
+      "Engineer task summary",
+      table.getPrePaginationRowModel().rows.map(({ original: p }) => ({
+        engineer: who(p),
+        olmid: p.personOlmid,
+        team: p.team ?? "",
+        side: p.sideByWork,
+        ...Object.fromEntries(HOUR_KEYS.map((k) => [k, num(p[k])])),
+        totalH: num(p.totalH),
+        onHoldH: num(p.onHoldH),
+        tasksDone: num(p.tasksDone),
+        rosterH: p.rosterH ?? "",
+        utilPct: p.utilPct ?? "",
+      })),
+      {
+        engineer: "Engineer",
+        olmid: "OLM id",
+        team: "Team",
+        side: "Side",
+        ...Object.fromEntries(HOUR_KEYS.map((k, i) => [k, `${STAGES[i].label} (h)`])),
+        totalH: "Total hrs",
+        onHoldH: "On hold hrs",
+        tasksDone: "Tasks",
+        rosterH: "Rostered hrs",
+        utilPct: "Utilization %",
+      },
+    );
 
   return (
     <P1Card
@@ -147,9 +253,10 @@ function EngineerHoursCard({ rows, loading, error }: { rows: P1EngineerHoursDto[
       ]}
       loading={loading}
       error={error}
-      onExport={() => exportP1Table("Engineer task summary", columns, sorted)}
+      right={<MRT_GlobalFilterTextField table={table} />}
+      onExport={exportShown}
     >
-      {sorted.length ? <P1Table columns={columns} rows={sorted} rowKey={(p) => p.personOlmid} stickyFirst maxHeight={560} /> : <P1Empty message="No finished work in this range." />}
+      <MaterialReactTable table={table} />
     </P1Card>
   );
 }
@@ -247,6 +354,8 @@ function RequestorCard({ rows, loading, error }: { rows: P1RequestorDto[] } & Ca
           <Box sx={{ height: 220 }}>
             <PieChartCard
               slices={rows.map((r) => ({ label: r.requestorType, value: num(r.received) }))}
+              showValues
+              centerUnit="received"
               onSliceClick={(label) => {
                 const r = rows.find((x) => x.requestorType === label);
                 if (r) openDrill(drillOf(r, "ALL", "received"));

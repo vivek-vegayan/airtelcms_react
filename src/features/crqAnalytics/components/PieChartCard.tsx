@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useTheme } from "@mui/material";
 import { Doughnut } from "react-chartjs-2";
-import type { ChartOptions } from "chart.js";
+import { Chart as ChartJS, type ChartOptions, type LegendItem, type Plugin } from "chart.js";
 import { categoryColor, chartChrome, MAX_CATEGORICAL_SLOTS } from "../utils/chartPalette";
 import { EmptyOrErrorState } from "./EmptyOrErrorState";
 import "../utils/chartSetup";
@@ -19,10 +19,16 @@ interface Props {
   colors?: readonly string[];
   /** Called with the clicked slice's label (folded "Other" slice is not clickable). */
   onSliceClick?: (label: string) => void;
+  /** Show each slice's count and share in the legend ("CCB · 42 · 63%"), so no hover is needed. */
+  showValues?: boolean;
+  /** When set, the total is written in the middle of the ring with this word under it ("cancelled"). */
+  centerUnit?: string;
 }
 
+const fmt = (v: number) => Math.round(v).toLocaleString("en-IN");
+
 /** Doughnut chart for a category breakdown (e.g. rejection reasons) — folds past 8 categories into "Other". */
-export function PieChartCard({ slices, isLoading, isError, colors, onSliceClick }: Props) {
+export function PieChartCard({ slices, isLoading, isError, colors, onSliceClick, showValues = false, centerUnit }: Props) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const chrome = chartChrome(isDark);
@@ -67,7 +73,23 @@ export function PieChartCard({ slices, isLoading, isError, colors, onSliceClick 
       plugins: {
         legend: {
           position: "right",
-          labels: { color: chrome.text, usePointStyle: true, boxWidth: 8, boxHeight: 8, font: { size: 11 } },
+          labels: {
+            color: chrome.text,
+            usePointStyle: true,
+            boxWidth: 8,
+            boxHeight: 8,
+            font: { size: 11 },
+            ...(showValues
+              ? {
+                  generateLabels: (chart: ChartJS<"doughnut">): LegendItem[] =>
+                    ChartJS.overrides.doughnut.plugins.legend.labels.generateLabels(chart).map((item, i) => {
+                      const value = folded[i]?.value ?? 0;
+                      const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+                      return { ...item, text: `${item.text} · ${fmt(value)} · ${pct}%` };
+                    }),
+                }
+              : {}),
+          },
         },
         tooltip: {
           backgroundColor: theme.palette.background.paper,
@@ -88,11 +110,43 @@ export function PieChartCard({ slices, isLoading, isError, colors, onSliceClick 
       },
       cutout: "62%",
     }),
-    [chrome, theme, total, onSliceClick, folded],
+    [chrome, theme, total, onSliceClick, folded, showValues],
+  );
+
+  // Total in the middle of the ring. react-chartjs-2 registers plugins once, when the chart is
+  // created, so the chart is re-created (key) when the theme changes and the colours follow.
+  const plugins = useMemo<Plugin<"doughnut">[]>(
+    () =>
+      centerUnit == null
+        ? []
+        : [
+            {
+              id: "centerTotal",
+              afterDatasetsDraw(chart) {
+                const arc = chart.getDatasetMeta(0).data[0] as unknown as { x: number; y: number } | undefined;
+                if (!arc) return;
+                const sum = (chart.data.datasets[0]?.data ?? []).reduce<number>((s, v) => s + (Number(v) || 0), 0);
+                const family = ChartJS.defaults.font.family ?? "system-ui, sans-serif";
+                const { ctx } = chart;
+                ctx.save();
+                ctx.textAlign = "center";
+                ctx.fillStyle = chrome.text;
+                ctx.font = `700 20px ${family}`;
+                ctx.textBaseline = "bottom";
+                ctx.fillText(fmt(sum), arc.x, arc.y + 4);
+                ctx.fillStyle = chrome.muted;
+                ctx.font = `500 11px ${family}`;
+                ctx.textBaseline = "top";
+                ctx.fillText(centerUnit, arc.x, arc.y + 6);
+                ctx.restore();
+              },
+            },
+          ],
+    [centerUnit, chrome.text, chrome.muted],
   );
 
   if (isError) return <EmptyOrErrorState kind="error" />;
   if (!isLoading && folded.length === 0) return <EmptyOrErrorState kind="empty" />;
 
-  return <Doughnut data={data} options={options} />;
+  return <Doughnut key={theme.palette.mode} data={data} options={options} plugins={plugins} />;
 }

@@ -26,6 +26,8 @@ interface Props {
   loading?: boolean;
   error?: boolean;
   children?: ReactNode;
+  /** Which side of the Chart / Table switch the card opens on (default: chart). */
+  defaultView?: "chart" | "table";
 }
 
 const VIEW_OPTIONS = [
@@ -37,11 +39,11 @@ const VIEW_OPTIONS = [
  * Card shell of the Phase 1 pages: the shared dashboard card surface, a title row with the
  * window chip, the "i" note, an optional Chart / Table switch and an Excel download.
  */
-export function P1Card({ id, title, tag, info, legend, right, chart, table, onExport, loading, error, children }: Props) {
+export function P1Card({ id, title, tag, info, legend, right, chart, table, onExport, loading, error, children, defaultView = "chart" }: Props) {
   const { colors } = useP1();
   const t = colors.tokens;
   const [showInfo, setShowInfo] = useState(false);
-  const [view, setView] = useState<"chart" | "table">("chart");
+  const [view, setView] = useState<"chart" | "table">(defaultView);
   const twin = chart != null && table != null;
   const note = info ? P1_INFO[info] : undefined;
 

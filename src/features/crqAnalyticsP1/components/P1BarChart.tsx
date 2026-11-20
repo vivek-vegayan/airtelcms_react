@@ -5,6 +5,13 @@ import type { Chart as ChartJS, ChartOptions } from "chart.js";
 import { chartChrome } from "../../crqAnalytics/utils/chartPalette";
 import "../../crqAnalytics/utils/chartSetup";
 import { fmtN } from "../utils/p1Format";
+import { barValueLabels, labelAt, wrapTick } from "../utils/p1ChartLabels";
+
+/** Smallest height (px) of a bar with a value, so a small count next to a large one stays visible and clickable. */
+const MIN_BAR_PX = 6;
+
+/** Rough width of one axis character at 11px, used to work out how many fit under a bar group. */
+const TICK_CHAR_PX = 6.5;
 
 export interface P1BarSeries {
   label: string;
@@ -41,7 +48,9 @@ export function P1BarChart({ labels, tipLabels, series, stacked = false, height 
       labels,
       datasets: series.map((s, i) => ({
         label: s.label,
-        data: s.data,
+        // 0 is sent as "no bar" (null): with a minimum bar height a 0 would otherwise get a stub.
+        data: s.data.map((v) => (v ? v : null)),
+        minBarLength: MIN_BAR_PX,
         backgroundColor: s.color,
         borderRadius: !stacked || i === series.length - 1 ? 4 : 0,
         borderSkipped: "bottom" as const,
@@ -66,15 +75,20 @@ export function P1BarChart({ labels, tipLabels, series, stacked = false, height 
             const chart = chartRef.current;
             if (!chart || !evt.native) return;
             const hit = chart.getElementsAtEventForMode(evt.native, "nearest", { intersect: true }, true)[0];
-            if (hit) series[hit.datasetIndex]?.onClick?.(hit.index);
+            // a click on a bar, or on the count written above / inside it
+            const target = hit ?? (evt.x != null && evt.y != null ? labelAt(chart, evt.x, evt.y) : undefined);
+            if (target) series[target.datasetIndex]?.onClick?.(target.index);
           }
         : undefined,
       onHover: clickable
         ? (evt, _active, chart) => {
             const over = evt.native ? chart.getElementsAtEventForMode(evt.native, "nearest", { intersect: true }, true) : [];
-            chart.canvas.style.cursor = over.length ? "pointer" : "default";
+            const onLabel = evt.x != null && evt.y != null && labelAt(chart, evt.x, evt.y) != null;
+            chart.canvas.style.cursor = over.length || onLabel ? "pointer" : "default";
           }
         : undefined,
+      // Room above the tallest bar for its count label.
+      layout: { padding: { top: 18 } },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -93,7 +107,9 @@ export function P1BarChart({ labels, tipLabels, series, stacked = false, height 
             afterBody: (items) => {
               const i = items[0]?.dataIndex;
               if (i == null) return [];
-              const lines = (extraTip?.(i) ?? []).map(([k, v]) => `${k}: ${v}`);
+              // series with 0 have no bar, so the tooltip lists them here
+              const zeros = series.filter((x) => !x.data[i]).map((x) => `${x.label}: 0`);
+              const lines = [...zeros, ...(extraTip?.(i) ?? []).map(([k, v]) => `${k}: ${v}`)];
               if (stacked) lines.unshift(`Total: ${fmtN(series.reduce((s, x) => s + (x.data[i] ?? 0), 0))}`);
               return lines;
             },
@@ -105,11 +121,25 @@ export function P1BarChart({ labels, tipLabels, series, stacked = false, height 
         x: {
           stacked,
           grid: { display: false },
-          ticks: { color: chrome.muted, font: { size: 11 }, maxRotation: 0, autoSkip: true, autoSkipPadding: 12 },
+          // Every category name is shown, word-wrapped to the width of its bar group; the axis only
+          // tilts (up to 45°) when a single word is still wider than its column.
+          ticks: {
+            color: chrome.muted,
+            font: { size: 11 },
+            autoSkip: false,
+            maxRotation: 45,
+            minRotation: 0,
+            callback(_value, index) {
+              const perCategory = (this.width || this.chart.width) / Math.max(labels.length, 1);
+              return wrapTick(labels[index] ?? "", Math.max(6, Math.floor((perCategory - 6) / TICK_CHAR_PX)));
+            },
+          },
         },
         y: {
           stacked,
           beginAtZero: true,
+          // headroom above the tallest bar, enough for a vertical count label
+          grace: "15%",
           grid: { color: chrome.gridline },
           border: { display: false },
           ticks: { color: chrome.muted, font: { size: 11 }, precision: 0 },
@@ -119,9 +149,13 @@ export function P1BarChart({ labels, tipLabels, series, stacked = false, height 
     [clickable, series, stacked, chrome, theme, labels, tipLabels, extraTip],
   );
 
+  // Counts on the bars. react-chartjs-2 registers plugins once, when the chart is created, so the
+  // chart is re-created (key) when the theme or the stacked mode changes and the labels follow.
+  const valueLabels = useMemo(() => [barValueLabels({ stacked, textColor: chrome.text })], [stacked, chrome.text]);
+
   return (
     <Box sx={{ height, position: "relative" }} role="img" aria-label={ariaLabel}>
-      <Bar ref={chartRef} data={data} options={options} />
+      <Bar key={`${theme.palette.mode}-${stacked}`} ref={chartRef} data={data} options={options} plugins={valueLabels} />
     </Box>
   );
 }

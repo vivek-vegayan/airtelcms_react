@@ -173,6 +173,8 @@ export function CancelSideCard({ data, loading, error }: SummaryCardProps) {
             <PieChartCard
               slices={sides.map((s) => ({ label: sideLabel[s.side as "CCB" | "SE"], value: num(s.cancelled) }))}
               colors={[colors.ccb, colors.se]}
+              showValues
+              centerUnit="cancelled"
               onSliceClick={(label) => {
                 const side = label.startsWith("CCB") ? "CCB" : "SE";
                 open(drillOf(side, "CANCELLED"));
