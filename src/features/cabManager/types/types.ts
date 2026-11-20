@@ -360,6 +360,8 @@ export interface ServiceApprovalRule {
   id: string;
   service: string;
   circle: string;
+  /** Change_Impact — SA / NSA; part of a rule's identity, fixed once created. */
+  changeImpact?: ImpactCode | null;
   l1: string;
   l2: string;
   l3: string;
@@ -479,9 +481,12 @@ export interface AddServiceRulePayload {
   id?: number;
   service: string;
   circle: string;
-  l1: string;
-  l2?: string | null;
-  l3?: string | null;
+  /** Mandatory for a new rule; the backend ignores it on update. */
+  changeImpact?: ImpactCode | null;
+  /** Approver OLM ids (never names) — L1 mandatory, L2 / L3 optional. */
+  l1OlmId: string;
+  l2OlmId?: string | null;
+  l3OlmId?: string | null;
   /** "HH:mm" (from <input type="time">); null to leave unset. */
   l1EscalationTime?: string | null;
   l2EscalationTime?: string | null;

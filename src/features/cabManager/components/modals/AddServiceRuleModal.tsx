@@ -20,7 +20,7 @@ import {
   useGetCircleDropdownQuery,
   useGetServicesDropdownQuery,
 } from "../../api/cabManagerApiSlice";
-import type { ServiceApprovalRule } from "../../types/types";
+import type { ImpactCode, ServiceApprovalRule } from "../../types/types";
 
 // Needed for dayjs("14:30", "HH:mm").
 dayjs.extend(customParseFormat);
@@ -36,6 +36,8 @@ type AddServiceRuleModalProps = {
 const EMPTY_FORM = {
   service: "",
   circle: "",
+  changeImpact: "" as ImpactCode | "",
+  // Approver OLM ids — what the API saves.
   l1: "",
   l2: "",
   l3: "",
@@ -53,6 +55,11 @@ const TIERS = [
   { key: "l3", label: "L3", placeholder: "e.g. B0093365", required: false },
 ] as const;
 
+const IMPACT_OPTIONS: { value: ImpactCode; label: string }[] = [
+  { value: "SA", label: "SA — Service Affecting" },
+  { value: "NSA", label: "NSA — Non Service Affecting" },
+];
+
 const orNull = (v: string) => (v.trim() ? v.trim() : null);
 
 // TIME arrives as "HH:mm:ss"; the form keeps "HH:mm" (24-hour).
@@ -61,6 +68,8 @@ const toTimeInput = (v?: string | null) => (v ? v.slice(0, 5) : "");
 const formFromRow = (row: ServiceApprovalRule): FormState => ({
   service: row.service ?? "",
   circle: row.circle ?? "",
+  changeImpact: row.changeImpact ?? "",
+  // Pre-fill the current approvers' OLM ids (from sp_get_cab_service_rules).
   l1: row.l1OlmId ?? "",
   l2: row.l2OlmId ?? "",
   l3: row.l3OlmId ?? "",
@@ -86,7 +95,10 @@ export function AddServiceRuleModal({ open, onClose, onSuccess, editRow }: AddSe
     skip: !open,
   });
 
-  const canSubmit = !!form.service && !!form.circle && !!form.l1.trim();
+  // Change Impact is mandatory only for a new rule — on edit it is fixed
+  // (the proc never updates it), so legacy rows without one can still be saved.
+  const canSubmit =
+    !!form.service && !!form.circle && !!form.l1.trim() && (isEdit || !!form.changeImpact);
 
   const handleClose = () => {
     setForm(EMPTY_FORM);
@@ -103,9 +115,10 @@ export function AddServiceRuleModal({ open, onClose, onSuccess, editRow }: AddSe
         id: editRow ? Number(editRow.id) : undefined,
         service: form.service,
         circle: form.circle,
-        l1: form.l1.trim(),
-        l2,
-        l3,
+        changeImpact: form.changeImpact || null,
+        l1OlmId: form.l1.trim(),
+        l2OlmId: l2,
+        l3OlmId: l3,
         l1EscalationTime: orNull(form.l1EscalationTime),
         // A tier without an OLM id carries no escalation time (the proc clears it too).
         l2EscalationTime: l2 ? orNull(form.l2EscalationTime) : null,
@@ -131,7 +144,7 @@ export function AddServiceRuleModal({ open, onClose, onSuccess, editRow }: AddSe
       <DialogContent>
         <LocalizationProvider dateAdapter={AdapterDayjs}>
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-          Configure the impacted-party approval chain for a service and circle. L1 is the primary
+          Configure the impacted-party approval chain for a service, circle and change impact. L1 is the primary
           approver; L2 and L3 are optional escalation tiers, each with its own escalation time.
         </Typography>
         <Stack spacing={2}>
@@ -158,6 +171,25 @@ export function AddServiceRuleModal({ open, onClose, onSuccess, editRow }: AddSe
             >
               {circles.map((c) => (
                 <MenuItem key={c.circleCode} value={c.circleCode}>{c.circleCode}</MenuItem>
+              ))}
+            </TextField>
+            {/* Fixed once created (like Service / Circle): the proc only
+                saves Change Impact on insert. */}
+            <TextField
+              select fullWidth required={!isEdit}
+              label="Change Impact"
+              InputLabelProps={{ shrink: true }}
+              value={form.changeImpact}
+              onChange={(e) => setForm((f) => ({ ...f, changeImpact: e.target.value as ImpactCode }))}
+              disabled={isEdit}
+              SelectProps={{
+                displayEmpty: isEdit,
+                // Show the short code in the field; the menu spells it out.
+                renderValue: (v) => (v ? String(v) : isEdit ? "—" : ""),
+              }}
+            >
+              {IMPACT_OPTIONS.map((o) => (
+                <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
               ))}
             </TextField>
           </Stack>

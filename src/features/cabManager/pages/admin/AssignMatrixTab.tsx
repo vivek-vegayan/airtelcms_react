@@ -28,6 +28,7 @@ import {
 } from "../../api/cabManagerApiSlice";
 import { ExportExcelButton } from "../../components/shared/ExportExcelButton";
 import { ActionGate } from "../../../../rbac/ActionGate";
+import { ImpactChip } from "../../components/shared/Chips";
 import { useActionPermission } from "../../../../rbac/useActionPermission";
 import { exportRowsToExcel, type ExcelColumn } from "../../../crqAnalytics/utils/excelExport";
 import {
@@ -54,6 +55,7 @@ const TOOLBAR_BUTTON_SX = {
 const SERVICE_RULE_EXPORT_COLUMNS: ExcelColumn[] = [
   { header: "Service Type", key: "service", width: 22 },
   { header: "Circle", key: "circle", width: 12 },
+  { header: "Impact", key: "changeImpact", width: 10 },
   { header: "L1", key: "l1", width: 24 },
   { header: "L1 Escalation Time", key: "l1EscalationTime", width: 18 },
   { header: "L2", key: "l2", width: 24 },
@@ -104,6 +106,16 @@ export function AdminAssignMatrixTab() {
       // rest off); faceted values feed the multi-select dropdown.
       { accessorKey: "service", header: "Service Type", size: 160, enableColumnFilter: true, filterVariant: "multi-select" },
       { accessorKey: "circle", header: "Circle", size: 100, enableColumnFilter: true, filterVariant: "multi-select" },
+      // A service + circle can have one rule per impact, so this tells them apart.
+      {
+        accessorKey: "changeImpact",
+        header: "Impact",
+        size: 90,
+        enableColumnFilter: true,
+        filterVariant: "multi-select",
+        Cell: ({ row }) =>
+          row.original.changeImpact ? <ImpactChip impact={row.original.changeImpact} /> : "—",
+      },
       ...(
         [
           ["l1", "L1", "#2E7D32", "l1EscalationTime"],
